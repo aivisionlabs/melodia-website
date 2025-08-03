@@ -409,7 +409,7 @@ export const customCreations: Song[] = [
   {
     id: 4,
     created_at: "2024-01-01T00:00:00Z",
-    title: "Independent Queen Birthday Song",
+    title: "Lipsa Birthday Song",
     lyrics: null,
     timestamp_lyrics: [
       { index: 0, text: "[Verse 1]", start: 7430, end: 7430 },

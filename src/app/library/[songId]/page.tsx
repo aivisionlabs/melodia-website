@@ -3,20 +3,20 @@ import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 
 import {
-  // pakurKiChhayaLyricsData,
   ruchiMyQueenLyricsData,
+  kaleidoscopeHeartLyricsData,
 } from "@/lib/lyrics-data";
 
 // Hardcoded song data for demo purposes
 const DEMO_SONGS = {
-  // "pakur-ki-chhaya": {
-  //   id: "pakur-ki-chhaya",
-  //   title: "Pakur Ki Chhaya",
-  //   artist: "Melodia",
-  //   audioUrl: "/audio/song-library/pakur-ki-chhaya.mp3",
-  //   duration: 249, // Updated duration based on converted lyrics
-  //   timestamp_lyrics: pakurKiChhayaLyricsData, // Use the converted lyrics
-  // },
+  "kaleidoscope-heart": {
+    id: "kaleidoscope-heart",
+    title: "Kaleidoscope Heart",
+    artist: "Melodia",
+    audioUrl: "/audio/kaleidoscope.mp3",
+    duration: 203, // Updated duration based on converted lyrics
+    timestamp_lyrics: kaleidoscopeHeartLyricsData, // Use the converted lyrics
+  },
   "ruchi-my-queen": {
     id: "ruchi-my-queen",
     title: "Ruchi My Queen",
