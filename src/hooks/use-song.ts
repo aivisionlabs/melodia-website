@@ -10,15 +10,6 @@ export const useSong = (songId: string) => {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    if (!songId) {
-      setLoading(false)
-      return
-    }
-
-    fetchSong()
-  }, [songId, fetchSong])
-
   const fetchSong = useCallback(async () => {
     startTransition(async () => {
       try {
@@ -41,6 +32,15 @@ export const useSong = (songId: string) => {
       }
     })
   }, [songId, startTransition])
+
+  useEffect(() => {
+    if (!songId) {
+      setLoading(false)
+      return
+    }
+
+    fetchSong()
+  }, [songId, fetchSong])
 
   return {
     song,

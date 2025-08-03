@@ -5,7 +5,10 @@ export default function NotFound() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100">
       <section className="text-center" aria-labelledby="notfound-title">
-        <CenterLogo alt="Melodia Logo" className="h-16 md:h-20 mx-auto mb-6" />
+        <CenterLogo
+          alt="Melodia"
+          className="w-auto h-auto md:h-20 mx-auto mb-6"
+        />
         <h1 id="notfound-title" className="text-4xl font-bold mb-4">
           404
         </h1>
