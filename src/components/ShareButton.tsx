@@ -18,7 +18,7 @@ export const ShareButton = ({ songId }: ShareButtonProps) => {
       try {
         await navigator.share({
           title: "Listen to this song with synchronized lyrics",
-          text: "Check out this amazing song with synchronized lyrics on Melodia!",
+          text: "Check out this amazing song with synchronized lyrics on Melodia, https://melodia-songs.com/",
           url: url,
         });
 

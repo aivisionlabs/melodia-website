@@ -5,6 +5,7 @@ import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 import {
   ruchiMyQueenLyricsData,
   kaleidoscopeHeartLyricsData,
+  yaaraLyricsData,
 } from "@/lib/lyrics-data";
 
 // Hardcoded song data for demo purposes
@@ -24,6 +25,14 @@ const DEMO_SONGS = {
     audioUrl: "/audio/song-library/ruchi-my-queen.mp3",
     duration: 179,
     timestamp_lyrics: ruchiMyQueenLyricsData,
+  },
+  yaara: {
+    id: "yaara",
+    title: "Yaara",
+    artist: "Melodia",
+    audioUrl: "/audio/song-library/yaara.mp3",
+    duration: 196.8,
+    timestamp_lyrics: yaaraLyricsData,
   },
 };
 
