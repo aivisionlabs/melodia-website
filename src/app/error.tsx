@@ -39,7 +39,7 @@ export default function Error({
         </h2>
 
         <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-          We're sorry, but something unexpected happened. Our team has been
+          We are sorry, but something unexpected happened. Our team has been
           notified and is working to fix this issue.
         </p>
 
