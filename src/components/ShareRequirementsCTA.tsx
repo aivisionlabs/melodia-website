@@ -14,9 +14,9 @@ const ShareRequirementsCTA = ({
   size = "md",
 }: ShareRequirementsCTAProps) => {
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2",
-    lg: "w-54 h-14 md:h-16 text-base md:text-lg",
+    sm: "px-2 py-1.5 text-xs sm:text-sm",
+    md: "px-3 py-2 text-sm sm:text-base",
+    lg: "w-full sm:w-54 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg",
   };
 
   return (
@@ -27,8 +27,8 @@ const ShareRequirementsCTA = ({
       }}
       className={`bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${sizeClasses[size]} ${className}`}
     >
-      <Edit className="h-4 w-4" />
-      Create Your Song
+      <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+      <span className="ml-1 sm:ml-2">Create Your Song</span>
     </Button>
   );
 };
