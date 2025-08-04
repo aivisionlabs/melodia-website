@@ -25,11 +25,11 @@ const Header = () => {
       {/* Desktop Navigation and CTA */}
       <div className="hidden md:flex items-center gap-6">
         <Link
-          href="/#creations-title"
+          href="/library"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Creations section"
         >
-          Creations
+          Library
         </Link>
         <Link
           href="/#testimonials-title"
@@ -65,12 +65,12 @@ const Header = () => {
         <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden z-50">
           <nav className="flex flex-col py-2" aria-label="Mobile navigation">
             <Link
-              href="/#creations-title"
+              href="/library"
               className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
-              aria-label="Jump to Creations section"
+              aria-label="Go to Songs Library"
             >
-              Creations
+              Library
             </Link>
             <Link
               href="/#testimonials-title"
