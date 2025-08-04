@@ -21,6 +21,7 @@ import birthdayBluePartyLyrics from "../../public/lyrics/birthday-blue-party.jso
 import sweetDreamsTonightLyrics from "../../public/lyrics/sweet-dreams-tonight.json";
 import akashBirthdayBashLyrics from "../../public/lyrics/akash-birthday-bash.json";
 import jashnEHemaliLyrics from "../../public/lyrics/jashn-e-hemali.json";
+import jassiDiJaanLyrics from "../../public/lyrics/jassi-di-jaan.json";
 
 // Export the converted lyrics
 // export const pakurKiChhayaLyricsData: LineTimestamp[] = pakurKiChhayaLyrics;
@@ -51,3 +52,5 @@ export const nirvanBirthdaySongLyricsData: LineTimestamp[] = nirvanBirthdaySongL
 export const kidsNightMusicalLyricsData: LineTimestamp[] = kidsNightMusicalLyrics;
 
 export const jashnEHemaliLyricsData: LineTimestamp[] = jashnEHemaliLyrics;
+
+export const jassiDiJaanLyricsData: LineTimestamp[] = jassiDiJaanLyrics;

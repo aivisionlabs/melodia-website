@@ -13,7 +13,8 @@ import {
   sweetDreamsTonightLyricsData,
   akashBirthdayBashLyricsData,
   yaaraLyricsData,
-  jashnEHemaliLyricsData
+  jashnEHemaliLyricsData,
+  jassiDiJaanLyricsData
 } from "./lyrics-data";
 
 
@@ -211,6 +212,20 @@ export const customCreations: Song[] = [
     prompt: null,
     service_provider: "Melodia",
     song_url: "/audio/jashn-e-hemali.mp3",
+    duration: 174,
+    slug: "jashn-e-hemali",
+  },
+  {
+    id: 15,
+    created_at: "2024-01-01T00:00:00Z",
+    title: "jassi-di-jaan",
+    lyrics: null,
+    timestamp_lyrics: jassiDiJaanLyricsData,
+    music_style: "Punjabi Romantic Song",
+    song_requester: null,
+    prompt: null,
+    service_provider: "Melodia",
+    song_url: "/audio/jassi-di-jaan.mp3",
     duration: 174,
     slug: "jashn-e-hemali",
   },

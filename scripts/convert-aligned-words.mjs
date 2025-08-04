@@ -181,13 +181,7 @@ console.log("Post-processing lines...");
 const finalLyrics = postProcessLines(cleanedLyrics);
 
 // Create the output
-const output = {
-  songId: "yaara", // You can change this to match your song ID
-  title: "Yaara",
-  artist: "Unknown Artist", // Update with actual artist
-  timestamp_lyrics: finalLyrics,
-};
-
+const output = finalLyrics;
 // Write to file
 const outputPath = path.join(
   __dirname,
