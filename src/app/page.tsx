@@ -7,8 +7,9 @@ import WhatsAppCTA from "@/components/WhatsAppCTA";
 import { Button } from "@/components/ui/button";
 import { MediaPlayer } from "@/components/MediaPlayer";
 import { customCreations, testimonials } from "@/lib/constants";
-import { Play } from "lucide-react";
+import { Play, Music } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 import { CenterLogo } from "@/components/OptimizedLogo";
 import { track } from "@vercel/analytics";
@@ -50,6 +51,23 @@ export default function HomePage() {
           >
             Our Creations
           </h2>
+
+          {/* Library CTA Button */}
+          <div className="mb-4 sm:mb-6 text-center">
+            <Link href="/library">
+              <Button
+                className="w-full bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg border-2 border-yellow-400 hover:border-yellow-500"
+                onClick={() => {
+                  track("library_cta_click", {
+                    location: "creations_section",
+                  });
+                }}
+              >
+                <Music className="h-5 w-5 mr-2 text-yellow-600" />
+                View All Songs in Library
+              </Button>
+            </Link>
+          </div>
           <div className="space-y-2 sm:space-y-3 md:space-y-4 flex-1">
             {customCreations.map((song) => (
               <div
@@ -72,18 +90,20 @@ export default function HomePage() {
                     <Play className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-gray-900" />
                   </Button>
                   <div className="min-w-0 flex-1">
-                    <span
-                      className="text-xs sm:text-sm md:text-base font-medium text-gray-800 block cursor-pointer hover:underline hover:text-yellow-700 transition-colors min-h-0"
-                      onClick={() => setSelectedSong(song)}
-                      tabIndex={0}
-                      role="button"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ")
-                          setSelectedSong(song);
-                      }}
-                    >
-                      {song.title}
-                    </span>
+                    <Link href={`/library/${song.slug}`}>
+                      <span
+                        className="text-xs sm:text-sm md:text-base font-medium text-gray-800 block cursor-pointer hover:underline hover:text-yellow-700 transition-colors min-h-0"
+                        tabIndex={0}
+                        role="button"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            window.location.href = `/library/${song.slug}`;
+                          }
+                        }}
+                      >
+                        {song.title}
+                      </span>
+                    </Link>
                     <span className="text-xs sm:text-sm md:text-base italic text-gray-700 block md:inline">
                       {song.music_style}
                     </span>
@@ -178,6 +198,7 @@ export default function HomePage() {
             artist: selectedSong.music_style ?? "",
             audioUrl: selectedSong.song_url ?? undefined,
             lyrics: selectedSong.timestamp_lyrics ?? undefined,
+            slug: selectedSong.slug,
           }}
           onClose={() => setSelectedSong(null)}
         />

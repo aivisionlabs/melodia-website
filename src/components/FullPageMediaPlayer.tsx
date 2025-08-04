@@ -38,6 +38,7 @@ interface Song {
   duration: number;
   timestamp_lyrics?: LyricLine[];
   lyrics?: string | null;
+  slug?: string;
 }
 
 interface FullPageMediaPlayerProps {
@@ -443,7 +444,10 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
 
           {/* Share Button */}
           <div className="flex items-center">
-            <ShareButton songId={song.id} />
+            <ShareButton
+              slug={song.slug}
+              title={`Listen to ${song.title} with synchronized lyrics`}
+            />
           </div>
         </div>
 

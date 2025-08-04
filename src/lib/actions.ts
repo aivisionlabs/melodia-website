@@ -87,7 +87,7 @@ export async function getSongs(
     // Build query with only public fields
     let query = supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration')
+      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
       .range(offset, offset + limit - 1)
 
     // Add search filter if provided
@@ -118,7 +118,8 @@ export async function getSongs(
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,
-      duration: song.duration
+      duration: song.duration,
+      slug: song.slug
     }))
 
     return {
@@ -171,7 +172,7 @@ export async function getSong(
     // Query with only public fields
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration')
+      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
       .eq('id', id)
       .single()
 
@@ -205,7 +206,8 @@ export async function getSong(
       music_style: data.music_style,
       service_provider: data.service_provider,
       song_url: data.song_url,
-      duration: data.duration
+      duration: data.duration,
+      slug: data.slug
     }
 
     return { song: publicSong }
@@ -251,7 +253,7 @@ export async function searchSongs(
 
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration')
+      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
       .ilike('title', `%${sanitizedQuery}%`)
       .limit(20)
 
@@ -272,7 +274,8 @@ export async function searchSongs(
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,
-      duration: song.duration
+      duration: song.duration,
+      slug: song.slug
     }))
 
     return { songs: publicSongs }

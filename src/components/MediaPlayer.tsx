@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Play, Pause, X, Rewind, FastForward, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import { ShareButton } from "@/components/ShareButton";
 
 // iOS Audio Context type declaration
 declare global {
@@ -25,6 +26,7 @@ interface MediaPlayerProps {
     audioUrl?: string;
     videoUrl?: string;
     lyrics?: LyricLine[];
+    slug?: string;
   };
   onClose: () => void;
 }
@@ -527,14 +529,20 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 md:h-10 md:w-10 p-0 text-white hover:bg-white/20 rounded-full flex-shrink-0"
-            >
-              <X className="h-4 w-4 md:h-5 md:w-5" />
-            </Button>
+            <div className="flex items-center gap-3">
+              <ShareButton
+                slug={song.slug}
+                title={`Listen to ${song.title} with synchronized lyrics`}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 md:h-10 md:w-10 p-0 text-white hover:bg-white/20 rounded-full flex-shrink-0"
+              >
+                <X className="h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+            </div>
           </div>
         </div>
 

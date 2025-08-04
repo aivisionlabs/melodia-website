@@ -5,20 +5,31 @@ import { useToast } from "@/hooks/use-toast";
 import { Share2 } from "lucide-react";
 
 interface ShareButtonProps {
-  songId: string;
+  songId?: string;
+  slug?: string;
+  title?: string;
+  className?: string;
 }
 
-export const ShareButton = ({ songId }: ShareButtonProps) => {
+export const ShareButton = ({
+  songId,
+  slug,
+  title,
+  className,
+}: ShareButtonProps) => {
   const { toast } = useToast();
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/song-library/${songId}`;
+    // Use slug-based URL if available, otherwise fall back to songId
+    const url = slug
+      ? `${window.location.origin}/library/${slug}`
+      : `${window.location.origin}/song-library/${songId}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Listen to this song with synchronized lyrics",
-          text: "Check out this amazing song with synchronized lyrics on Melodia, https://melodia-songs.com/",
+          title: title || "Listen to this song with synchronized lyrics",
+          text: "Check out this amazing song with synchronized lyrics on Melodia!",
           url: url,
         });
 
@@ -71,7 +82,9 @@ export const ShareButton = ({ songId }: ShareButtonProps) => {
       variant="outline"
       size="sm"
       onClick={handleShare}
-      className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+      className={`bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
+        className || ""
+      }`}
     >
       <Share2 className="h-4 w-4 mr-2" />
       Share

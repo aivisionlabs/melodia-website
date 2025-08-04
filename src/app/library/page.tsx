@@ -9,6 +9,7 @@ import { customCreations } from "@/lib/constants";
 import { Song } from "@/types";
 import { Music, Play } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
@@ -72,39 +73,47 @@ export default function SongLibraryPage() {
               return (
                 <Card
                   key={song.id}
-                  className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"
                 >
-                  <CardHeader className="text-center">
-                    {/* Album Art Placeholder */}
-                    <div
-                      className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br ${getGradientColor(
-                        song.music_style
-                      )} flex items-center justify-center shadow-lg`}
-                    >
-                      <Music className="h-12 w-12 text-white" />
-                    </div>
-                    <CardTitle className="text-gray-800 text-xl font-bold">
-                      {song.title}
-                    </CardTitle>
-                    <p className="text-gray-600 text-lg">
-                      {song.service_provider}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="text-center space-y-4">
-                    <p className="text-gray-700 text-sm">
-                      {song.music_style || "Custom Creation"}
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-                      <span>Duration: {formatDuration(song.duration)}</span>
-                    </div>
+                  <Link href={`/library/${song.slug}`}>
+                    <CardHeader className="text-center">
+                      {/* Album Art Placeholder */}
+                      <div
+                        className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br ${getGradientColor(
+                          song.music_style
+                        )} flex items-center justify-center shadow-lg`}
+                      >
+                        <Music className="h-12 w-12 text-white" />
+                      </div>
+                      <CardTitle className="text-gray-800 text-xl font-bold">
+                        {song.title}
+                      </CardTitle>
+                      <p className="text-gray-600 text-lg">
+                        {song.service_provider}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="text-center space-y-4">
+                      <p className="text-gray-700 text-sm">
+                        {song.music_style || "Custom Creation"}
+                      </p>
+                      <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+                        <span>Duration: {formatDuration(song.duration)}</span>
+                      </div>
+                    </CardContent>
+                  </Link>
+                  <div className="p-4 pt-0">
                     <Button
                       className="w-full bg-yellow-400 text-gray-900 hover:bg-yellow-500"
-                      onClick={() => handlePlaySong(song)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handlePlaySong(song);
+                      }}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Listen Now
                     </Button>
-                  </CardContent>
+                  </div>
                 </Card>
               );
             })}
@@ -120,6 +129,7 @@ export default function SongLibraryPage() {
             artist: selectedSong.service_provider || "Melodia",
             audioUrl: selectedSong.song_url || undefined,
             lyrics: selectedSong.timestamp_lyrics || undefined,
+            slug: selectedSong.slug,
           }}
           onClose={handleClosePlayer}
         />

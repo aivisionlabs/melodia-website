@@ -17,6 +17,7 @@ export interface Song {
   prompt: string | null
   song_url: string | null
   duration: number | null
+  slug: string
 }
 
 // Public song interface (without sensitive fields)
@@ -29,4 +30,5 @@ export interface PublicSong {
   service_provider: string | null
   song_url: string | null
   duration: number | null
+  slug: string
 }

@@ -1,59 +1,28 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
-
-import {
-  ruchiMyQueenLyricsData,
-  kaleidoscopeHeartLyricsData,
-  yaaraLyricsData,
-  harLamhaNayaLyricsData,
-} from "@/lib/lyrics-data";
-
-// Hardcoded song data for demo purposes
-const DEMO_SONGS = {
-  "kaleidoscope-heart": {
-    id: "kaleidoscope-heart",
-    title: "Kaleidoscope Heart",
-    artist: "Melodia",
-    audioUrl: "/audio/kaleidoscope.mp3",
-    duration: 203, // Updated duration based on converted lyrics
-    timestamp_lyrics: kaleidoscopeHeartLyricsData, // Use the converted lyrics
-  },
-  "ruchi-my-queen": {
-    id: "ruchi-my-queen",
-    title: "Ruchi My Queen",
-    artist: "Melodia",
-    audioUrl: "/audio/song-library/ruchi-my-queen.mp3",
-    duration: 179,
-    timestamp_lyrics: ruchiMyQueenLyricsData,
-  },
-  yaara: {
-    id: "yaara",
-    title: "Yaara",
-    artist: "Melodia",
-    audioUrl: "/audio/song-library/yaara.mp3",
-    duration: 196.8,
-    timestamp_lyrics: yaaraLyricsData,
-  },
-  "har-lamha-naya": {
-    id: "har-lamha-naya",
-    title: "Har Lamha Naya",
-    artist: "Melodia",
-    audioUrl: "/audio/song-library/har-lamha-naya.mp3",
-    duration: 269,
-    timestamp_lyrics: harLamhaNayaLyricsData,
-  },
-};
+import { customCreations } from "@/lib/constants";
 
 // Server Component for song data loading
 async function SongPageContent({ songId }: { songId: string }) {
-  const song = DEMO_SONGS[songId as keyof typeof DEMO_SONGS];
+  const song = customCreations.find((s) => s.slug === songId);
 
   if (!song) {
     notFound();
   }
 
-  return <FullPageMediaPlayer song={song} />;
+  // Map the song data to match FullPageMediaPlayer's expected interface
+  const mappedSong = {
+    id: song.id.toString(),
+    title: song.title,
+    artist: song.service_provider || "Melodia",
+    audioUrl: song.song_url || undefined,
+    duration: song.duration || 0,
+    timestamp_lyrics: song.timestamp_lyrics || undefined,
+    slug: song.slug,
+  };
+
+  return <FullPageMediaPlayer song={mappedSong} />;
 }
 
 // Loading component
@@ -77,7 +46,7 @@ export default async function SongLibraryPage({
   params: Promise<{ songId: string }>;
 }) {
   const { songId } = await params;
-  const song = DEMO_SONGS[songId as keyof typeof DEMO_SONGS];
+  const song = customCreations.find((s) => s.slug === songId);
 
   if (!song) {
     notFound();
