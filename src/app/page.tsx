@@ -7,6 +7,7 @@ import WhatsAppCTA from "@/components/WhatsAppCTA";
 import { Button } from "@/components/ui/button";
 import { MediaPlayer } from "@/components/MediaPlayer";
 import { customCreations, testimonials } from "@/lib/constants";
+import { formatDuration } from "@/lib/utils";
 import { Play, Music } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
@@ -110,7 +111,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <span className="text-xs sm:text-sm md:text-base text-gray-600 flex-shrink-0 ml-2 sm:ml-3">
-                  {song.duration}
+                  {formatDuration(song.duration)}
                 </span>
               </div>
             ))}

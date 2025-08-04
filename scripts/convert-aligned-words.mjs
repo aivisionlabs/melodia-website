@@ -8,6 +8,19 @@ const __dirname = path.dirname(__filename);
 // Import the aligned words data directly
 import { alignedWords } from "../align-words.mjs";
 
+// Get command line arguments
+const args = process.argv.slice(2);
+
+// Check if output filename is provided
+if (args.length === 0) {
+  console.error("❌ Error: Output filename is required!");
+  console.error("Usage: node convert-aligned-words.mjs <output-filename>");
+  console.error("Example: node convert-aligned-words.mjs my-song-lyrics.json");
+  process.exit(1);
+}
+
+const outputFilename = args[0];
+
 /**
  * Convert aligned words to line-by-line lyrics format using timing and content analysis
  * @param {Array} words - Array of word objects with timing information
@@ -188,7 +201,7 @@ const outputPath = path.join(
   "..",
   "public",
   "lyrics",
-  "yaara-converted.json"
+  outputFilename
 );
 fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
 

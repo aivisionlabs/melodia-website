@@ -6,6 +6,7 @@ import { MediaPlayer } from "@/components/MediaPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { customCreations } from "@/lib/constants";
+import { formatDuration } from "@/lib/utils";
 import { Song } from "@/types";
 import { Music, Play } from "lucide-react";
 import { useState } from "react";
@@ -61,13 +62,6 @@ export default function SongLibraryPage() {
                 if (styleLower.includes("musical"))
                   return "from-purple-400 to-pink-500";
                 return "from-blue-400 to-purple-500";
-              };
-
-              const formatDuration = (duration: number | null) => {
-                if (!duration) return "Unknown";
-                const minutes = Math.floor(duration / 60);
-                const seconds = duration % 60;
-                return `${minutes}:${seconds.toString().padStart(2, "0")}`;
               };
 
               return (

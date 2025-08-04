@@ -14,7 +14,8 @@ import {
   akashBirthdayBashLyricsData,
   yaaraLyricsData,
   jashnEHemaliLyricsData,
-  jassiDiJaanLyricsData
+  jassiDiJaanLyricsData,
+  aDreamNamedJivyLyricsData
 } from "./lyrics-data";
 
 
@@ -218,7 +219,7 @@ export const customCreations: Song[] = [
   {
     id: 15,
     created_at: "2024-01-01T00:00:00Z",
-    title: "jassi-di-jaan",
+    title: "Jassi-di-jaan",
     lyrics: null,
     timestamp_lyrics: jassiDiJaanLyricsData,
     music_style: "Punjabi Romantic Song",
@@ -228,6 +229,20 @@ export const customCreations: Song[] = [
     song_url: "/audio/jassi-di-jaan.mp3",
     duration: 174,
     slug: "jassi-di-jaan",
+  },
+  {
+    id: 16,
+    created_at: "2024-01-01T00:00:00Z",
+    title: "A Dream Named Jivy",
+    lyrics: null,
+    timestamp_lyrics: aDreamNamedJivyLyricsData,
+    music_style: "Mother's Love Lullaby",
+    song_requester: null,
+    prompt: null,
+    service_provider: "Melodia",
+    song_url: "/audio/a-dream-named-jivy.mp3",
+    duration: 274,
+    slug: "a-dream-named-jivy",
   },
 ];
 

@@ -23,7 +23,7 @@ interface SongsListProps {
 export function SongsList({
   initialSongs,
   searchQuery,
-}: Omit<SongsListProps, 'hasMore'>) {
+}: Omit<SongsListProps, "hasMore">) {
   const [songs] = useState(initialSongs);
 
   if (songs.length === 0) {
