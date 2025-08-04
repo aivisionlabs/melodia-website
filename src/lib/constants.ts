@@ -227,7 +227,7 @@ export const customCreations: Song[] = [
     service_provider: "Melodia",
     song_url: "/audio/jassi-di-jaan.mp3",
     duration: 174,
-    slug: "jashn-e-hemali",
+    slug: "jassi-di-jaan",
   },
 ];
 
