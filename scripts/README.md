@@ -53,7 +53,7 @@ To use the converted lyrics in your FullPageMediaPlayer:
      id: "yaara",
      title: "Yaara",
      artist: "Unknown Artist",
-     audioUrl: "/audio/song-library/yaara.mp3",
+     audioUrl: "/audio/yaara.mp3",
      duration: 209,
      timestamp_lyrics: yaaraLyrics.timestamp_lyrics
    };

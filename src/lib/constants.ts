@@ -13,6 +13,7 @@ import {
   sweetDreamsTonightLyricsData,
   akashBirthdayBashLyricsData,
   yaaraLyricsData,
+  jashnEHemaliLyricsData
 } from "./lyrics-data";
 
 
@@ -27,7 +28,7 @@ export const customCreations: Song[] = [
     song_requester: null,
     prompt: null,
     service_provider: "Melodia",
-    song_url: "/audio/song-library/ruchi-my-queen.mp3",
+    song_url: "/audio/ruchi-my-queen.mp3",
     duration: 179,
     slug: "ruchi-my-queen",
   },
@@ -181,7 +182,7 @@ export const customCreations: Song[] = [
     service_provider: "Melodia",
     song_requester: null,
     prompt: null,
-    song_url: "/audio/song-library/yaara.mp3",
+    song_url: "/audio/yaara.mp3",
     duration: 197,
     slug: "yaara",
   },
@@ -195,10 +196,24 @@ export const customCreations: Song[] = [
     song_requester: null,
     prompt: null,
     service_provider: "Melodia",
-    song_url: "/audio/song-library/har-lamha-naya.mp3",
+    song_url: "/audio/har-lamha-naya.mp3",
     duration: 269,
     slug: "har-lamha-naya",
-  }
+  },
+  {
+    id: 14,
+    created_at: "2024-01-01T00:00:00Z",
+    title: "Jashn-e-Hemali",
+    lyrics: null,
+    timestamp_lyrics: jashnEHemaliLyricsData,
+    music_style: "Birthday Party Song",
+    song_requester: null,
+    prompt: null,
+    service_provider: "Melodia",
+    song_url: "/audio/jashn-e-hemali.mp3",
+    duration: 174,
+    slug: "jashn-e-hemali",
+  },
 ];
 
 export const testimonials = [

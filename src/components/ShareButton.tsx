@@ -23,7 +23,7 @@ export const ShareButton = ({
     // Use slug-based URL if available, otherwise fall back to songId
     const url = slug
       ? `${window.location.origin}/library/${slug}`
-      : `${window.location.origin}/song-library/${songId}`;
+      : `${window.location.origin}/library/${songId}`;
 
     if (navigator.share) {
       try {

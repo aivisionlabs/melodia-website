@@ -6,16 +6,10 @@ const songWithLyrics = {
   id: "yaara",
   title: "Yaara",
   artist: "Unknown Artist", // Update with actual artist name
-  audioUrl: "/audio/song-library/yaara.mp3", // Update with actual audio path
+  audioUrl: "/audio/yaara.mp3", // Update with actual audio path
   duration: 209, // Duration in seconds
   timestamp_lyrics: yaaraLyrics.timestamp_lyrics,
 };
-
-// Example usage in a songs array
-const songs = [
-  songWithLyrics,
-  // ... other songs
-];
 
 // Example: How to use in your FullPageMediaPlayer component
 console.log("Song with synchronized lyrics:");
