@@ -6,6 +6,7 @@ import {
   ruchiMyQueenLyricsData,
   kaleidoscopeHeartLyricsData,
   yaaraLyricsData,
+  harLamhaNayaLyricsData,
 } from "@/lib/lyrics-data";
 
 // Hardcoded song data for demo purposes
@@ -33,6 +34,14 @@ const DEMO_SONGS = {
     audioUrl: "/audio/song-library/yaara.mp3",
     duration: 196.8,
     timestamp_lyrics: yaaraLyricsData,
+  },
+  "har-lamha-naya": {
+    id: "har-lamha-naya",
+    title: "Har Lamha Naya",
+    artist: "Melodia",
+    audioUrl: "/audio/song-library/har-lamha-naya.mp3",
+    duration: 269,
+    timestamp_lyrics: harLamhaNayaLyricsData,
   },
 };
 

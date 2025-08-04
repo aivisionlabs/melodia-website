@@ -1,4 +1,5 @@
 import { Song } from "@/types";
+import { ruchiMyQueenLyricsData } from "./lyrics-data";
 
 export const customCreations: Song[] = [
   {
@@ -1382,6 +1383,19 @@ export const customCreations: Song[] = [
     song_url: "/audio/akash-birthday.mp3",
     duration: 181,
   },
+  {
+    id: 11,
+    created_at: "2024-01-01T00:00:00Z",
+    title: "Ruchi My Queen",
+    lyrics: null,
+    timestamp_lyrics: ruchiMyQueenLyricsData,
+    music_style: "Rap",
+    song_requester: null,
+    prompt: null,
+    service_provider: "Melodia",
+    song_url: "/audio/song-library/ruchi-my-queen.mp3",
+    duration: 179,
+  }
 ];
 
 export const testimonials = [

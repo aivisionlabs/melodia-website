@@ -3,7 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, Rewind, FastForward, AlertCircle } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Rewind,
+  FastForward,
+  AlertCircle,
+  Music,
+  ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
 import { ShareButton } from "@/components/ShareButton";
 import { HeaderLogo } from "@/components/OptimizedLogo";
@@ -571,10 +579,21 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             </div>
           </div>
 
-          {/* Melodia Brand */}
-          <div className="hidden md:flex items-center gap-2 text-gray-500">
-            <HeaderLogo alt="Melodia" className="w-5 h-5" />
-            <span className="text-sm font-medium">Melodia</span>
+          {/* All Library CTA */}
+          <div className="flex items-center">
+            <Link href="/library">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 md:gap-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 transition-colors"
+              >
+                <Music className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="text-xs md:text-sm font-medium">
+                  All Library
+                </span>
+                <ArrowRight className="h-2 w-2 md:h-3 md:w-3" />
+              </Button>
+            </Link>
           </div>
         </div>
 
