@@ -15,12 +15,12 @@ export function StructuredData({ song, type }: StructuredDataProps) {
           name: "Melodia",
           description: "Create Personalized Songs for loved ones",
           url: "https://melodia-songs.com",
-          potentialAction: {
-            "@type": "SearchAction",
-            target:
-              "https://melodia-songs.com/library?search={search_term_string}",
-            "query-input": "required name=search_term_string",
-          },
+          // potentialAction: {
+          //   "@type": "SearchAction",
+          //   target:
+          //     "https://melodia-songs.com/library?search={search_term_string}",
+          //   "query-input": "required name=search_term_string",
+          // },
         };
 
       case "song":
