@@ -257,8 +257,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   };
 
   const skipTime = (seconds: number) => {
-    const previousTime = currentTime;
-
     if (audioRef.current && !audioError) {
       const newTime = Math.max(
         0,

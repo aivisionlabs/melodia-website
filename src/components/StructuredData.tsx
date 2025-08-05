@@ -43,7 +43,6 @@ export function StructuredData({ song, type }: StructuredDataProps) {
             "@type": "Organization",
             name: "Melodia",
           },
-          datePublished: song.created_at,
           ...(song.song_url && {
             audio: {
               "@type": "AudioObject",
