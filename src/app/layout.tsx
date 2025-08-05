@@ -77,6 +77,7 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
         <meta name="theme-color" content="#fbbf24" />
         <meta name="msapplication-TileColor" content="#fbbf24" />
+        <meta name="apple-mobile-web-app-title" content="Melodia" />
       </head>
       <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
