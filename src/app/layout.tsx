@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { StructuredData } from "@/components/StructuredData";
+import Script from "next/script";
+import { PageTracking } from "@/components/PageTracking";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,9 +62,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "your-google-verification-code",
-  },
 };
 
 export default function RootLayout({
@@ -78,8 +78,31 @@ export default function RootLayout({
         <meta name="theme-color" content="#fbbf24" />
         <meta name="msapplication-TileColor" content="#fbbf24" />
         <meta name="apple-mobile-web-app-title" content="Melodia" />
+
+        {/* Google tag (gtag.js) - Production only */}
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-TJW2DN7ND5"
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-TJW2DN7ND5');
+              `}
+            </Script>
+          </>
+        )}
       </head>
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} antialiased`}>
+        <StructuredData type="website" />
+        <StructuredData type="organization" />
+        <PageTracking />
+        {children}
+      </body>
     </html>
   );
 }

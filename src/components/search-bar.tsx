@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Search } from "lucide-react";
 import { debounce } from "@/lib/utils";
+import { trackSearchEvent } from "@/lib/analytics";
 
 interface SearchBarProps {
   initialQuery?: string;
@@ -28,7 +29,10 @@ export function SearchBar({ initialQuery }: SearchBarProps) {
   );
 
   const handleSearch = debounce((query: unknown) => {
-    if (typeof query === "string") {
+    if (typeof query === "string" && query.trim()) {
+      // Track search event
+      trackSearchEvent.search(query.trim(), 0); // Results count will be updated when results load
+
       startTransition(() => {
         const queryString = createQueryString("search", query);
         router.push(`/songs?${queryString}`);

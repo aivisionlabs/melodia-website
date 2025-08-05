@@ -4,6 +4,11 @@ import { Slider } from "@/components/ui/slider";
 import { Play, Pause, X, Rewind, FastForward, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
+import {
+  trackPlayerEvent,
+  trackEngagementEvent,
+  trackNavigationEvent,
+} from "@/lib/analytics";
 
 // iOS Audio Context type declaration
 declare global {
@@ -271,10 +276,16 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
         demoIntervalRef.current = null;
       }
       setIsPlaying(false);
+
+      // Track pause event
+      trackPlayerEvent.pause(song.title, song.slug || "unknown", currentTime);
     } else {
       // If no audio URL or audio error, simulate playing for demo
       if (!song.audioUrl || audioError) {
         setIsPlaying(true);
+        // Track demo play event
+        trackPlayerEvent.play(song.title, song.slug || "unknown", true);
+
         // Simulate time progression for demo
         demoIntervalRef.current = setInterval(() => {
           setCurrentTime((prev) => {
@@ -287,6 +298,8 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               }
               setIsPlaying(false);
               setCurrentTime(0);
+              // Track demo end event
+              trackPlayerEvent.audioEnd(song.title, song.slug || "unknown", 40);
               return 0;
             }
             return newTime;
@@ -306,10 +319,18 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               await playPromise;
               setIsPlaying(true);
               setAudioError(false);
+              // Track play event
+              trackPlayerEvent.play(song.title, song.slug || "unknown", false);
             }
           } catch (error) {
             console.warn("Error playing audio:", error);
             setAudioError(true);
+            // Track audio error
+            trackPlayerEvent.audioError(
+              song.title,
+              song.slug || "unknown",
+              "play_error"
+            );
           }
         }
       }
@@ -330,10 +351,40 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       );
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+
+      // Track skip event
+      if (seconds > 0) {
+        trackPlayerEvent.skipForward(
+          song.title,
+          song.slug || "unknown",
+          seconds
+        );
+      } else {
+        trackPlayerEvent.skipBackward(
+          song.title,
+          song.slug || "unknown",
+          Math.abs(seconds)
+        );
+      }
     } else if (!song.audioUrl || audioError) {
       // Handle demo mode
       const newTime = Math.max(0, Math.min(currentTime + seconds, 40));
       setCurrentTime(newTime);
+
+      // Track skip event in demo mode
+      if (seconds > 0) {
+        trackPlayerEvent.skipForward(
+          song.title,
+          song.slug || "unknown",
+          seconds
+        );
+      } else {
+        trackPlayerEvent.skipBackward(
+          song.title,
+          song.slug || "unknown",
+          Math.abs(seconds)
+        );
+      }
     }
   };
 
@@ -533,11 +584,31 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               <ShareButton
                 slug={song.slug}
                 title={`Listen to ${song.title} with synchronized lyrics`}
+                onShare={() =>
+                  trackEngagementEvent.share(
+                    song.title,
+                    song.slug || "unknown",
+                    "native_share"
+                  )
+                }
+                onCopyLink={() =>
+                  trackEngagementEvent.copyLink(
+                    song.title,
+                    song.slug || "unknown"
+                  )
+                }
               />
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
+                onClick={() => {
+                  trackNavigationEvent.click(
+                    "close_player",
+                    window.location.href,
+                    "button"
+                  );
+                  onClose();
+                }}
                 className="h-8 w-8 md:h-10 md:w-10 p-0 text-white hover:bg-white/20 rounded-full flex-shrink-0"
               >
                 <X className="h-4 w-4 md:h-5 md:w-5" />
@@ -643,12 +714,23 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               className="w-full"
               disabled={isLoading}
               onValueChange={(value) => {
+                const newTime = value[0];
+                const previousTime = currentTime;
+
+                // Track seek event
+                trackPlayerEvent.seek(
+                  song.title,
+                  song.slug || "unknown",
+                  previousTime,
+                  newTime
+                );
+
                 if (audioRef.current && !audioError) {
-                  audioRef.current.currentTime = value[0];
-                  setCurrentTime(value[0]);
+                  audioRef.current.currentTime = newTime;
+                  setCurrentTime(newTime);
                 } else if (!song.audioUrl || audioError) {
                   // Handle demo mode
-                  setCurrentTime(value[0]);
+                  setCurrentTime(newTime);
                 }
               }}
             />

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
+import { StructuredData } from "@/components/StructuredData";
 import { customCreations } from "@/lib/constants";
 
 // Server Component for song data loading
@@ -22,7 +23,25 @@ async function SongPageContent({ songId }: { songId: string }) {
     slug: song.slug,
   };
 
-  return <FullPageMediaPlayer song={mappedSong} />;
+  return (
+    <>
+      <StructuredData
+        type="song"
+        song={{
+          id: song.id,
+          title: song.title,
+          service_provider: song.service_provider,
+          song_url: song.song_url,
+          duration: song.duration,
+          timestamp_lyrics: song.timestamp_lyrics,
+          lyrics: song.lyrics,
+          music_style: song.music_style,
+          slug: song.slug,
+        }}
+      />
+      <FullPageMediaPlayer song={mappedSong} />
+    </>
+  );
 }
 
 // Loading component

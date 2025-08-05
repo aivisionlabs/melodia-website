@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { track } from "@vercel/analytics";
+import { trackCTAEvent } from "@/lib/analytics";
 import { Edit } from "lucide-react";
 
 interface ShareRequirementsCTAProps {
@@ -22,7 +22,7 @@ const ShareRequirementsCTA = ({
   return (
     <Button
       onClick={() => {
-        track("share_requirements_click");
+        trackCTAEvent.ctaClick("create_song_cta", "main_page", "button");
         window.open("https://forms.gle/XUsztM73btPfCr4M9", "_blank");
       }}
       className={`bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${sizeClasses[size]} ${className}`}

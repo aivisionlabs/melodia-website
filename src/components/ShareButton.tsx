@@ -9,6 +9,8 @@ interface ShareButtonProps {
   slug?: string;
   title?: string;
   className?: string;
+  onShare?: () => void;
+  onCopyLink?: () => void;
 }
 
 export const ShareButton = ({
@@ -16,6 +18,8 @@ export const ShareButton = ({
   slug,
   title,
   className,
+  onShare,
+  onCopyLink,
 }: ShareButtonProps) => {
   const { toast } = useToast();
 
@@ -32,6 +36,9 @@ export const ShareButton = ({
           text: "Check out this amazing song with synchronized lyrics on Melodia!",
           url: url,
         });
+
+        // Call tracking callback
+        onShare?.();
 
         // Show success toast for native sharing
         toast({
@@ -52,6 +59,9 @@ export const ShareButton = ({
     navigator.clipboard
       .writeText(url)
       .then(() => {
+        // Call tracking callback
+        onCopyLink?.();
+
         // Show success toast for clipboard copy
         toast({
           title: "Link copied!",
@@ -67,6 +77,9 @@ export const ShareButton = ({
         textArea.select();
         document.execCommand("copy");
         document.body.removeChild(textArea);
+
+        // Call tracking callback
+        onCopyLink?.();
 
         // Show success toast for fallback copy
         toast({

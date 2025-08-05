@@ -13,7 +13,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { CenterLogo } from "@/components/OptimizedLogo";
-import { track } from "@vercel/analytics";
+import { trackNavigationEvent, trackPlayerEvent } from "@/lib/analytics";
 
 // Component for animated images (GIFs, animated PNGs) that preserves animation
 const AnimatedImage = ({
@@ -59,9 +59,11 @@ export default function HomePage() {
               <Button
                 className="w-full bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg border-2 border-yellow-400 hover:border-yellow-500"
                 onClick={() => {
-                  track("library_cta_click", {
-                    location: "creations_section",
-                  });
+                  trackNavigationEvent.click(
+                    "library_cta",
+                    window.location.href,
+                    "button"
+                  );
                 }}
               >
                 <Music className="h-5 w-5 mr-2 text-yellow-600" />
@@ -80,10 +82,7 @@ export default function HomePage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      track("song_play", {
-                        songId: song.id,
-                        songTitle: song.title,
-                      });
+                      trackPlayerEvent.play(song.title, song.slug, false);
                       setSelectedSong(song);
                     }}
                     className="h-12 w-12 sm:h-14 sm:w-14 p-0 flex-shrink-0 bg-yellow-400 shadow-lg hover:bg-yellow-500 border-4 border-white transition-all duration-200 focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2"

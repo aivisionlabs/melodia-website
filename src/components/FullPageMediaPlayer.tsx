@@ -15,6 +15,11 @@ import {
 import Link from "next/link";
 import { ShareButton } from "@/components/ShareButton";
 import { HeaderLogo } from "@/components/OptimizedLogo";
+import {
+  trackPlayerEvent,
+  trackEngagementEvent,
+  trackNavigationEvent,
+} from "@/lib/analytics";
 
 // iOS Audio Context type declaration
 declare global {
@@ -188,10 +193,16 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
         demoIntervalRef.current = null;
       }
       setIsPlaying(false);
+
+      // Track pause event
+      trackPlayerEvent.pause(song.title, song.id, currentTime);
     } else {
       // If no audio URL or audio error, simulate playing for demo
       if (!song.audioUrl || audioError) {
         setIsPlaying(true);
+        // Track demo play event
+        trackPlayerEvent.play(song.title, song.id, true);
+
         // Simulate time progression for demo
         demoIntervalRef.current = setInterval(() => {
           setCurrentTime((prev) => {
@@ -204,6 +215,8 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
               }
               setIsPlaying(false);
               setCurrentTime(0);
+              // Track demo end event
+              trackPlayerEvent.audioEnd(song.title, song.id, 40);
               return 0;
             }
             return newTime;
@@ -223,10 +236,14 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
               await playPromise;
               setIsPlaying(true);
               setAudioError(false);
+              // Track play event
+              trackPlayerEvent.play(song.title, song.id, false);
             }
           } catch (error) {
             console.warn("Error playing audio:", error);
             setAudioError(true);
+            // Track audio error
+            trackPlayerEvent.audioError(song.title, song.id, "play_error");
           }
         }
       }
@@ -240,6 +257,8 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   };
 
   const skipTime = (seconds: number) => {
+    const previousTime = currentTime;
+
     if (audioRef.current && !audioError) {
       const newTime = Math.max(
         0,
@@ -247,10 +266,24 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       );
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+
+      // Track skip event
+      if (seconds > 0) {
+        trackPlayerEvent.skipForward(song.title, song.id, seconds);
+      } else {
+        trackPlayerEvent.skipBackward(song.title, song.id, Math.abs(seconds));
+      }
     } else if (!song.audioUrl || audioError) {
       // Handle demo mode
       const newTime = Math.max(0, Math.min(currentTime + seconds, 40));
       setCurrentTime(newTime);
+
+      // Track skip event in demo mode
+      if (seconds > 0) {
+        trackPlayerEvent.skipForward(song.title, song.id, seconds);
+      } else {
+        trackPlayerEvent.skipBackward(song.title, song.id, Math.abs(seconds));
+      }
     }
   };
 
@@ -447,6 +480,12 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             <ShareButton
               slug={song.slug}
               title={`Listen to ${song.title} with synchronized lyrics`}
+              onShare={() =>
+                trackEngagementEvent.share(song.title, song.id, "native_share")
+              }
+              onCopyLink={() =>
+                trackEngagementEvent.copyLink(song.title, song.id)
+              }
             />
           </div>
         </div>
@@ -589,6 +628,13 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() =>
+                  trackNavigationEvent.click(
+                    "all_library_cta",
+                    window.location.href,
+                    "button"
+                  )
+                }
                 className="flex items-center gap-1 md:gap-2 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 transition-colors"
               >
                 <Music className="h-3 w-3 md:h-4 md:w-4" />
@@ -648,7 +694,11 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             disabled={isLoading}
             onValueChange={(value) => {
               const newTime = value[0];
+              const previousTime = currentTime;
               setCurrentTime(newTime);
+
+              // Track seek event
+              trackPlayerEvent.seek(song.title, song.id, previousTime, newTime);
 
               // Update audio position if available and not in error state
               if (audioRef.current && !audioError && song.audioUrl) {
