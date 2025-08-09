@@ -442,6 +442,15 @@ export class SunoAPIFactory {
   private static instance: MockSunoAPI | SunoAPI | null = null;
 
   static getAPI(): MockSunoAPI | SunoAPI {
+    // On the client, never instantiate the real API (keeps tokens server-only)
+    if (typeof window !== 'undefined') {
+      if (!this.instance || !(this.instance instanceof MockSunoAPI)) {
+        this.instance = new MockSunoAPI();
+      }
+      return this.instance;
+    }
+
+    // Server-side: choose mock or real based on config
     if (!this.instance) {
       if (shouldUseMockAPI()) {
         this.instance = new MockSunoAPI();
@@ -454,5 +463,5 @@ export class SunoAPIFactory {
   }
 }
 
-// Export the factory as default for easy switching
-export default SunoAPIFactory.getAPI();
+// Note: We intentionally do NOT export a default instance here to avoid
+// triggering token access during module evaluation on the client.

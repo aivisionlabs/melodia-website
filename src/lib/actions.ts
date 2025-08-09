@@ -405,7 +405,8 @@ export async function createSongAction(formData: FormData) {
     await updateSongStatus(songResult.songId!, 'pending');
 
     // Call Suno API to generate song
-    const sunoAPI = (await import('@/lib/suno-api')).default;
+    const { SunoAPIFactory } = await import('@/lib/suno-api');
+    const sunoAPI = SunoAPIFactory.getAPI();
 
     const generateRequest = {
       prompt: lyrics,
@@ -675,7 +676,8 @@ export async function generateTimestampedLyricsAction(
     const variant = variants[variantIndex];
 
     // Call Suno API to get timestamped lyrics
-    const sunoAPI = (await import('@/lib/suno-api')).default;
+    const { SunoAPIFactory } = await import('@/lib/suno-api');
+    const sunoAPI = SunoAPIFactory.getAPI();
 
     const timestampedLyricsRequest = {
       taskId: taskId,
