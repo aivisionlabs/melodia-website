@@ -11,6 +11,8 @@ export interface Song {
   title: string
   lyrics: string | null
   timestamp_lyrics: LyricLine[] | null
+  timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
+  timestamped_lyrics_api_responses: { [variantIndex: number]: any } | null
   music_style: string | null
   service_provider: string | null
   song_requester: string | null
@@ -18,6 +20,16 @@ export interface Song {
   song_url: string | null
   duration: number | null
   slug: string
+  add_to_library?: boolean
+  is_deleted?: boolean
+  status?: string
+  categories?: string[]
+  tags?: string[]
+  suno_task_id?: string
+  negative_tags?: string
+  suno_variants?: any
+  selected_variant?: number
+  metadata?: any
 }
 
 // Public song interface (without sensitive fields)

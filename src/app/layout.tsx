@@ -4,6 +4,7 @@ import "./globals.css";
 import { StructuredData } from "@/components/StructuredData";
 import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -102,6 +103,7 @@ export default function RootLayout({
         <StructuredData type="organization" />
         <PageTracking />
         {children}
+        <Toaster />
       </body>
     </html>
   );

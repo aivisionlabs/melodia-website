@@ -1,4 +1,42 @@
-# Lyrics Conversion Script
+# Scripts Directory
+
+This directory contains utility scripts for the Melodia website.
+
+## Migration Script
+
+### migrate-songs.ts
+
+This script migrates songs from the constants file to the database using Drizzle ORM.
+
+#### Prerequisites
+
+1. **Database Setup**: Ensure your PostgreSQL database is running and accessible
+2. **Environment Variables**: Set up your `.env.local` file with:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost:5432/database_name
+   ```
+3. **TypeScript Runtime**: The script uses `tsx` to run TypeScript files directly (already available via npx)
+
+#### Usage
+
+```bash
+npx tsx scripts/migrate-songs.ts
+```
+
+#### What it does
+
+- Checks for existing songs to avoid duplicates
+- Migrates all songs from `src/lib/constants.ts` to the database
+- Sets appropriate default values for new fields
+- Marks existing songs as "completed" status
+
+#### Database Schema
+
+The script works with the following schema:
+- `songs` table with fields: id, title, lyrics, timestamp_lyrics, music_style, etc.
+- Uses Drizzle ORM for type-safe database operations
+
+## Lyrics Conversion Script
 
 This script converts aligned words data into a line-by-line format suitable for the FullPageMediaPlayer component.
 

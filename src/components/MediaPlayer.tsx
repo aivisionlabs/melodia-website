@@ -195,6 +195,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       }));
     }
 
+    // Use the lyrics prop if available, otherwise fall back to static lyrics
     if (!song.lyrics || song.lyrics.length === 0) {
       // Fallback lyrics if no timestamped lyrics are provided
       const fallbackLyrics = [

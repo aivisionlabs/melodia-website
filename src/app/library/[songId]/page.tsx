@@ -2,16 +2,11 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 import { StructuredData } from "@/components/StructuredData";
-import { customCreations } from "@/lib/constants";
+
+import { getSongBySlug } from "@/lib/db/services";
 
 // Server Component for song data loading
-async function SongPageContent({ songId }: { songId: string }) {
-  const song = customCreations.find((s) => s.slug === songId);
-
-  if (!song) {
-    notFound();
-  }
-
+async function SongPageContent({ song }: { song: any }) {
   // Map the song data to match FullPageMediaPlayer's expected interface
   const mappedSong = {
     id: song.id.toString(),
@@ -65,7 +60,14 @@ export default async function SongLibraryPage({
   params: Promise<{ songId: string }>;
 }) {
   const { songId } = await params;
-  const song = customCreations.find((s) => s.slug === songId);
+
+  // Get song from database (only active songs)
+  let song = null;
+  try {
+    song = await getSongBySlug(songId);
+  } catch (error) {
+    console.error("Error fetching song from database:", error);
+  }
 
   if (!song) {
     notFound();
@@ -73,7 +75,7 @@ export default async function SongLibraryPage({
 
   return (
     <Suspense fallback={<SongLoading />}>
-      <SongPageContent songId={songId} />
+      <SongPageContent song={song} />
     </Suspense>
   );
 }

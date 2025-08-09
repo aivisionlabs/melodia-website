@@ -5,6 +5,180 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export interface LyricLine {
+  index: number;
+  text: string;
+  start: number;
+  end: number;
+}
+
+export interface AlignedWord {
+  word: string;
+  success: boolean;
+  start_s: number;
+  end_s: number;
+  p_align: number;
+}
+
+/**
+ * Convert aligned words to line-by-line lyrics format using timing and content analysis
+ * @param alignedWords - Array of word objects with timing information from Suno API
+ * @returns Array of LyricLine objects
+ */
+export function convertAlignedWordsToLyricLines(alignedWords: AlignedWord[]): LyricLine[] {
+  const lines: LyricLine[] = [];
+  let currentLine: AlignedWord[] = [];
+  let currentLineStart: number | null = null;
+  let lineIndex = 0;
+
+  // Helper function to check if we should break line
+  function shouldBreakLine(currentWord: AlignedWord, nextWord: AlignedWord | undefined, currentLineWords: AlignedWord[]): boolean {
+    if (!nextWord) return true; // End of words
+
+    // Break after section markers
+    if (currentWord.word.includes("(") && currentWord.word.includes(")")) {
+      return true;
+    }
+
+    // Break before section markers
+    if (nextWord.word.includes("(") && nextWord.word.includes(")")) {
+      return true;
+    }
+
+    // Break after significant punctuation
+    const endPunctuation = [".", "!", "?", "…"];
+    if (endPunctuation.some((punct) => currentWord.word.includes(punct))) {
+      return true;
+    }
+
+    // Break if there's a significant timing gap (> 1.5 seconds)
+    const gap = nextWord.start_s - currentWord.end_s;
+    if (gap > 1.5) {
+      return true;
+    }
+
+    // Break if current line is getting too long (> 80 characters)
+    const currentLineText = currentLineWords.map((w) => w.word).join(" ") + " " + nextWord.word;
+    if (currentLineText.length > 80) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Process each word
+  for (let i = 0; i < alignedWords.length; i++) {
+    const word = alignedWords[i];
+    const nextWord = alignedWords[i + 1];
+
+    // Initialize line start time if this is the first word of a line
+    if (currentLine.length === 0) {
+      currentLineStart = word.start_s;
+    }
+
+    // Add word to current line
+    currentLine.push(word);
+
+    // Check if we should end the current line
+    if (shouldBreakLine(word, nextWord, currentLine)) {
+      // Create the line text
+      const lineText = currentLine
+        .map((w) => w.word.trim())
+        .join(" ")
+        .trim();
+
+      // Only add non-empty lines
+      if (lineText && lineText.length > 0) {
+        lines.push({
+          index: lineIndex,
+          text: lineText,
+          start: Math.round(currentLineStart! * 1000), // Convert to milliseconds
+          end: Math.round(word.end_s * 1000), // Convert to milliseconds
+        });
+        lineIndex++;
+      }
+
+      // Reset for next line
+      currentLine = [];
+      currentLineStart = null;
+    }
+  }
+
+  return cleanLyrics(lines);
+}
+
+/**
+ * Clean and format the lyrics for better readability
+ * @param lines - Array of LyricLine objects
+ * @returns Cleaned LyricLine objects
+ */
+function cleanLyrics(lines: LyricLine[]): LyricLine[] {
+  return lines
+    .map((line) => {
+      let cleanedText = line.text;
+
+      // Remove extra spaces
+      cleanedText = cleanedText.replace(/\s+/g, " ");
+
+      // Clean up section markers
+      cleanedText = cleanedText.replace(/\(\s*/g, "(").replace(/\s*\)/g, ")");
+
+      // Remove standalone section markers that don't have content
+      if (cleanedText.match(/^\([^)]+\)$/)) {
+        return null;
+      }
+
+      return {
+        ...line,
+        text: cleanedText.trim(),
+      };
+    })
+    .filter((line): line is LyricLine => line !== null && line.text.length > 0);
+}
+
+/**
+ * Post-process lines to improve structure
+ * @param lines - Array of LyricLine objects
+ * @returns Improved LyricLine objects
+ */
+function postProcessLines(lines: LyricLine[]): LyricLine[] {
+  const processed: LyricLine[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const nextLine = lines[i + 1];
+
+    // Skip standalone section markers
+    if (line.text.match(/^\([^)]+\)$/)) {
+      continue;
+    }
+
+    // If current line is very short and next line is also short, consider merging
+    if (line.text.length < 30 && nextLine && nextLine.text.length < 30) {
+      const gap = nextLine.start - line.end;
+      if (gap < 1000) {
+        // Less than 1 second gap
+        // Merge the lines
+        processed.push({
+          index: processed.length,
+          text: line.text + " " + nextLine.text,
+          start: line.start,
+          end: nextLine.end,
+        });
+        i++; // Skip the next line since we merged it
+        continue;
+      }
+    }
+
+    processed.push({
+      ...line,
+      index: processed.length,
+    });
+  }
+
+  return processed;
+}
+
 // Format duration from seconds to MM:SS
 export function formatDuration(seconds: number | null): string {
   if (!seconds) return '0:00'
