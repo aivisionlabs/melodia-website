@@ -1,6 +1,6 @@
 'use server'
 
-import { PublicSong } from '@/types';
+import { Song, PublicSong } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 import { createServerSupabaseClient } from './supabase';
 
@@ -117,7 +117,7 @@ export async function getSongs(
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
       music_style: song.music_style,
-      service_provider: song.service_provider,
+      service_provider: song.service_provider ?? null,
       song_url: song.song_url,
       duration: song.duration,
       slug: song.slug
@@ -500,18 +500,30 @@ export async function getSongByTaskIdAction(taskId: string) {
   }
 }
 
-export async function getActiveSongsAction() {
+export async function getActiveSongsAction(): Promise<
+  | { success: true; songs: Song[] }
+  | { success: false; error: string; songs: Song[] }
+> {
   try {
     const { getAllSongs } = await import('@/lib/db/queries/select');
     const dbSongs = await getAllSongs();
 
     // Transform database songs to match Song type
-    const songs = dbSongs.map(song => ({
-      ...song,
+    const songs: Song[] = dbSongs.map(song => ({
+      id: song.id,
       created_at: song.created_at.toISOString(),
+      title: song.title,
+      lyrics: song.lyrics ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
-      suno_variants: song.suno_variants as any,
-      metadata: song.metadata as any,
+      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
+      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
+      music_style: song.music_style ?? null,
+      service_provider: song.service_provider ?? null,
+      song_requester: song.song_requester ?? null,
+      prompt: song.prompt ?? null,
+      song_url: song.song_url ?? null,
+      duration: song.duration ?? null,
+      slug: song.slug,
       add_to_library: song.add_to_library ?? undefined,
       is_deleted: song.is_deleted ?? undefined,
       status: song.status ?? undefined,
@@ -519,7 +531,9 @@ export async function getActiveSongsAction() {
       tags: song.tags ?? undefined,
       suno_task_id: song.suno_task_id ?? undefined,
       negative_tags: song.negative_tags ?? undefined,
-      selected_variant: song.selected_variant ?? undefined
+      suno_variants: song.suno_variants as any,
+      selected_variant: song.selected_variant ?? undefined,
+      metadata: song.metadata as any,
     }));
 
     return { success: true, songs };
