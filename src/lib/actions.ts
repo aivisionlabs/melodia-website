@@ -1,6 +1,6 @@
 'use server'
 
-import { Song, PublicSong } from '@/types';
+import { Song, PublicSong, AlignedWord } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 import { createServerSupabaseClient } from './supabase';
 
@@ -424,12 +424,20 @@ export async function createSongAction(formData: FormData) {
 
       if (sunoResponse.code === 200) {
         // Update song with task ID
-        await updateSongStatus(
+        const updateResult = await updateSongStatus(
           songResult.songId!,
           'generating',
           undefined,
           sunoResponse.data.taskId
         );
+
+        if (!updateResult.success) {
+          console.error('Failed to update song with task ID:', updateResult.error);
+          // Still redirect but log the error
+        }
+
+        // Small delay to ensure database transaction is committed
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Redirect to progress page
         return {
@@ -443,9 +451,17 @@ export async function createSongAction(formData: FormData) {
     } catch (sunoError) {
       console.error('Suno API error:', sunoError);
       await updateSongStatus(songResult.songId!, 'failed');
+
+      const detailedMessage =
+        sunoError instanceof Error
+          ? sunoError.message
+          : typeof sunoError === 'string'
+            ? sunoError
+            : (sunoError as any)?.message || 'Failed to start song generation';
+
       return {
         success: false,
-        error: 'Failed to start song generation'
+        error: detailedMessage,
       };
     }
 
@@ -541,6 +557,43 @@ export async function getActiveSongsAction(): Promise<
   } catch (error) {
     console.error('Error in getActiveSongsAction:', error);
     return { success: false, error: 'Failed to get active songs', songs: [] };
+  }
+}
+
+// Suno helpers for client: server-backed status to avoid exposing tokens
+export async function getSunoModeAction(): Promise<{ useMock: boolean }> {
+  try {
+    const { shouldUseMockAPI } = await import('@/lib/config')
+    return { useMock: shouldUseMockAPI() }
+  } catch (error) {
+    console.error('Error in getSunoModeAction:', error)
+    // Default safe: assume real API in case of failure
+    return { useMock: false }
+  }
+}
+
+export async function getSunoRecordInfoAction(taskId: string) {
+  try {
+    const { SunoAPIFactory } = await import('@/lib/suno-api')
+    const api = SunoAPIFactory.getAPI()
+    const response = await api.getRecordInfo(taskId)
+    return response
+  } catch (error) {
+    console.error('Error in getSunoRecordInfoAction:', error)
+    return {
+      code: 500,
+      msg: 'Failed to fetch record info',
+      data: {
+        taskId,
+        parentMusicId: '',
+        param: '',
+        response: { taskId, sunoData: [] },
+        status: 'PENDING',
+        type: 'generate',
+        errorCode: 'INTERNAL_ERROR',
+        errorMessage: 'Failed to fetch record info',
+      }
+    }
   }
 }
 
@@ -696,15 +749,25 @@ export async function generateTimestampedLyricsAction(
 
     // Convert aligned words to lyric lines
     const { convertAlignedWordsToLyricLines } = await import('@/lib/utils');
-    const lyricLines = convertAlignedWordsToLyricLines(response.data.alignedWords);
+    
+    // Transform the aligned words to match the expected format
+    const transformedAlignedWords = response.data.alignedWords.map((word: AlignedWord) => ({
+      word: word.word,
+      start_s: word.start_s,
+      end_s: word.end_s,
+      success: word.success,
+      p_align: word.p_align
+    }));
+    
+    const lyricLines = convertAlignedWordsToLyricLines(transformedAlignedWords);
 
-    // Store the timestamped lyrics and API response for this variant
+    // Store the timestamped lyrics and only the alignedWords for this variant
     const { updateTimestampedLyricsForVariant } = await import('@/lib/db/queries/update');
     await updateTimestampedLyricsForVariant(
       songResult.song.id,
       variantIndex,
       lyricLines,
-      response // Store the full API response
+      response.data.alignedWords // Store only the alignedWords, not the entire response
     );
 
     return {

@@ -367,7 +367,7 @@ class MockSunoAPI {
 // Real API implementation
 export class SunoAPI {
   private apiToken: string;
-  private baseUrl = 'https://api.sunoapi.org/api/v1';
+  private baseUrl = SUNO_CONFIG.BASE_URL;
 
   constructor(apiToken: string) {
     this.apiToken = apiToken;

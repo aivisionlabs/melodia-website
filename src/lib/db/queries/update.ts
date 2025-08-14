@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../index';
 import { SelectSong, songsTable } from '../schema';
+import { AlignedWord } from '@/types';
 
 export async function updateSong(
   songId: number,
@@ -88,7 +89,7 @@ export async function updateTimestampedLyricsForVariant(
   songId: number,
   variantIndex: number,
   lyricLines: any[],
-  apiResponse?: any
+  alignedWords?: AlignedWord[] // Store only the alignedWords data, not the full API response
 ) {
   try {
     // Get current timestamped lyrics variants and API responses
@@ -107,9 +108,9 @@ export async function updateTimestampedLyricsForVariant(
     // Update the specific variant
     currentVariants[variantIndex] = lyricLines;
 
-    // Update the API response if provided
-    if (apiResponse) {
-      currentApiResponses[variantIndex] = apiResponse;
+    // Update the alignedWords data if provided (store only the alignedWords, not the full API response)
+    if (alignedWords) {
+      currentApiResponses[variantIndex] = alignedWords;
     }
 
     // Update the database

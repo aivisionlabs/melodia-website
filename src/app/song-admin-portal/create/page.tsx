@@ -2,7 +2,7 @@
 
 import { createSongAction } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CreateSongPage() {
@@ -10,8 +10,12 @@ export default function CreateSongPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasSubmittedRef = useRef(false);
 
   const handleSubmit = async (formData: FormData) => {
+    // Guard against double-submits (fast double click / enter)
+    if (hasSubmittedRef.current || isLoading) return;
+    hasSubmittedRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -45,12 +49,17 @@ export default function CreateSongPage() {
       });
     } finally {
       setIsLoading(false);
+      // allow future submissions only after a short tick to avoid race with router.push
+      setTimeout(() => {
+        hasSubmittedRef.current = false;
+      }, 1000);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      if (isLoading || hasSubmittedRef.current) return;
       const form = e.currentTarget.form;
       if (form) {
         form.requestSubmit();

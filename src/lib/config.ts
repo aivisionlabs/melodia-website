@@ -1,7 +1,7 @@
 // Configuration for Suno API
 export const SUNO_CONFIG = {
   // Set to false to use real Suno API, true to use mock API
-  USE_MOCK_API: process.env.NODE_ENV === 'development' ? true : false,
+  USE_MOCK_API: false,
 
   // Real API configuration
   API_TOKEN: process.env.SUNO_API_TOKEN,

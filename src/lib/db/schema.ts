@@ -16,7 +16,7 @@ export const songsTable = pgTable('songs', {
   lyrics: text('lyrics'),
   timestamp_lyrics: jsonb('timestamp_lyrics'),
   timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants'), // Store lyrics for both variants
-  timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses'), // Store raw API responses
+  timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses'), // Store only alignedWords data from API responses
   music_style: text('music_style'),
   service_provider: text('service_provider').default('Melodia'),
   song_requester: text('song_requester'),

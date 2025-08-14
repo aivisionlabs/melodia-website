@@ -1,12 +1,13 @@
 "use client";
 
-import { SunoAPIFactory, SunoVariant } from "@/lib/suno-api";
+import { SunoVariant } from "@/lib/suno-api";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import DeleteSongButton from "@/components/DeleteSongButton";
 import {
   getSongByTaskIdAction,
   updateSongWithVariantsAction,
+  getSunoRecordInfoAction,
 } from "@/lib/actions";
 import { Download, Check } from "lucide-react";
 
@@ -45,94 +46,75 @@ export default function GenerateProgressPage({
             title: result.song.title,
             slug: result.song.slug,
           });
+          // Set lyrics from the song record immediately
+          if (result.song.lyrics) {
+            setLyrics(result.song.lyrics);
+          }
+        } else {
+          console.warn("Song not found by taskId, will retry:", taskId);
+          // Song might not be ready yet, will retry in the next poll
         }
       } catch (error) {
         console.error("Error loading song info:", error);
       }
     };
 
+    // Try to load song info immediately
     loadSongInfo();
+
+    // Set up retry interval for song info (in case of race condition)
+    const songInfoInterval = setInterval(loadSongInfo, 5000); // Retry every 5 seconds
+
+    return () => clearInterval(songInfoInterval);
   }, [taskId]);
 
   useEffect(() => {
     const pollStatus = async () => {
       try {
-        // Try to get the task info
-        let response;
-        try {
-          response = await SunoAPIFactory.getAPI().getRecordInfo(taskId);
-        } catch (error) {
-          // If task not found, create a placeholder task with the same ID
-          console.log("Task not found, creating placeholder task for:", taskId);
+        // Use server action to get Suno status (ensures correct API mode)
+        const response = await getSunoRecordInfoAction(taskId);
 
-          const placeholderRequest = {
-            prompt: "Placeholder lyrics for task " + taskId,
-            style: "Pop",
-            title: "Placeholder Song",
-            customMode: true,
-            instrumental: false,
-            model: "V4_5PLUS",
-            callBackUrl: "http://localhost:3000/api/suno-webhook",
-          };
+        if (response.code === 200) {
+          const currentStatus = response.data.status;
+          const currentVariants = response.data.response.sunoData;
 
-          SunoAPIFactory.getAPI().createTaskWithId(taskId, placeholderRequest);
+          setStatus(currentStatus);
+          setVariants(currentVariants);
 
-          // Return a response for the initial state
-          response = {
-            code: 200,
-            msg: "success",
-            data: {
-              taskId,
-              parentMusicId: "",
-              param: JSON.stringify(placeholderRequest),
-              response: {
-                taskId,
-                sunoData: [],
-              },
-              status: "PENDING",
-              type: "GENERATE",
-              errorCode: null,
-              errorMessage: null,
-            },
-          };
-        }
+          // Update progress based on status
+          switch (currentStatus) {
+            case "PENDING":
+              setProgress(10);
+              break;
+            case "TEXT_SUCCESS":
+              setProgress(30);
+              break;
+            case "FIRST_SUCCESS":
+              setProgress(60);
+              break;
+            case "SUCCESS":
+              setProgress(100);
+              break;
+            case "CREATE_TASK_FAILED":
+            case "GENERATE_AUDIO_FAILED":
+            case "CALLBACK_EXCEPTION":
+            case "SENSITIVE_WORD_ERROR":
+              setError(`Generation failed: ${currentStatus}`);
+              setProgress(0);
+              break;
+          }
 
-        const currentStatus = response.data.status;
-        const currentVariants = response.data.response.sunoData;
-
-        setStatus(currentStatus);
-        setVariants(currentVariants);
-
-        // Update progress based on status
-        switch (currentStatus) {
-          case "PENDING":
-            setProgress(10);
-            break;
-          case "TEXT_SUCCESS":
-            setProgress(30);
-            break;
-          case "FIRST_SUCCESS":
-            setProgress(60);
-            break;
-          case "SUCCESS":
-            setProgress(100);
-            break;
-          case "CREATE_TASK_FAILED":
-          case "GENERATE_AUDIO_FAILED":
-          case "CALLBACK_EXCEPTION":
-          case "SENSITIVE_WORD_ERROR":
-            setError(`Generation failed: ${currentStatus}`);
-            setProgress(0);
-            break;
-        }
-
-        // Set lyrics from the first variant if available
-        if (currentVariants.length > 0 && currentVariants[0].prompt) {
-          setLyrics(currentVariants[0].prompt);
+          // Set lyrics from the first variant if available
+          if (currentVariants.length > 0 && currentVariants[0].prompt) {
+            setLyrics(currentVariants[0].prompt);
+          }
+        } else {
+          console.warn("Suno API returned error:", response.msg);
+          // Don't set error for non-200 responses during polling, just log
         }
       } catch (err) {
         console.error("Error polling status:", err);
-        setError("Failed to check generation status");
+        // Don't set error during polling, just log
       }
     };
 
@@ -143,7 +125,7 @@ export default function GenerateProgressPage({
     const interval = setInterval(pollStatus, 20000); // Poll every 20 seconds
 
     return () => clearInterval(interval);
-  }, [taskId, router]);
+  }, [taskId]);
 
   const getStatusMessage = () => {
     switch (status) {
