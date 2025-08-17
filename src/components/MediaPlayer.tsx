@@ -48,6 +48,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlayLoading, setIsPlayLoading] = useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
@@ -323,6 +324,9 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
           });
         }, 100);
       } else {
+        // Show loading state when trying to play actual audio
+        setIsPlayLoading(true);
+
         // Try to play actual audio with simplified iOS handling
         if (audio) {
           try {
@@ -336,12 +340,14 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               await playPromise;
               setIsPlaying(true);
               setAudioError(false);
+              setIsPlayLoading(false);
               // Track play event
               trackPlayerEvent.play(song.title, song.slug || "unknown", false);
             }
           } catch (error) {
             console.warn("Error playing audio:", error);
             setAudioError(true);
+            setIsPlayLoading(false);
             // Track audio error
             trackPlayerEvent.audioError(
               song.title,
@@ -701,10 +707,17 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               variant="ghost"
               size="lg"
               onClick={togglePlay}
-              disabled={isLoading}
+              disabled={isLoading || isPlayLoading}
               className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-yellow-400 hover:bg-yellow-500 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPlaying ? (
+              {isPlayLoading ? (
+                <div className="flex flex-col items-center justify-center gap-1 text-center">
+                  <div className="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-2 border-white border-t-transparent flex-shrink-0"></div>
+                  <span className="text-[10px] md:text-xs font-medium leading-none">
+                    Loading...
+                  </span>
+                </div>
+              ) : isPlaying ? (
                 <Pause className="h-6 w-6 md:h-8 md:w-8" />
               ) : (
                 <Play className="h-6 w-6 md:h-8 md:w-8 ml-0.5 md:ml-1" />
