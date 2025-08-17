@@ -105,7 +105,9 @@ export default function HomePage() {
                       </span>
                     </Link>
                     <span className="text-xs sm:text-sm md:text-base italic text-gray-700 block md:inline">
-                      {song.music_style}
+                      {song.categories && song.categories.length > 0
+                        ? song.categories.join(", ")
+                        : song.music_style || "Custom Creation"}
                     </span>
                   </div>
                 </div>
@@ -196,8 +198,10 @@ export default function HomePage() {
           song={{
             title: selectedSong.title,
             artist: selectedSong.music_style ?? "",
-            audioUrl: selectedSong.song_url ?? undefined,
-            lyrics: selectedSong.timestamp_lyrics ?? undefined,
+            song_url: selectedSong.song_url ?? undefined,
+            timestamped_lyrics_variants:
+              selectedSong.timestamped_lyrics_variants ?? undefined,
+            selected_variant: selectedSong.selected_variant ?? undefined,
             slug: selectedSong.slug,
           }}
           onClose={() => setSelectedSong(null)}

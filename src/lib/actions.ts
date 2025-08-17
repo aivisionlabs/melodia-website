@@ -88,7 +88,7 @@ export async function getSongs(
     // Build query with only public fields
     let query = supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
       .range(offset, offset + limit - 1)
 
     // Add search filter if provided
@@ -116,6 +116,7 @@ export async function getSongs(
       title: song.title,
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
+      timestamped_lyrics_variants: song.timestamped_lyrics_variants,
       music_style: song.music_style,
       service_provider: song.service_provider ?? null,
       song_url: song.song_url,
@@ -173,7 +174,7 @@ export async function getSong(
     // Query with only public fields
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
       .eq('id', id)
       .single()
 
@@ -204,6 +205,7 @@ export async function getSong(
       title: data.title,
       lyrics: data.lyrics,
       timestamp_lyrics: data.timestamp_lyrics,
+      timestamped_lyrics_variants: data.timestamped_lyrics_variants,
       music_style: data.music_style,
       service_provider: data.service_provider,
       song_url: data.song_url,
@@ -254,7 +256,7 @@ export async function searchSongs(
 
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
       .ilike('title', `%${sanitizedQuery}%`)
       .limit(20)
 
@@ -272,6 +274,7 @@ export async function searchSongs(
       title: song.title,
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
+      timestamped_lyrics_variants: song.timestamped_lyrics_variants,
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,
@@ -551,6 +554,7 @@ export async function getActiveSongsAction(): Promise<
       suno_variants: song.suno_variants as any,
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata as any,
+      sequence: song.sequence ?? undefined,
     }));
 
     return { success: true, songs };
@@ -630,8 +634,8 @@ export async function updateSongWithVariantsAction(
             const { updateSong } = await import('@/lib/db/queries/update');
             await updateSong(songId, {
               timestamp_lyrics: lyricsResult.lyricLines,
-              song_url: variants[selectedVariant]?.audioUrl || song.song_url,
-              duration: variants[selectedVariant]?.duration || song.duration
+              song_url: variants[selectedVariant]?.sourceAudioUrl || song.song_url,
+              duration: (variants[selectedVariant]?.duration || song.duration)?.toString()
             });
 
             return {
@@ -734,11 +738,17 @@ export async function generateTimestampedLyricsAction(
 
     const timestampedLyricsRequest = {
       taskId: taskId,
-      audioId: variant.id,
+      audioId: variant.id || "", // Use variant ID if available, otherwise empty string
       musicIndex: variantIndex
     };
 
-    const response = await sunoAPI.getTimestampedLyrics(timestampedLyricsRequest);
+    let response;
+    try {
+      response = await sunoAPI.getTimestampedLyrics(timestampedLyricsRequest);
+    } catch (error) {
+      console.error('Error calling Suno API:', error);
+      throw error;
+    }
 
     if (response.code !== 200) {
       return {
@@ -747,28 +757,113 @@ export async function generateTimestampedLyricsAction(
       };
     }
 
-    // Convert aligned words to lyric lines
-    const { convertAlignedWordsToLyricLines } = await import('@/lib/utils');
-    
+    // Check if we have aligned words data
+
+    if (!response.data || !response.data.alignedWords || !Array.isArray(response.data.alignedWords)) {
+      console.error('Invalid response format:', response);
+      return {
+        success: false,
+        error: 'Invalid response format: missing alignedWords data'
+      };
+    }
+
+
+
+    // Check if timing data exists
+    const hasTimingData = response.data.alignedWords.every(word =>
+      typeof word.startS === 'number' && typeof word.endS === 'number'
+    );
+
+    if (!hasTimingData) {
+      console.error('Missing timing data in API response');
+    }
+
     // Transform the aligned words to match the expected format
-    const transformedAlignedWords = response.data.alignedWords.map((word: AlignedWord) => ({
-      word: word.word,
-      start_s: word.start_s,
-      end_s: word.end_s,
-      success: word.success,
-      p_align: word.p_align
-    }));
-    
-    const lyricLines = convertAlignedWordsToLyricLines(transformedAlignedWords);
+
+    const transformedAlignedWords = response.data.alignedWords.map((word: any) => {
+      const transformed = {
+        word: word.word,
+        startS: word.startS, // Use startS from API response
+        endS: word.endS,     // Use endS from API response
+        success: word.success,
+        palign: word.palign || 0 // API response uses 'palign'
+      };
+
+      return transformed;
+    });
+
+    // Validate that we have timing data
+
+    const transformedHasTimingData = transformedAlignedWords.every(word =>
+      typeof word.startS === 'number' && typeof word.endS === 'number'
+    );
+
+    if (!transformedHasTimingData) {
+      console.error('Missing timing data in transformed words');
+      return {
+        success: false,
+        error: 'Missing timing data in aligned words'
+      };
+    }
+
+    // Convert aligned words to lyric lines using the conversion logic
+
+    // Validate that we have valid timing data before conversion
+    const validWords = transformedAlignedWords.filter(word =>
+      typeof word.startS === 'number' && typeof word.endS === 'number' &&
+      !isNaN(word.startS) && !isNaN(word.endS) &&
+      word.startS >= 0 && word.endS > word.startS
+    );
+
+
+
+
+    if (validWords.length === 0) {
+      console.error('No valid words with timing data found!');
+      return {
+        success: false,
+        error: 'No valid words with timing data found'
+      };
+    }
+
+
+
+    const lyricLines = convertToLyricLines(validWords);
+
+
+
+    if (lyricLines.length > 0) {
+      console.log('First converted line:', lyricLines[0]);
+      console.log('Last converted line:', lyricLines[lyricLines.length - 1]);
+    }
+
+
 
     // Store the timestamped lyrics and only the alignedWords for this variant
     const { updateTimestampedLyricsForVariant } = await import('@/lib/db/queries/update');
+
+    // Validate that we have valid timing data before storage
+    const linesWithNullValues = lyricLines.filter(line =>
+      line.start === null || line.end === null ||
+      typeof line.start === 'undefined' || typeof line.end === 'undefined'
+    );
+
+    if (linesWithNullValues.length > 0) {
+      console.error('Cannot store lyrics with null timing values');
+      return {
+        success: false,
+        error: 'Cannot store lyrics with null timing values'
+      };
+    }
+
     await updateTimestampedLyricsForVariant(
       songResult.song.id,
       variantIndex,
       lyricLines,
       response.data.alignedWords // Store only the alignedWords, not the entire response
     );
+
+
 
     return {
       success: true,
@@ -784,6 +879,153 @@ export async function generateTimestampedLyricsAction(
       error: 'Failed to generate timestamped lyrics'
     };
   }
+}
+
+/**
+ * Convert aligned words to line-by-line lyrics format using timing and content analysis
+ * This function is rewritten from scratch based on the working version from scripts/convert-aligned-words.mjs
+ * @param words - Array of word objects with timing information
+ * @returns {Array} Array of LyricLine objects
+ */
+function convertToLyricLines(words: any[]) {
+  const lines: any[] = [];
+  let currentLine: any[] = [];
+  let currentLineStart: number | null = null;
+  let lineIndex = 0;
+
+  // Helper function to check if we should break line
+  function shouldBreakLine(currentWord: any, nextWord: any, currentLineWords: any[]) {
+    if (!nextWord) return true; // End of words
+
+    // Break after section markers
+    if (currentWord.word.includes("(") && currentWord.word.includes(")")) {
+      return true;
+    }
+
+    // Break before section markers
+    if (nextWord.word.includes("(") && nextWord.word.includes(")")) {
+      return true;
+    }
+
+    // Break after significant punctuation
+    const endPunctuation = [".", "!", "?", "…"];
+    if (endPunctuation.some((punct) => currentWord.word.includes(punct))) {
+      return true;
+    }
+
+    // Break if there's a significant timing gap (> 1.5 seconds)
+    const gap = nextWord.startS - currentWord.endS;
+    if (gap > 1.5) {
+      return true;
+    }
+
+    // Break if current line is getting too long (> 80 characters)
+    const currentLineText =
+      currentLineWords.map((w) => w.word).join(" ") + " " + nextWord.word;
+    if (currentLineText.length > 80) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Process each word
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const nextWord = words[i + 1];
+
+    // Initialize line start time if this is the first word of a line
+    if (currentLine.length === 0) {
+      currentLineStart = word.startS;
+    }
+
+    // Add word to current line
+    currentLine.push(word);
+
+    // Check if we should end the current line
+    if (shouldBreakLine(word, nextWord, currentLine)) {
+      // Create the line text
+      const lineText = currentLine
+        .map((w) => w.word.trim())
+        .join(" ")
+        .trim();
+
+      // Only add non-empty lines
+      if (lineText && lineText.length > 0) {
+        // Calculate timing values - subtract a small offset to show lyrics slightly before audio
+        const startMs = Math.round((currentLineStart! - 0.2) * 1000); // 200ms early
+        const endMs = Math.round(word.endS * 1000);
+
+        const line = {
+          index: lineIndex,
+          text: lineText,
+          start: startMs,
+          end: endMs,
+        };
+
+        lines.push(line);
+        lineIndex++;
+      }
+
+      // Reset for next line
+      currentLine = [];
+      currentLineStart = null;
+    }
+  }
+
+  // Handle the last line if it wasn't processed in the loop
+  if (currentLine.length > 0) {
+    const lineText = currentLine
+      .map((w) => w.word.trim())
+      .join(" ")
+      .trim();
+
+    if (lineText && lineText.length > 0) {
+      const startMs = Math.round((currentLineStart! - 0.2) * 1000); // 200ms early
+      const endMs = Math.round(currentLine[currentLine.length - 1].endS * 1000);
+
+      const line = {
+        index: lineIndex,
+        text: lineText,
+        start: startMs,
+        end: endMs,
+      };
+
+      lines.push(line);
+    }
+  }
+
+  const cleanedLines = cleanLyrics(lines);
+  return cleanedLines;
+}
+
+/**
+ * Clean and format the lyrics for better readability
+ * @param lines - Array of LyricLine objects
+ * @returns {Array} Cleaned LyricLine objects
+ */
+function cleanLyrics(lines: any[]) {
+  return lines
+    .map((line) => {
+      let cleanedText = line.text;
+
+      // Remove extra spaces
+      cleanedText = cleanedText.replace(/\s+/g, " ");
+
+      // Clean up section markers
+      cleanedText = cleanedText.replace(/\(\s*/g, "(").replace(/\s*\)/g, ")");
+
+      // Remove standalone section markers that don't have content
+      if (cleanedText.match(/^\([^)]+\)$/)) {
+        return null;
+      }
+
+      return {
+        ...line,
+        text: cleanedText.trim(),
+      };
+    })
+    .filter((line) => line !== null && line.text.length > 0);
 }
 
 // Action to complete song creation with synchronized lyrics

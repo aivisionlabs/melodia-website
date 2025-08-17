@@ -23,7 +23,26 @@ export default function SongLibraryPage() {
       try {
         const result = await getActiveSongsAction();
         if (result.success) {
-          setSongs(result.songs || []);
+          // Sort songs by sequence field, with fallback to created_at for backward compatibility
+          const sortedSongs = (result.songs || []).sort((a, b) => {
+            // If both songs have sequence values, sort by sequence
+            if (a.sequence !== undefined && b.sequence !== undefined) {
+              return a.sequence - b.sequence;
+            }
+            // If only one has sequence, prioritize the one with sequence
+            if (a.sequence !== undefined && b.sequence === undefined) {
+              return -1;
+            }
+            if (a.sequence === undefined && b.sequence !== undefined) {
+              return 1;
+            }
+            // Fallback to created_at for songs without sequence
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
+          });
+          setSongs(sortedSongs);
         } else {
           console.error("Failed to load songs:", result.error);
           setSongs([]);
@@ -75,24 +94,61 @@ export default function SongLibraryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {songs.map((song) => {
-                // Generate gradient colors based on song style
-                const getGradientColor = (style: string | null) => {
-                  if (!style) return "from-blue-400 to-purple-500";
+                // Generate gradient colors based on song categories or style
+                const getGradientColor = (
+                  categories: string[] | null,
+                  style: string | null
+                ) => {
+                  if (!categories || categories.length === 0) {
+                    if (!style) return "from-blue-400 to-purple-500";
 
-                  const styleLower = style.toLowerCase();
-                  if (styleLower.includes("birthday"))
+                    const styleLower = style.toLowerCase();
+                    if (styleLower.includes("birthday"))
+                      return "from-pink-400 to-red-500";
+                    if (
+                      styleLower.includes("wedding") ||
+                      styleLower.includes("love")
+                    )
+                      return "from-green-400 to-teal-500";
+                    if (styleLower.includes("lullaby"))
+                      return "from-indigo-400 to-blue-500";
+                    if (styleLower.includes("motivational"))
+                      return "from-orange-400 to-red-500";
+                    if (styleLower.includes("musical"))
+                      return "from-purple-400 to-pink-500";
+                    return "from-blue-400 to-purple-500";
+                  }
+
+                  // Use categories for color generation
+                  const categoryText = categories.join(" ").toLowerCase();
+                  if (categoryText.includes("birthday"))
                     return "from-pink-400 to-red-500";
                   if (
-                    styleLower.includes("wedding") ||
-                    styleLower.includes("love")
+                    categoryText.includes("wedding") ||
+                    categoryText.includes("love") ||
+                    categoryText.includes("romantic")
                   )
                     return "from-green-400 to-teal-500";
-                  if (styleLower.includes("lullaby"))
+                  if (
+                    categoryText.includes("lullaby") ||
+                    categoryText.includes("sleep")
+                  )
                     return "from-indigo-400 to-blue-500";
-                  if (styleLower.includes("motivational"))
+                  if (
+                    categoryText.includes("motivational") ||
+                    categoryText.includes("inspirational")
+                  )
                     return "from-orange-400 to-red-500";
-                  if (styleLower.includes("musical"))
+                  if (
+                    categoryText.includes("musical") ||
+                    categoryText.includes("party")
+                  )
                     return "from-purple-400 to-pink-500";
+                  if (
+                    categoryText.includes("acoustic") ||
+                    categoryText.includes("ballad")
+                  )
+                    return "from-yellow-400 to-orange-500";
                   return "from-blue-400 to-purple-500";
                 };
 
@@ -106,6 +162,7 @@ export default function SongLibraryPage() {
                         {/* Album Art Placeholder */}
                         <div
                           className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br ${getGradientColor(
+                            song.categories || null,
                             song.music_style
                           )} flex items-center justify-center shadow-lg`}
                         >
@@ -120,7 +177,9 @@ export default function SongLibraryPage() {
                       </CardHeader>
                       <CardContent className="text-center space-y-4">
                         <p className="text-gray-700 text-sm">
-                          {song.music_style || "Custom Creation"}
+                          {song.categories && song.categories.length > 0
+                            ? song.categories.join(", ")
+                            : song.music_style || "Custom Creation"}
                         </p>
                         <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
                           <span>Duration: {formatDuration(song.duration)}</span>
@@ -154,8 +213,10 @@ export default function SongLibraryPage() {
           song={{
             title: selectedSong.title,
             artist: selectedSong.service_provider || "Melodia",
-            audioUrl: selectedSong.song_url || undefined,
-            lyrics: selectedSong.timestamp_lyrics || undefined,
+            song_url: selectedSong.song_url || undefined,
+            timestamped_lyrics_variants:
+              selectedSong.timestamped_lyrics_variants || undefined,
+            selected_variant: selectedSong.selected_variant || undefined,
             slug: selectedSong.slug,
           }}
           onClose={handleClosePlayer}

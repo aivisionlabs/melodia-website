@@ -14,10 +14,10 @@ export interface LyricLine {
 
 export interface AlignedWord {
   word: string;
+  startS: number; // Changed from start_s to startS
+  endS: number;   // Changed from end_s to endS
   success: boolean;
-  start_s: number;
-  end_s: number;
-  p_align: number;
+  palign: number; // API response uses 'palign' not 'p_align'
 }
 
 /**
@@ -52,7 +52,7 @@ export function convertAlignedWordsToLyricLines(alignedWords: AlignedWord[]): Ly
     }
 
     // Break if there's a significant timing gap (> 1.5 seconds)
-    const gap = nextWord.start_s - currentWord.end_s;
+    const gap = nextWord.startS - currentWord.endS;
     if (gap > 1.5) {
       return true;
     }
@@ -73,7 +73,7 @@ export function convertAlignedWordsToLyricLines(alignedWords: AlignedWord[]): Ly
 
     // Initialize line start time if this is the first word of a line
     if (currentLine.length === 0) {
-      currentLineStart = word.start_s;
+      currentLineStart = word.startS;
     }
 
     // Add word to current line
@@ -93,7 +93,7 @@ export function convertAlignedWordsToLyricLines(alignedWords: AlignedWord[]): Ly
           index: lineIndex,
           text: lineText,
           start: Math.round(currentLineStart! * 1000), // Convert to milliseconds
-          end: Math.round(word.end_s * 1000), // Convert to milliseconds
+          end: Math.round(word.endS * 1000), // Convert to milliseconds
         });
         lineIndex++;
       }
@@ -180,12 +180,18 @@ function postProcessLines(lines: LyricLine[]): LyricLine[] {
 }
 
 // Format duration from seconds to MM:SS
-export function formatDuration(seconds: number | null): string {
-  if (!seconds) return '0:00'
+export function formatDuration(seconds: number | string | null): string {
+  if (seconds === null || seconds === undefined) return '0:00';
 
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  // Convert string to number if needed
+  const numSeconds = typeof seconds === 'string' ? parseFloat(seconds) : seconds;
+
+  if (isNaN(numSeconds) || numSeconds <= 0) return '0:00';
+
+  const minutes = Math.floor(numSeconds / 60);
+  const remainingSeconds = Math.floor(numSeconds % 60);
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
 // Sanitize text input

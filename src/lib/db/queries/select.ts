@@ -7,7 +7,7 @@ export async function getAllSongs(): Promise<SelectSong[]> {
     .select()
     .from(songsTable)
     .where(and(eq(songsTable.add_to_library, true), eq(songsTable.is_deleted, false)))
-    .orderBy(desc(songsTable.created_at));
+    .orderBy(songsTable.sequence, songsTable.created_at);
 }
 
 export async function getSongBySlug(slug: string): Promise<SelectSong | undefined> {

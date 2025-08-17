@@ -40,8 +40,11 @@ interface Song {
   title: string;
   artist: string;
   audioUrl?: string;
+  song_url?: string;
   duration: number;
   timestamp_lyrics?: LyricLine[];
+  timestamped_lyrics_variants?: { [variantIndex: number]: LyricLine[] } | null;
+  selected_variant?: number;
   lyrics?: string | null;
   slug?: string;
 }
@@ -73,6 +76,12 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   // Convert current time to milliseconds for timestamp comparison
   const currentTimeMs = currentTime * 1000;
 
+  // Helper function to get the correct audio URL
+  const getAudioUrl = useCallback(() => {
+    // Priority: song_url (new field) > audioUrl (legacy field)
+    return song.song_url || song.audioUrl;
+  }, [song.song_url, song.audioUrl]);
+
   // Handle audio loading and errors
   useEffect(() => {
     const audio = audioRef.current;
@@ -96,7 +105,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
     };
 
     const handleLoadStart = () => {
-      if (song.audioUrl) {
+      if (getAudioUrl()) {
         setIsLoading(true);
         setAudioError(false);
       }
@@ -145,18 +154,36 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       audio.removeEventListener("canplaythrough", handleCanPlayThrough);
       audio.removeEventListener("loadeddata", handleLoadedData);
     };
-  }, [song.audioUrl, isLoading, isIOS]);
+  }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
-    // Always calculate lyrics based on time for better UX (including demo mode and scrubbing)
-    const lyricsToUse = song.timestamp_lyrics || [];
+    // Priority 1: Use timestamped lyrics variants if available
+    if (
+      song.timestamped_lyrics_variants &&
+      song.selected_variant !== undefined
+    ) {
+      const selectedVariantLyrics =
+        song.timestamped_lyrics_variants[song.selected_variant];
+      if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
+        return selectedVariantLyrics.map((line) => ({
+          ...line,
+          isActive: timeMs >= line.start && timeMs < line.end,
+          isPast: timeMs >= line.end,
+        }));
+      }
+    }
 
-    // Always calculate based on current time for responsive scrubbing
-    return lyricsToUse.map((line) => ({
-      ...line,
-      isActive: timeMs >= line.start && timeMs < line.end,
-      isPast: timeMs >= line.end,
-    }));
+    // Priority 2: Use the legacy timestamp_lyrics if available
+    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+      return song.timestamp_lyrics.map((line) => ({
+        ...line,
+        isActive: timeMs >= line.start && timeMs < line.end,
+        isPast: timeMs >= line.end,
+      }));
+    }
+
+    // Priority 3: Return empty array if no lyrics available
+    return [];
   };
 
   useEffect(() => {
@@ -198,7 +225,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       trackPlayerEvent.pause(song.title, song.id, currentTime);
     } else {
       // If no audio URL or audio error, simulate playing for demo
-      if (!song.audioUrl || audioError) {
+      if (!getAudioUrl() || audioError) {
         setIsPlaying(true);
         // Track demo play event
         trackPlayerEvent.play(song.title, song.id, true);
@@ -271,7 +298,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       } else {
         trackPlayerEvent.skipBackward(song.title, song.id, Math.abs(seconds));
       }
-    } else if (!song.audioUrl || audioError) {
+    } else if (!getAudioUrl() || audioError) {
       // Handle demo mode
       const newTime = Math.max(0, Math.min(currentTime + seconds, 40));
       setCurrentTime(newTime);
@@ -453,11 +480,11 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
 
   // iOS-specific: Immediately set error state if no audio URL on iOS
   useEffect(() => {
-    if (isIOS && !song.audioUrl) {
+    if (isIOS && !getAudioUrl()) {
       setAudioError(true);
       setIsLoading(false);
     }
-  }, [isIOS, song.audioUrl]);
+  }, [isIOS, getAudioUrl]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
@@ -511,24 +538,24 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       <div className="flex-1 bg-gradient-to-b from-gray-50 to-white">
         <div
           ref={lyricsContainerRef}
-          className="h-[calc(100vh-200px)] overflow-y-auto px-4 md:px-8 scroll-smooth [&::-webkit-scrollbar]:hidden"
+          className="h-[calc(100vh-200px)] overflow-y-auto px-6 md:px-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}
         >
           {/* Top padding to allow first lyric to be centered */}
-          <div className="h-[calc(50vh-100px)]"></div>
+          <div className="h-[calc(40vh-80px)]"></div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-6 md:space-y-8 px-4 md:px-8">
+            <div className="space-y-8 md:space-y-10">
               {lyrics.map((line, index) => (
                 <div
                   key={index}
                   ref={(el) => {
                     lyricRefs.current[index] = el;
                   }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[3rem] md:min-h-[3.5rem] flex items-center justify-center relative ${
+                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
                     line.isActive
                       ? "text-xl md:text-2xl lg:text-3xl font-bold text-yellow-600 transform scale-110"
                       : line.isPast
@@ -543,16 +570,16 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
                 >
                   {/* Active lyric indicator */}
                   {line.isActive && (
-                    <div className="absolute -left-3 md:-left-4 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
+                    <div className="absolute -left-5 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
                   )}
 
                   {/* Progress indicator for active lyric */}
                   {line.isActive && (
-                    <div className="absolute -left-4 md:-left-6 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+                    <div className="absolute -left-6 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
                   )}
 
                   <span
-                    className="px-3 md:px-4 py-2 md:py-3 rounded-lg leading-relaxed max-w-full break-words transition-all duration-500 ease-out"
+                    className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed max-w-full break-words transition-all duration-500 ease-out"
                     style={{
                       transition:
                         "all 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease-out",
@@ -571,7 +598,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           </div>
 
           {/* Bottom padding to allow last lyric to be centered */}
-          <div className="h-[calc(50vh-100px)]"></div>
+          <div className="h-[calc(40vh-80px)]"></div>
         </div>
       </div>
 
@@ -579,12 +606,12 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:p-6 shadow-lg z-50">
         <audio
           ref={audioRef}
-          src={song.audioUrl || undefined}
+          src={getAudioUrl() || undefined}
           preload="none"
           playsInline
           webkit-playsinline="true"
           onLoadStart={() => {
-            if (song.audioUrl) {
+            if (getAudioUrl()) {
               setIsLoading(true);
               setAudioError(false);
             }
@@ -699,7 +726,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
               trackPlayerEvent.seek(song.title, song.id, previousTime, newTime);
 
               // Update audio position if available and not in error state
-              if (audioRef.current && !audioError && song.audioUrl) {
+              if (audioRef.current && !audioError && getAudioUrl()) {
                 audioRef.current.currentTime = newTime;
               }
               // In demo mode or error state, just update the time state

@@ -63,9 +63,9 @@ export interface SunoTimestampedLyricsResponse {
     alignedWords: Array<{
       word: string;
       success: boolean;
-      start_s: number;
-      end_s: number;
-      p_align: number;
+      startS: number; // Changed from start_s to startS to match actual API response
+      endS: number;   // Changed from end_s to endS to match actual API response
+      palign: number; // API response uses 'palign' not 'p_align'
     }>;
     waveformData: number[];
     hootCer: number;
@@ -234,9 +234,9 @@ class MockSunoAPI {
   private generateMockAlignedWords(variantIndex: number): Array<{
     word: string;
     success: boolean;
-    start_s: number;
-    end_s: number;
-    p_align: number;
+    startS: number; // Changed from start_s to startS
+    endS: number;   // Changed from end_s to endS
+    palign: number; // API response uses 'palign' not 'p_align'
   }> {
     const baseLyrics = [
       "Sweet dreams tonight, little one",
@@ -252,9 +252,9 @@ class MockSunoAPI {
     const alignedWords: Array<{
       word: string;
       success: boolean;
-      start_s: number;
-      end_s: number;
-      p_align: number;
+      startS: number; // Changed from start_s to startS
+      endS: number;   // Changed from end_s to endS
+      palign: number; // API response uses 'palign' not 'p_align'
     }> = [];
     let currentTime = 0;
 
@@ -270,9 +270,9 @@ class MockSunoAPI {
         alignedWords.push({
           word: word + (wordIndex === words.length - 1 ? '\n' : ' '),
           success: true,
-          start_s: startTime,
-          end_s: endTime,
-          p_align: 0,
+          startS: startTime, // Changed from start_s to startS
+          endS: endTime,     // Changed from end_s to endS
+          palign: 0,         // API response uses 'palign' not 'p_align'
         });
       });
 

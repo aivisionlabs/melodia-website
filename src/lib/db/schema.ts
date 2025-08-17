@@ -5,7 +5,8 @@ import {
   timestamp,
   boolean,
   integer,
-  jsonb
+  jsonb,
+  numeric
 } from 'drizzle-orm/pg-core';
 
 // Songs table
@@ -18,11 +19,11 @@ export const songsTable = pgTable('songs', {
   timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants'), // Store lyrics for both variants
   timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses'), // Store only alignedWords data from API responses
   music_style: text('music_style'),
-  service_provider: text('service_provider').default('Melodia'),
+  service_provider: text('service_provider').default('sunoapi'),
   song_requester: text('song_requester'),
   prompt: text('prompt'),
   song_url: text('song_url'),
-  duration: integer('duration'),
+  duration: numeric('duration', { precision: 10, scale: 2 }), // Store duration with 2 decimal places for precision
   slug: text('slug').notNull().unique(),
   add_to_library: boolean('add_to_library').default(true),
   is_deleted: boolean('is_deleted').default(false),
@@ -34,6 +35,7 @@ export const songsTable = pgTable('songs', {
   suno_variants: jsonb('suno_variants'),
   selected_variant: integer('selected_variant'),
   metadata: jsonb('metadata'),
+  sequence: integer('sequence'), // Field to control display order
 });
 
 // Admin users table

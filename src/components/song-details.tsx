@@ -86,38 +86,60 @@ export function SongDetails({ song }: SongDetailsProps) {
       </div>
 
       {/* Timestamped Lyrics */}
-      {song.timestamp_lyrics && song.timestamp_lyrics.length > 0 && (
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Timeline</CardTitle>
-              <CardDescription>
-                Click on any line to jump to that part of the song
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {song.timestamp_lyrics.map((line, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors"
-                    onClick={() => {
-                      // This would integrate with an audio player
-                      console.log(`Jump to ${line.start}s`);
-                    }}
-                  >
-                    <span className="text-xs text-gray-500 min-w-[60px]">
-                      {Math.floor(line.start / 60)}:
-                      {(line.start % 60).toString().padStart(2, "0")}
-                    </span>
-                    <span className="text-sm">{line.text}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {(() => {
+        // Get the appropriate lyrics to display
+        let lyricsToShow: any[] = [];
+
+        // Priority 1: Use timestamped lyrics variants if available
+        if (
+          song.timestamped_lyrics_variants &&
+          song.selected_variant !== undefined
+        ) {
+          lyricsToShow =
+            song.timestamped_lyrics_variants[song.selected_variant] || [];
+        }
+        // Priority 2: Use the legacy timestamp_lyrics if available
+        else if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+          lyricsToShow = song.timestamp_lyrics;
+        }
+
+        if (lyricsToShow.length === 0) return null;
+
+        return (
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Timeline</CardTitle>
+                <CardDescription>
+                  Click on any line to jump to that part of the song
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {lyricsToShow.map((line, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-4 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors"
+                      onClick={() => {
+                        // This would integrate with an audio player
+                        console.log(`Jump to ${line.start}s`);
+                      }}
+                    >
+                      <span className="text-xs text-gray-500 min-w-[60px]">
+                        {Math.floor(line.start / 1000 / 60)}:
+                        {Math.floor((line.start / 1000) % 60)
+                          .toString()
+                          .padStart(2, "0")}
+                      </span>
+                      <span className="text-sm">{line.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </>
   );
 }

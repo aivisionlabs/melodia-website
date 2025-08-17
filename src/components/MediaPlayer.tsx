@@ -29,8 +29,13 @@ interface MediaPlayerProps {
     title: string;
     artist: string;
     audioUrl?: string;
+    song_url?: string; // New field for the actual audio URL
     videoUrl?: string;
     lyrics?: LyricLine[];
+    timestamped_lyrics_variants?: {
+      [variantIndex: number]: LyricLine[];
+    } | null;
+    selected_variant?: number;
     slug?: string;
   };
   onClose: () => void;
@@ -57,6 +62,12 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   // Convert current time to milliseconds for timestamp comparison
   const currentTimeMs = currentTime * 1000;
 
+  // Helper function to get the correct audio URL
+  const getAudioUrl = useCallback(() => {
+    // Priority: song_url (new field) > audioUrl (legacy field)
+    return song.song_url || song.audioUrl;
+  }, [song.song_url, song.audioUrl]);
+
   // Handle audio loading and errors
   useEffect(() => {
     const audio = audioRef.current;
@@ -80,7 +91,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
     };
 
     const handleLoadStart = () => {
-      if (song.audioUrl) {
+      if (getAudioUrl()) {
         setIsLoading(true);
         setAudioError(false);
       }
@@ -129,7 +140,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       audio.removeEventListener("canplaythrough", handleCanPlayThrough);
       audio.removeEventListener("loadeddata", handleLoadedData);
     };
-  }, [song.audioUrl, isLoading, isIOS]);
+  }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
     // If audio is not playing or has error, show static lyrics
@@ -195,48 +206,64 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       }));
     }
 
-    // Use the lyrics prop if available, otherwise fall back to static lyrics
-    if (!song.lyrics || song.lyrics.length === 0) {
-      // Fallback lyrics if no timestamped lyrics are provided
-      const fallbackLyrics = [
-        {
-          index: 0,
-          text: "Sweet dreams tonight, little one",
-          start: 0,
-          end: 5000,
-        },
-        { index: 1, text: "Close your eyes and rest", start: 5000, end: 10000 },
-        {
-          index: 2,
-          text: "The stars are shining bright above",
-          start: 10000,
-          end: 15000,
-        },
-        {
-          index: 3,
-          text: "You are loved and blessed",
-          start: 15000,
-          end: 20000,
-        },
-        { index: 4, text: "Sleep now, my darling", start: 20000, end: 25000 },
-        { index: 5, text: "Dream of happy things", start: 25000, end: 30000 },
-        {
-          index: 6,
-          text: "Tomorrow brings new adventures",
-          start: 30000,
-          end: 35000,
-        },
-        { index: 7, text: "On happiness wings", start: 35000, end: 40000 },
-      ];
+    // Priority 1: Use timestamped lyrics variants if available
+    if (
+      song.timestamped_lyrics_variants &&
+      song.selected_variant !== undefined
+    ) {
+      const selectedVariantLyrics =
+        song.timestamped_lyrics_variants[song.selected_variant];
+      if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
+        return selectedVariantLyrics.map((line) => ({
+          ...line,
+          isActive: timeMs >= line.start && timeMs < line.end,
+          isPast: timeMs >= line.end,
+        }));
+      }
+    }
 
-      return fallbackLyrics.map((line) => ({
+    // Priority 2: Use the legacy lyrics prop if available
+    if (song.lyrics && song.lyrics.length > 0) {
+      return song.lyrics.map((line) => ({
         ...line,
         isActive: timeMs >= line.start && timeMs < line.end,
         isPast: timeMs >= line.end,
       }));
     }
 
-    return song.lyrics.map((line) => ({
+    // Priority 3: Fallback to static lyrics if no timestamped lyrics are provided
+    const fallbackLyrics = [
+      {
+        index: 0,
+        text: "Sweet dreams tonight, little one",
+        start: 0,
+        end: 5000,
+      },
+      { index: 1, text: "Close your eyes and rest", start: 5000, end: 10000 },
+      {
+        index: 2,
+        text: "The stars are shining bright above",
+        start: 10000,
+        end: 15000,
+      },
+      {
+        index: 3,
+        text: "You are loved and blessed",
+        start: 15000,
+        end: 20000,
+      },
+      { index: 4, text: "Sleep now, my darling", start: 20000, end: 25000 },
+      { index: 5, text: "Dream of happy things", start: 25000, end: 30000 },
+      {
+        index: 6,
+        text: "Tomorrow brings new adventures",
+        start: 30000,
+        end: 35000,
+      },
+      { index: 7, text: "On happiness wings", start: 35000, end: 40000 },
+    ];
+
+    return fallbackLyrics.map((line) => ({
       ...line,
       isActive: timeMs >= line.start && timeMs < line.end,
       isPast: timeMs >= line.end,
@@ -282,7 +309,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       trackPlayerEvent.pause(song.title, song.slug || "unknown", currentTime);
     } else {
       // If no audio URL or audio error, simulate playing for demo
-      if (!song.audioUrl || audioError) {
+      if (!getAudioUrl() || audioError) {
         setIsPlaying(true);
         // Track demo play event
         trackPlayerEvent.play(song.title, song.slug || "unknown", true);
@@ -367,7 +394,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
           Math.abs(seconds)
         );
       }
-    } else if (!song.audioUrl || audioError) {
+    } else if (!getAudioUrl() || audioError) {
       // Handle demo mode
       const newTime = Math.max(0, Math.min(currentTime + seconds, 40));
       setCurrentTime(newTime);
@@ -552,11 +579,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
   // iOS-specific: Immediately set error state if no audio URL on iOS
   useEffect(() => {
-    if (isIOS && !song.audioUrl) {
+    if (isIOS && !getAudioUrl()) {
       setAudioError(true);
       setIsLoading(false);
     }
-  }, [isIOS, song.audioUrl]);
+  }, [isIOS, getAudioUrl]);
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
@@ -622,12 +649,12 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
         <div className="p-4 md:p-6 bg-gray-50">
           <audio
             ref={audioRef}
-            src={song.audioUrl || undefined}
+            src={getAudioUrl() || undefined}
             preload="none"
             playsInline
             webkit-playsinline="true"
             onLoadStart={() => {
-              if (song.audioUrl) {
+              if (getAudioUrl()) {
                 setIsLoading(true);
                 setAudioError(false);
               }
@@ -729,7 +756,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                 if (audioRef.current && !audioError) {
                   audioRef.current.currentTime = newTime;
                   setCurrentTime(newTime);
-                } else if (!song.audioUrl || audioError) {
+                } else if (!getAudioUrl() || audioError) {
                   // Handle demo mode
                   setCurrentTime(newTime);
                 }
@@ -761,20 +788,20 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
           {/* Lyrics Container with Spotify-style design */}
           <div
             ref={lyricsContainerRef}
-            className="h-64 md:h-80 overflow-y-auto px-4 md:px-6 py-8 md:py-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
+            className="h-64 md:h-80 overflow-y-auto px-6 md:px-12 py-8 md:py-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
           >
-            <div className="space-y-6 md:space-y-8">
+            <div className="space-y-8 md:space-y-10">
               {lyrics.map((line, index) => (
                 <div
                   key={index}
                   ref={(el) => {
                     lyricRefs.current[index] = el;
                   }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[3rem] md:min-h-[3.5rem] flex items-center justify-center relative ${
+                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
                     line.isActive
                       ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
                       : line.isPast
@@ -788,15 +815,15 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                 >
                   {/* Active lyric indicator */}
                   {line.isActive && (
-                    <div className="absolute -left-3 md:-left-4 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
+                    <div className="absolute -left-5 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
                   )}
 
                   {/* Progress indicator for active lyric */}
                   {line.isActive && (
-                    <div className="absolute -left-4 md:-left-6 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+                    <div className="absolute -left-6 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
                   )}
 
-                  <span className="px-3 md:px-4 py-2 md:py-3 rounded-lg leading-relaxed">
+                  <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
                     {line.text || "\u00A0"}
                   </span>
 

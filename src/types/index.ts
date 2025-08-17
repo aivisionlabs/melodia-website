@@ -7,10 +7,10 @@ export interface LyricLine {
 
 export interface AlignedWord {
   word: string
-  start_s: number
-  end_s: number
+  startS: number // Changed from start_s to startS to match API response
+  endS: number   // Changed from end_s to endS to match API response
   success: boolean
-  p_align: number
+  palign: number // API response uses 'palign' not 'p_align'
 }
 
 export interface Song {
@@ -26,7 +26,7 @@ export interface Song {
   song_requester: string | null
   prompt: string | null
   song_url: string | null
-  duration: number | null
+  duration: string | null // Changed from number to string to match numeric database field
   slug: string
   add_to_library?: boolean
   is_deleted?: boolean
@@ -38,6 +38,7 @@ export interface Song {
   suno_variants?: any
   selected_variant?: number
   metadata?: any
+  sequence?: number // Field to control display order
 }
 
 // Public song interface (without sensitive fields)
@@ -46,9 +47,10 @@ export interface PublicSong {
   title: string
   lyrics: string | null
   timestamp_lyrics: LyricLine[] | null
+  timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
   music_style: string | null
   service_provider: string | null
   song_url: string | null
-  duration: number | null
+  duration: string | null // Changed from number to string to match numeric database field
   slug: string
 }

@@ -12,9 +12,10 @@ async function SongPageContent({ song }: { song: any }) {
     id: song.id.toString(),
     title: song.title,
     artist: song.service_provider || "Melodia",
-    audioUrl: song.song_url || undefined,
+    song_url: song.song_url || undefined,
     duration: song.duration || 0,
-    timestamp_lyrics: song.timestamp_lyrics || undefined,
+    timestamped_lyrics_variants: song.timestamped_lyrics_variants || undefined,
+    selected_variant: song.selected_variant || undefined,
     slug: song.slug,
   };
 
@@ -29,6 +30,7 @@ async function SongPageContent({ song }: { song: any }) {
           song_url: song.song_url,
           duration: song.duration,
           timestamp_lyrics: song.timestamp_lyrics,
+          timestamped_lyrics_variants: song.timestamped_lyrics_variants,
           lyrics: song.lyrics,
           music_style: song.music_style,
           slug: song.slug,

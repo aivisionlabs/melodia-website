@@ -37,6 +37,8 @@ export default function GenerateProgressPage({
   const [addToLibrary, setAddToLibrary] = useState(true);
 
   useEffect(() => {
+    let songInfoInterval: NodeJS.Timeout | null = null;
+
     const loadSongInfo = async () => {
       try {
         const result = await getSongByTaskIdAction(taskId);
@@ -49,6 +51,12 @@ export default function GenerateProgressPage({
           // Set lyrics from the song record immediately
           if (result.song.lyrics) {
             setLyrics(result.song.lyrics);
+          }
+
+          // Stop polling once we successfully get song info
+          if (songInfoInterval) {
+            clearInterval(songInfoInterval);
+            songInfoInterval = null;
           }
         } else {
           console.warn("Song not found by taskId, will retry:", taskId);
@@ -63,20 +71,26 @@ export default function GenerateProgressPage({
     loadSongInfo();
 
     // Set up retry interval for song info (in case of race condition)
-    const songInfoInterval = setInterval(loadSongInfo, 5000); // Retry every 5 seconds
+    songInfoInterval = setInterval(loadSongInfo, 5000); // Retry every 5 seconds
 
-    return () => clearInterval(songInfoInterval);
+    return () => {
+      if (songInfoInterval) {
+        clearInterval(songInfoInterval);
+      }
+    };
   }, [taskId]);
 
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
     const pollStatus = async () => {
       try {
         // Use server action to get Suno status (ensures correct API mode)
         const response = await getSunoRecordInfoAction(taskId);
 
         if (response.code === 200) {
-          const currentStatus = response.data.status;
-          const currentVariants = response.data.response.sunoData;
+          const currentStatus = response.data?.status;
+          const currentVariants = response.data?.response?.sunoData;
 
           setStatus(currentStatus);
           setVariants(currentVariants);
@@ -94,14 +108,24 @@ export default function GenerateProgressPage({
               break;
             case "SUCCESS":
               setProgress(100);
-              break;
+              // Stop polling when status becomes SUCCESS
+              if (interval) {
+                clearInterval(interval);
+                interval = null;
+              }
+              return;
             case "CREATE_TASK_FAILED":
             case "GENERATE_AUDIO_FAILED":
             case "CALLBACK_EXCEPTION":
             case "SENSITIVE_WORD_ERROR":
               setError(`Generation failed: ${currentStatus}`);
               setProgress(0);
-              break;
+              // Stop polling on error states
+              if (interval) {
+                clearInterval(interval);
+                interval = null;
+              }
+              return;
           }
 
           // Set lyrics from the first variant if available
@@ -122,9 +146,13 @@ export default function GenerateProgressPage({
     pollStatus();
 
     // Set up polling interval
-    const interval = setInterval(pollStatus, 20000); // Poll every 20 seconds
+    interval = setInterval(pollStatus, 20000); // Poll every 20 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [taskId]);
 
   const getStatusMessage = () => {
@@ -293,7 +321,7 @@ export default function GenerateProgressPage({
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
-                          Duration: {Math.round(variant.duration)}s
+                          Duration: {Math.round(Number(variant.duration) || 0)}s
                         </p>
                         {variant.streamAudioUrl && (
                           <audio controls className="w-full mb-3">

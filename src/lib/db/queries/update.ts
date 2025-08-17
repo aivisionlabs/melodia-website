@@ -1,7 +1,7 @@
+import { AlignedWord } from '@/types';
 import { eq } from 'drizzle-orm';
 import { db } from '../index';
-import { SelectSong, songsTable } from '../schema';
-import { AlignedWord } from '@/types';
+import { songsTable } from '../schema';
 
 export async function updateSong(
   songId: number,
@@ -14,7 +14,7 @@ export async function updateSong(
     song_requester: string;
     prompt: string;
     song_url: string;
-    duration: number;
+    duration: string; // Changed from number to string to match database schema
     add_to_library: boolean;
     is_deleted: boolean;
     status: string;
@@ -71,18 +71,15 @@ export async function updateSongWithVariants(
 
   if (selectedVariant !== undefined) {
     updateData.selected_variant = selectedVariant;
-    // Set the song_url to the selected variant's audioUrl
+    // Set the song_url and duration to the selected variant's values
     if (sunoVariants[selectedVariant]) {
-      updateData.song_url = sunoVariants[selectedVariant].audioUrl;
+      const selectedVariantData = sunoVariants[selectedVariant];
+      updateData.song_url = selectedVariantData.sourceAudioUrl;
+      updateData.duration = selectedVariantData.duration?.toString(); // Convert to string for numeric field
     }
   }
 
-  console.log("Debug - updateSongWithVariants updateData:", updateData);
-  console.log("Debug - Song ID:", id);
-
   await db.update(songsTable).set(updateData).where(eq(songsTable.id, id));
-
-  console.log("Debug - Database update completed");
 }
 
 export async function updateTimestampedLyricsForVariant(
