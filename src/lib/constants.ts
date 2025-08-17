@@ -25,10 +25,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Ruchi My Queen",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: ruchiMyQueenLyricsData
-    },
+    timestamp_lyrics: ruchiMyQueenLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Rap",
@@ -45,10 +43,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Kaleidoscope Heart",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: kaleidoscopeHeartLyricsData
-    },
+    timestamp_lyrics: kaleidoscopeHeartLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Romantic Song",
@@ -65,10 +61,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Same Office, Different Hearts",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: sameOficeDifferentHeartLyricsData
-    },
+    timestamp_lyrics: sameOficeDifferentHeartLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Love Story",
@@ -84,10 +78,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "A kid's night musical",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: kidsNightMusicalLyricsData
-    },
+    timestamp_lyrics: kidsNightMusicalLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Musical",
@@ -103,10 +95,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Lipsa Birthday Song",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: lipsaBirthdaySongLyricsData
-    },
+    timestamp_lyrics: lipsaBirthdaySongLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Birthday Song",
@@ -123,10 +113,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Nirvan's Birthday Song",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: nirvanBirthdaySongLyricsData
-    },
+    timestamp_lyrics: nirvanBirthdaySongLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Birthday Party",
@@ -142,10 +130,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Ram and Akanksha's wedding anthem",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: ramAkankshaWeddingAnthemLyricsData
-    },
+    timestamp_lyrics: ramAkankshaWeddingAnthemLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Wedding Song",
@@ -162,10 +148,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Unchained",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: unChainedLyricsData
-    },
+    timestamp_lyrics: unChainedLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Motivational Song",
@@ -181,10 +165,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Birthday Boy's Blue Party",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: birthdayBluePartyLyricsData
-    },
+    timestamp_lyrics: birthdayBluePartyLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Kids Birthday Song",
@@ -200,10 +182,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Sweet Dreams Tonight",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: sweetDreamsTonightLyricsData
-    },
+    timestamp_lyrics: sweetDreamsTonightLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Lullaby",
@@ -220,10 +200,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Akash's Birthday Bash Song",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: akashBirthdayBashLyricsData
-    },
+    timestamp_lyrics: akashBirthdayBashLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Birthday Song",
@@ -239,10 +217,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Yaara",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: yaaraLyricsData
-    },
+    timestamp_lyrics: yaaraLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Romantic Song",
@@ -258,10 +234,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Har Lamha Naya",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: harLamhaNayaLyricsData
-    },
+    timestamp_lyrics: harLamhaNayaLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Love Song",
@@ -277,10 +251,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Jashn-e-Hemali",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: jashnEHemaliLyricsData
-    },
+    timestamp_lyrics: jashnEHemaliLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Birthday Party Song",
@@ -296,10 +268,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "Jassi-di-jaan",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: jassiDiJaanLyricsData
-    },
+    timestamp_lyrics: jassiDiJaanLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Punjabi Romantic Song",
@@ -315,10 +285,8 @@ export const customCreations: Song[] = [
     created_at: "2024-01-01T00:00:00Z",
     title: "A Dream Named Jivy",
     lyrics: null,
-    timestamp_lyrics: null,
-    timestamped_lyrics_variants: {
-      0: aDreamNamedJivyLyricsData
-    },
+    timestamp_lyrics: aDreamNamedJivyLyricsData,
+    timestamped_lyrics_variants: null,
     selected_variant: 0,
     timestamped_lyrics_api_responses: null,
     music_style: "Mother's Love Lullaby",

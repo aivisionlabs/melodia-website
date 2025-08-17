@@ -32,6 +32,7 @@ interface MediaPlayerProps {
     song_url?: string; // New field for the actual audio URL
     videoUrl?: string;
     lyrics?: LyricLine[];
+    timestamp_lyrics?: LyricLine[]; // Final variation of lyrics
     timestamped_lyrics_variants?: {
       [variantIndex: number]: LyricLine[];
     } | null;
@@ -143,78 +144,35 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
-    // If audio is not playing or has error, show static lyrics
-    if (!isPlaying || audioError) {
-      const staticLyrics =
-        song.lyrics && song.lyrics.length > 0
-          ? song.lyrics
-          : [
-              {
-                index: 0,
-                text: "Sweet dreams tonight, little one",
-                start: 0,
-                end: 5000,
-              },
-              {
-                index: 1,
-                text: "Close your eyes and rest",
-                start: 5000,
-                end: 10000,
-              },
-              {
-                index: 2,
-                text: "The stars are shining bright above",
-                start: 10000,
-                end: 15000,
-              },
-              {
-                index: 3,
-                text: "You are loved and blessed",
-                start: 15000,
-                end: 20000,
-              },
-              {
-                index: 4,
-                text: "Sleep now, my darling",
-                start: 20000,
-                end: 25000,
-              },
-              {
-                index: 5,
-                text: "Dream of happy things",
-                start: 25000,
-                end: 30000,
-              },
-              {
-                index: 6,
-                text: "Tomorrow brings new adventures",
-                start: 30000,
-                end: 35000,
-              },
-              {
-                index: 7,
-                text: "On happiness wings",
-                start: 35000,
-                end: 40000,
-              },
-            ];
-
-      return staticLyrics.map((line, index) => ({
+    // Priority 1: Use timestamp_lyrics (final variation) if available
+    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+      return song.timestamp_lyrics.map((line: any) => ({
         ...line,
-        isActive: index === 0, // Highlight first line when not playing
-        isPast: index > 0,
+        isActive: timeMs >= line.start && timeMs < line.end,
+        isPast: timeMs >= line.end,
       }));
     }
 
-    // Priority 1: Use timestamped lyrics variants if available
-    if (
-      song.timestamped_lyrics_variants &&
-      song.selected_variant !== undefined
-    ) {
-      const selectedVariantLyrics =
-        song.timestamped_lyrics_variants[song.selected_variant];
+    // Priority 2: Use timestamped lyrics variants if available (fallback)
+    if (song.timestamped_lyrics_variants) {
+      // If no selected_variant is set, default to variant 0
+      const variantToUse =
+        song.selected_variant !== undefined ? song.selected_variant : 0;
+      let selectedVariantLyrics =
+        song.timestamped_lyrics_variants[variantToUse];
+
+      // If the default variant doesn't exist, try to find any available variant
+      if (!selectedVariantLyrics || selectedVariantLyrics.length === 0) {
+        const availableVariants = Object.keys(song.timestamped_lyrics_variants);
+        if (availableVariants.length > 0) {
+          const firstVariant = parseInt(availableVariants[0]);
+          selectedVariantLyrics =
+            song.timestamped_lyrics_variants[firstVariant];
+        }
+      }
+
       if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
-        return selectedVariantLyrics.map((line) => ({
+        return selectedVariantLyrics.map((line: any) => ({
           ...line,
           isActive: timeMs >= line.start && timeMs < line.end,
           isPast: timeMs >= line.end,
@@ -222,24 +180,30 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       }
     }
 
-    // Priority 2: Use the legacy lyrics prop if available
+    // Priority 3: Use the legacy lyrics prop if available
     if (song.lyrics && song.lyrics.length > 0) {
-      return song.lyrics.map((line) => ({
+      console.log("MediaPlayer: Using legacy lyrics prop");
+      return song.lyrics.map((line: any) => ({
         ...line,
         isActive: timeMs >= line.start && timeMs < line.end,
         isPast: timeMs >= line.end,
       }));
     }
 
-    // Priority 3: Fallback to static lyrics if no timestamped lyrics are provided
-    const fallbackLyrics = [
+    // Priority 4: Fallback to static lyrics only if no song lyrics available
+    const staticLyrics = [
       {
         index: 0,
         text: "Sweet dreams tonight, little one",
         start: 0,
         end: 5000,
       },
-      { index: 1, text: "Close your eyes and rest", start: 5000, end: 10000 },
+      {
+        index: 1,
+        text: "Close your eyes and rest",
+        start: 5000,
+        end: 10000,
+      },
       {
         index: 2,
         text: "The stars are shining bright above",
@@ -252,18 +216,43 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
         start: 15000,
         end: 20000,
       },
-      { index: 4, text: "Sleep now, my darling", start: 20000, end: 25000 },
-      { index: 5, text: "Dream of happy things", start: 25000, end: 30000 },
+      {
+        index: 4,
+        text: "Sleep now, my darling",
+        start: 20000,
+        end: 25000,
+      },
+      {
+        index: 5,
+        text: "Dream of happy things",
+        start: 25000,
+        end: 30000,
+      },
       {
         index: 6,
         text: "Tomorrow brings new adventures",
         start: 30000,
         end: 35000,
       },
-      { index: 7, text: "On happiness wings", start: 35000, end: 40000 },
+      {
+        index: 7,
+        text: "On happiness wings",
+        start: 35000,
+        end: 40000,
+      },
     ];
 
-    return fallbackLyrics.map((line) => ({
+    // When not playing, show static lyrics with first line highlighted
+    if (!isPlaying || audioError) {
+      return staticLyrics.map((line: any, index: number) => ({
+        ...line,
+        isActive: index === 0, // Highlight first line when not playing
+        isPast: index > 0,
+      }));
+    }
+
+    // When playing, show static lyrics with timing-based highlighting
+    return staticLyrics.map((line: any) => ({
       ...line,
       isActive: timeMs >= line.start && timeMs < line.end,
       isPast: timeMs >= line.end,

@@ -90,17 +90,17 @@ export function SongDetails({ song }: SongDetailsProps) {
         // Get the appropriate lyrics to display
         let lyricsToShow: any[] = [];
 
-        // Priority 1: Use timestamped lyrics variants if available
-        if (
+        // Priority 1: Use timestamp_lyrics (final variation) if available
+        if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+          lyricsToShow = song.timestamp_lyrics;
+        }
+        // Priority 2: Use timestamped lyrics variants if available
+        else if (
           song.timestamped_lyrics_variants &&
           song.selected_variant !== undefined
         ) {
           lyricsToShow =
             song.timestamped_lyrics_variants[song.selected_variant] || [];
-        }
-        // Priority 2: Use the legacy timestamp_lyrics if available
-        else if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-          lyricsToShow = song.timestamp_lyrics;
         }
 
         if (lyricsToShow.length === 0) return null;

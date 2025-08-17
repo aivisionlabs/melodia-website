@@ -199,6 +199,7 @@ export default function HomePage() {
             title: selectedSong.title,
             artist: selectedSong.music_style ?? "",
             song_url: selectedSong.song_url ?? undefined,
+            timestamp_lyrics: selectedSong.timestamp_lyrics ?? undefined,
             timestamped_lyrics_variants:
               selectedSong.timestamped_lyrics_variants ?? undefined,
             selected_variant: selectedSong.selected_variant ?? undefined,

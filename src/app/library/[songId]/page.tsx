@@ -14,6 +14,7 @@ async function SongPageContent({ song }: { song: any }) {
     artist: song.service_provider || "Melodia",
     song_url: song.song_url || undefined,
     duration: song.duration || 0,
+    timestamp_lyrics: song.timestamp_lyrics || undefined,
     timestamped_lyrics_variants: song.timestamped_lyrics_variants || undefined,
     selected_variant: song.selected_variant || undefined,
     slug: song.slug,

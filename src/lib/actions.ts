@@ -88,7 +88,7 @@ export async function getSongs(
     // Build query with only public fields
     let query = supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
       .range(offset, offset + limit - 1)
 
     // Add search filter if provided
@@ -117,6 +117,7 @@ export async function getSongs(
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants,
+      selected_variant: song.selected_variant,
       music_style: song.music_style,
       service_provider: song.service_provider ?? null,
       song_url: song.song_url,
@@ -174,7 +175,7 @@ export async function getSong(
     // Query with only public fields
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
       .eq('id', id)
       .single()
 
@@ -206,6 +207,7 @@ export async function getSong(
       lyrics: data.lyrics,
       timestamp_lyrics: data.timestamp_lyrics,
       timestamped_lyrics_variants: data.timestamped_lyrics_variants,
+      selected_variant: data.selected_variant,
       music_style: data.music_style,
       service_provider: data.service_provider,
       song_url: data.song_url,
@@ -256,7 +258,7 @@ export async function searchSongs(
 
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
       .ilike('title', `%${sanitizedQuery}%`)
       .limit(20)
 
@@ -275,6 +277,7 @@ export async function searchSongs(
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants,
+      selected_variant: song.selected_variant,
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,

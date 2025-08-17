@@ -48,6 +48,7 @@ export interface PublicSong {
   lyrics: string | null
   timestamp_lyrics: LyricLine[] | null
   timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
+  selected_variant?: number
   music_style: string | null
   service_provider: string | null
   song_url: string | null

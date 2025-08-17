@@ -157,7 +157,16 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
-    // Priority 1: Use timestamped lyrics variants if available
+    // Priority 1: Use timestamp_lyrics (final variation) if available
+    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+      return song.timestamp_lyrics.map((line) => ({
+        ...line,
+        isActive: timeMs >= line.start && timeMs < line.end,
+        isPast: timeMs >= line.end,
+      }));
+    }
+
+    // Priority 2: Use timestamped lyrics variants if available
     if (
       song.timestamped_lyrics_variants &&
       song.selected_variant !== undefined
@@ -171,15 +180,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           isPast: timeMs >= line.end,
         }));
       }
-    }
-
-    // Priority 2: Use the legacy timestamp_lyrics if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line) => ({
-        ...line,
-        isActive: timeMs >= line.start && timeMs < line.end,
-        isPast: timeMs >= line.end,
-      }));
     }
 
     // Priority 3: Return empty array if no lyrics available
