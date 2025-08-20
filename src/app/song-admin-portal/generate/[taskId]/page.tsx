@@ -292,7 +292,7 @@ export default function GenerateProgressPage({
               </div>
 
               {/* Variants Status */}
-              {variants.length > 0 && (
+              {variants?.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Generated Variants
