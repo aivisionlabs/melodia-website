@@ -3,7 +3,7 @@ import Link from "next/link";
 import ClearMockDataButton from "@/components/ClearMockDataButton";
 import SongList from "@/components/SongList";
 
-export default async function AdminDashboardPage() {
+export default async function AdminPortalPage() {
   const songs = await getAllSongs();
 
   return (

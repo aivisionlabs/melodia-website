@@ -21,7 +21,7 @@ export default function DeleteSongButton({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -57,27 +57,25 @@ export default function DeleteSongButton({
       const result = await softDeleteSongAction(songId);
 
       if (result.success) {
-        toast({
+        addToast({
+          type: "success",
           title: "Song deleted successfully",
-          description: `"${songTitle}" has been moved to trash.`,
-          duration: 3000,
+          message: `"${songTitle}" has been moved to trash.`,
         });
         onDelete?.();
       } else {
-        toast({
+        addToast({
+          type: "error",
           title: "Error deleting song",
-          description: result.error || "Failed to delete song",
-          variant: "destructive",
-          duration: 5000,
+          message: result.error || "Failed to delete song",
         });
       }
     } catch (error) {
       console.error("Error deleting song:", error);
-      toast({
+      addToast({
+        type: "error",
         title: "Error deleting song",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-        duration: 5000,
+        message: "An unexpected error occurred",
       });
     } finally {
       setIsDeleting(false);

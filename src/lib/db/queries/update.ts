@@ -1,7 +1,7 @@
 import { AlignedWord } from '@/types';
 import { eq } from 'drizzle-orm';
 import { db } from '../index';
-import { songsTable } from '../schema';
+import { songsTable, songRequestsTable } from '../schema';
 
 export async function updateSong(
   songId: number,
@@ -14,7 +14,7 @@ export async function updateSong(
     song_requester: string;
     prompt: string;
     song_url: string;
-    duration: string; // Changed from number to string to match database schema
+    duration: number; // Changed back to number to match database schema
     add_to_library: boolean;
     is_deleted: boolean;
     status: string;
@@ -124,4 +124,96 @@ export async function updateTimestampedLyricsForVariant(
     console.error('Error updating timestamped lyrics for variant:', error);
     throw error;
   }
+}
+
+export async function updateSongRequest(
+  requestId: number,
+  updateData: Partial<{
+    status: string;
+    lyrics_status: string;
+    approved_lyrics_id: number;
+    lyrics_locked_at: Date;
+    suno_task_id: string;
+    generated_song_id: number;
+  }>
+) {
+  try {
+    await db
+      .update(songRequestsTable)
+      .set(updateData)
+      .where(eq(songRequestsTable.id, requestId));
+
+    console.log(`Updated song request ${requestId} with data:`, updateData);
+  } catch (error) {
+    console.error('Error updating song request:', error);
+    throw error;
+  }
+}
+
+// Status tracking functions for song status checking
+export async function updateSongStatusWithTracking(
+  songId: number,
+  status: 'draft' | 'pending' | 'generating' | 'completed' | 'failed',
+  songUrl?: string,
+  sunoTaskId?: string
+) {
+  const updateData: any = { 
+    status,
+    status_checked_at: new Date(),
+    last_status_check: new Date()
+  };
+
+  if (songUrl) {
+    updateData.song_url = songUrl;
+    updateData.add_to_library = true;
+  }
+
+  if (sunoTaskId) {
+    updateData.suno_task_id = sunoTaskId;
+  }
+
+  await db.update(songsTable).set(updateData).where(eq(songsTable.id, songId));
+}
+
+export async function updateSongUrl(
+  songId: number,
+  songUrl: string,
+  duration?: string
+) {
+  const updateData: any = {
+    song_url: songUrl,
+    status: 'completed',
+    add_to_library: true,
+    status_checked_at: new Date(),
+    last_status_check: new Date()
+  };
+
+  if (duration) {
+    // Convert string duration to number for database
+    const durationNumber = parseInt(duration, 10);
+    if (!isNaN(durationNumber)) {
+      updateData.duration = durationNumber;
+    }
+  }
+
+  await db.update(songsTable).set(updateData).where(eq(songsTable.id, songId));
+}
+
+export async function incrementStatusCheckCount(songId: number) {
+  // First get the current count
+  const currentSong = await db
+    .select({ status_check_count: songsTable.status_check_count })
+    .from(songsTable)
+    .where(eq(songsTable.id, songId))
+    .limit(1);
+
+  const currentCount = currentSong[0]?.status_check_count || 0;
+
+  await db
+    .update(songsTable)
+    .set({
+      status_check_count: currentCount + 1,
+      last_status_check: new Date()
+    })
+    .where(eq(songsTable.id, songId));
 }

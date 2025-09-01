@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function CreateSongPage() {
   const router = useRouter();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasSubmittedRef = useRef(false);
@@ -20,32 +20,33 @@ export default function CreateSongPage() {
     setError(null);
 
     try {
+      const values = formData.entries();
+      console.log(values);
+
       const result = await createSongAction(formData);
 
       if (result?.success && result.redirect) {
-        toast({
+        addToast({
+          type: "success",
           title: "Song created successfully!",
-          description: "Redirecting to generation progress...",
-          duration: 3000,
+          message: "Redirecting to generation progress...",
         });
         router.push(result.redirect);
       } else if (result?.error) {
         setError(result.error);
-        toast({
+        addToast({
+          type: "error",
           title: "Error creating song",
-          description: result.error,
-          variant: "destructive",
-          duration: 5000,
+          message: result.error,
         });
       }
     } catch (err) {
       const errorMessage = `An unexpected error occurred: ${err}`;
       setError(errorMessage);
-      toast({
+      addToast({
+        type: "error",
         title: "Unexpected error",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 5000,
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -228,11 +229,10 @@ export default function CreateSongPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 ${
-                  isLoading
+                className={`py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 ${isLoading
                     ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                     : "bg-yellow-600 hover:bg-yellow-700 text-white"
-                }`}
+                  }`}
               >
                 {isLoading ? "Creating Song..." : "Create Song"}
               </button>

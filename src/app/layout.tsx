@@ -4,7 +4,8 @@ import "./globals.css";
 import { StructuredData } from "@/components/StructuredData";
 import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
-import { Toaster } from "@/components/ui/toaster";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -98,12 +99,15 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${inter.className} antialiased`}>
-        <StructuredData type="website" />
-        <StructuredData type="organization" />
-        <PageTracking />
-        {children}
-        <Toaster />
+      <body >
+        <ErrorBoundary>
+          <ToastProvider>
+            <StructuredData type="website" />
+            <StructuredData type="organization" />
+            <PageTracking />
+            {children}
+          </ToastProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

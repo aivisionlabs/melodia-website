@@ -442,7 +442,7 @@ export class SunoAPIFactory {
   private static instance: MockSunoAPI | SunoAPI | null = null;
 
   static getAPI(): MockSunoAPI | SunoAPI {
-    // On the client, never instantiate the real API (keeps tokens server-only)
+    // On the client, always use mock API (keeps tokens server-only)
     if (typeof window !== 'undefined') {
       if (!this.instance || !(this.instance instanceof MockSunoAPI)) {
         this.instance = new MockSunoAPI();
@@ -453,8 +453,10 @@ export class SunoAPIFactory {
     // Server-side: choose mock or real based on config
     if (!this.instance) {
       if (shouldUseMockAPI()) {
+        console.log('🔧 Using Mock Suno API');
         this.instance = new MockSunoAPI();
       } else {
+        console.log('🔧 Using Real Suno API');
         const apiToken = getAPIToken();
         this.instance = new SunoAPI(apiToken);
       }

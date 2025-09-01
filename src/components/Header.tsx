@@ -4,10 +4,13 @@ import ShareRequirementsCTA from "./ShareRequirementsCTA";
 import { HeaderLogo } from "./OptimizedLogo";
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { logout, isAuthenticated } = useAuth();
 
   return (
     <header className="w-full bg-slate-50 flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative">
@@ -38,11 +41,75 @@ const Header = () => {
         >
           Testimonials
         </Link>
+        
+        {isAuthenticated ? (
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm" className="text-gray-700 hover:text-gray-900">
+                <User className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
+            </Link>
+            <Link href="/create-song">
+              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                Create Song
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="text-gray-700 hover:text-gray-900"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <Link href="/auth/login">
+              <Button size="sm" className="bg-gray-900 hover:bg-gray-800 text-white">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/auth/signup">
+              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                Sign Up
+              </Button>
+            </Link>
+          </div>
+        )}
+        
         <ShareRequirementsCTA size="md" />
       </div>
 
       {/* Mobile Navigation - Hamburger Menu */}
       <div className="flex items-center gap-2 sm:gap-4 md:hidden">
+        {isAuthenticated ? (
+          <div className="flex items-center gap-2">
+            <Link href="/create-song">
+              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
+                Create
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="text-gray-700 hover:text-gray-900 p-2"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link href="/auth/login">
+              <Button size="sm" className="bg-gray-900 hover:bg-gray-800 text-white text-xs">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        )}
+        
         <ShareRequirementsCTA size="sm" />
 
         {/* Hamburger Button */}
@@ -80,6 +147,45 @@ const Header = () => {
             >
               Testimonials
             </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Go to Dashboard"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/create-song"
+                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Create New Song"
+                >
+                  Create Song
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Sign In"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Sign Up"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}
