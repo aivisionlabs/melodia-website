@@ -5,12 +5,15 @@ import { useLyrics } from '@/hooks/use-lyrics';
 import { LyricsEditor, LyricsControls, LyricsHistory, ApproveLyricsModal } from '@/components/lyrics';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { getSongRequestDataAction } from '@/lib/lyrics-actions';
+import { SongRequest } from '@/types';
 
 export default function CreateLyricsPage({ params }: { params: Promise<{ requestId: string }> }) {
   const router = useRouter();
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'history'>('editor');
   const [requestId, setRequestId] = useState<string>('');
+  const [songRequest, setSongRequest] = useState<SongRequest | null>(null);
   
   // Await params for Next.js 15 compatibility
   React.useEffect(() => {
@@ -20,6 +23,39 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
     };
     getParams();
   }, [params]);
+
+  // Load song request data when requestId is available
+  React.useEffect(() => {
+    const loadSongRequest = async () => {
+      if (requestId) {
+        try {
+          console.log('Loading song request for ID:', requestId);
+          const request = await getSongRequestDataAction(parseInt(requestId));
+          console.log('Raw request data:', request);
+          if (request) {
+            // Convert Date objects to strings for SongRequest type
+            const songRequest: SongRequest = {
+              ...request,
+              delivery_preference: request.delivery_preference as 'email' | 'whatsapp' | 'both' | null,
+              status: request.status as 'pending' | 'processing' | 'completed' | 'failed',
+              lyrics_status: request.lyrics_status as 'pending' | 'generating' | 'needs_review' | 'approved',
+              created_at: request.created_at.toISOString(),
+              updated_at: request.updated_at.toISOString(),
+              lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null
+            };
+            console.log('Processed song request:', songRequest);
+            console.log('Languages from request:', songRequest.languages);
+            setSongRequest(songRequest);
+          } else {
+            console.log('No request found for ID:', requestId);
+          }
+        } catch (error) {
+          console.error('Error loading song request:', error);
+        }
+      }
+    };
+    loadSongRequest();
+  }, [requestId]);
   
   const {
     drafts,
@@ -90,7 +126,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
         )}
         
         {/* Main Content */}
-        {!requestId ? (
+        {!requestId || !songRequest ? (
           <div className="flex justify-center items-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
@@ -104,12 +140,14 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
             <div className="bg-white rounded-lg shadow p-6 sticky top-8">
               <h2 className="text-xl font-semibold mb-6">Lyrics Generator</h2>
               <LyricsControls
+                key={songRequest?.id || 'loading'}
                 requestId={requestId}
                 onGenerate={handleGenerate}
                 onRefine={handleRefine}
                 loading={loading}
                 hasExistingDraft={drafts.length > 0}
                 currentDraft={currentDraft}
+                initialLanguages={songRequest?.languages || ['English']}
               />
             </div>
           </div>

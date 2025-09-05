@@ -17,8 +17,11 @@ import { SongStatusBadge } from '@/components/dashboard/SongStatusBadge'
 // Component to handle song link with status checking
 function SongLinkButton({ songId }: { songId: number }) {
   const { song, status, isLoading, error, refreshStatus } = useSongStatus(songId, {
-    autoCheck: true // Enable auto-check to get latest status
+    autoCheck: true, // Enable auto-check to get latest status
+    pollingInterval: 5000 // Check every 5 seconds for faster updates
   })
+
+  console.log('SongLinkButton - songId:', songId, 'status:', status, 'song:', song, 'error:', error)
 
 
 
@@ -30,22 +33,32 @@ function SongLinkButton({ songId }: { songId: number }) {
     )
   }
 
-  if (error || !song) {
+  // If there's an error but song exists, try to refresh
+  if (error && song) {
     return (
       <Button
         size="sm"
-        className="bg-red-500 hover:bg-red-600 text-white"
+        className="bg-yellow-500 hover:bg-yellow-600 text-white"
         onClick={refreshStatus}
       >
-        Retry
+        Check Status
+      </Button>
+    )
+  }
+
+  // If no song data and no error, show processing (song might be being created)
+  if (!song && !error) {
+    return (
+      <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white" disabled>
+        Processing...
       </Button>
     )
   }
 
   // If song is ready, show listen button
-  if ((status === 'ready' && song.song_url) || (song?.song_url && song?.status === 'completed')) {
+  if ((status === 'ready' && song?.song_url) || (song?.song_url && song?.status === 'completed')) {
     return (
-      <Link href={`/library/${song.slug}`}>
+      <Link href={`/library/${song?.slug}`}>
         <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white">
           Listen to Song
         </Button>
@@ -54,10 +67,10 @@ function SongLinkButton({ songId }: { songId: number }) {
   }
 
   // If song is processing, show status
-  if (status === 'processing' || song?.status === 'generating') {
+  if (status === 'processing' || song?.status === 'generating' || song?.status === 'processing') {
     return (
       <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white" disabled>
-        Generating...
+        Processing...
       </Button>
     )
   }
@@ -75,14 +88,14 @@ function SongLinkButton({ songId }: { songId: number }) {
     )
   }
 
-  // Default case - check status
+  // Default case - show retry only if there's a clear error
   return (
     <Button
       size="sm"
-      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+      className="bg-red-500 hover:bg-red-600 text-white"
       onClick={refreshStatus}
     >
-      Check Status
+      Retry
     </Button>
   )
 }
@@ -107,6 +120,17 @@ export default function DashboardPage() {
     if (isAuthenticated && user) {
       loadUserData()
     }
+  }, [isAuthenticated, user])
+
+  // Auto-refresh data every 30 seconds to catch status updates
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+
+    const interval = setInterval(() => {
+      loadUserData()
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(interval)
   }, [isAuthenticated, user])
 
   const loadUserData = async () => {

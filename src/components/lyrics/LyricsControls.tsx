@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { GenerateLyricsParams } from '@/types';
 
@@ -12,6 +12,7 @@ interface LyricsControlsProps {
   loading?: boolean;
   hasExistingDraft?: boolean;
   currentDraft?: any;
+  initialLanguages?: string[];
 }
 
 export function LyricsControls({ 
@@ -21,13 +22,21 @@ export function LyricsControls({
   onRefine, 
   loading = false,
   hasExistingDraft = false,
-  currentDraft
+  currentDraft,
+  initialLanguages = ['English']
 }: LyricsControlsProps) {
-  const [languages, setLanguages] = useState<string[]>(['English']);
+  console.log('LyricsControls received initialLanguages:', initialLanguages);
+  const [languages, setLanguages] = useState<string[]>(initialLanguages);
   const [tone, setTone] = useState<string[]>(['Fun']);
   const [lengthHint, setLengthHint] = useState<'short' | 'standard' | 'long'>('standard');
   const [refineText, setRefineText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Update languages when initialLanguages changes
+  React.useEffect(() => {
+    console.log('Updating languages from initialLanguages:', initialLanguages);
+    setLanguages(initialLanguages);
+  }, [initialLanguages]);
   
   const handleGenerate = async () => {
     setIsGenerating(true);

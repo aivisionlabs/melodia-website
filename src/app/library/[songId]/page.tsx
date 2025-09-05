@@ -79,6 +79,7 @@ function SongPageContent({ slug }: { slug: string }) {
       artist: song.service_provider || "Melodia",
       song_url: songUrl,
       duration: duration || song.duration || 0,
+      lyrics: song.lyrics || undefined,
       timestamp_lyrics: song.timestamp_lyrics || undefined,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants || undefined,
       selected_variant: song.selected_variant || undefined,
