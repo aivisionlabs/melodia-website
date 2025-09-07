@@ -43,8 +43,6 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
               updated_at: request.updated_at.toISOString(),
               lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null
             };
-            console.log('Processed song request:', songRequest);
-            console.log('Languages from request:', songRequest.languages);
             setSongRequest(songRequest);
           } else {
             console.log('No request found for ID:', requestId);
@@ -100,14 +98,37 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
   };
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto py-8 px-4">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Lyrics</h1>
-          <p className="text-gray-600 mt-2">
-            Generate and edit lyrics for your song request
-          </p>
+        <div className="text-center mb-8">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Create Lyrics
+              </h1>
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <svg className="h-8 w-8 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Generate and edit beautiful lyrics for your personalized song
+            </p>
+          </div>
         </div>
         
         {/* Error Display */}
@@ -129,7 +150,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
         {!requestId || !songRequest ? (
           <div className="flex justify-center items-center py-12">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading...</p>
             </div>
           </div>
@@ -137,51 +158,99 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Panel - Controls */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-6">Lyrics Generator</h2>
-              <LyricsControls
-                key={songRequest?.id || 'loading'}
-                requestId={requestId}
-                onGenerate={handleGenerate}
-                onRefine={handleRefine}
-                loading={loading}
-                hasExistingDraft={drafts.length > 0}
-                currentDraft={currentDraft}
-                initialLanguages={songRequest?.languages || ['English']}
-              />
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden sticky top-8">
+              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-6">
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="p-3 bg-white/20 rounded-2xl">
+                      <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold">Lyrics Generator</h2>
+                    <div className="p-3 bg-white/20 rounded-2xl">
+                      <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-white/90 text-sm">
+                    Create beautiful lyrics with AI
+                  </p>
+                </div>
+              </div>
+              <div className="p-8">
+
+                {songRequest && songRequest.languages && songRequest.languages.length > 0 ? (
+                  <LyricsControls
+                    key={`${songRequest.id}-${songRequest.languages.join(',')}`}
+                    requestId={requestId}
+                    onGenerate={handleGenerate}
+                    onRefine={handleRefine}
+                    loading={loading}
+                    hasExistingDraft={drafts.length > 0}
+                    currentDraft={currentDraft}
+                    initialLanguages={songRequest.languages}
+                  />
+                ) : songRequest ? (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm">
+                    <p className="text-red-800">No languages found in song request. Using default: English</p>
+                    <LyricsControls
+                      key={`${songRequest.id}-default`}
+                      requestId={requestId}
+                      onGenerate={handleGenerate}
+                      onRefine={handleRefine}
+                      loading={loading}
+                      hasExistingDraft={drafts.length > 0}
+                      currentDraft={currentDraft}
+                      initialLanguages={['English']}
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
           
           {/* Right Panel - Editor & History */}
           <div className="lg:col-span-2 space-y-6">
             {/* Tab Navigation */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="border-b border-gray-200">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
                 <nav className="flex space-x-8 px-6">
                   <button
                     onClick={() => setActiveTab('editor')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
                       activeTab === 'editor'
-                        ? 'border-yellow-500 text-yellow-600'
+                        ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    Editor
+                    <div className="flex items-center space-x-2">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                      </svg>
+                      <span>Editor</span>
+                    </div>
                   </button>
                   <button
                     onClick={() => setActiveTab('history')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
                       activeTab === 'history'
-                        ? 'border-yellow-500 text-yellow-600'
+                        ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    History ({drafts.length})
+                    <div className="flex items-center space-x-2">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      <span>History ({drafts.length})</span>
+                    </div>
                   </button>
                 </nav>
               </div>
               
-              <div className="p-6">
+              <div className="p-8">
                 {activeTab === 'editor' ? (
                   <LyricsEditor
                     requestId={requestId}
@@ -206,7 +275,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
             
             {/* Action Buttons */}
             {currentDraft && currentDraft.status === 'approved' && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden p-6">
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-lg font-medium text-green-800">
@@ -218,7 +287,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
                   </div>
                   <Button
                     onClick={() => router.push(`/create-song-from-lyrics/${requestId}`)}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-gradient-to-r from-green-600 via-green-700 to-green-800 hover:from-green-700 hover:via-green-800 hover:to-green-900 text-white font-semibold py-2 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl"
                   >
                     Create Song
                   </Button>

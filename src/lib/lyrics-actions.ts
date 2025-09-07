@@ -10,7 +10,7 @@ import { config } from './config'
 
 // Helper function to build lyrics generation prompt
 function buildLyricsPrompt(params: GenerateLyricsParams, songRequest: any): string {
-  const { language, tone, lengthHint, structure, refineText } = params
+  const { language, structure, refineText } = params
 
   let prompt = `Create ${language.join(' and ')} lyrics for a personalized song with the following details:
 
@@ -23,8 +23,6 @@ Additional Details: ${songRequest.additional_details || 'None'}
 
 Requirements:
 - Language(s): ${language.join(', ')}
-- Tone: ${tone.join(', ')}
-- Length: ${lengthHint}
 ${structure ? `- Structure: ${JSON.stringify(structure)}` : ''}
 
 ${refineText ? `Refinement Request: ${refineText}` : ''}
@@ -212,8 +210,6 @@ export async function generateLyricsAction(params: GenerateLyricsParams, request
         song_request_id: requestId,
         version: newVersion,
         language: params.language,
-        tone: params.tone,
-        length_hint: params.lengthHint,
         structure: params.structure || null,
         prompt_input: { ...params, refineText: params.refineText },
         generated_text: generatedText,

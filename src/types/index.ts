@@ -119,8 +119,6 @@ export interface LyricsDraft {
 
 export interface GenerateLyricsParams {
   language: string[]
-  tone: string[]
-  lengthHint: 'short' | 'standard' | 'long'
   structure?: any
   refineText?: string
 }

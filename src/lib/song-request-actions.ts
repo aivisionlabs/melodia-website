@@ -32,36 +32,36 @@ function validateSongRequestForm(formData: SongRequestFormData): { isValid: bool
     errors.languages = 'Please select at least one language'
   }
 
-  // Contact validation
-  if (!formData.phone_number && !formData.email) {
-    errors.contact = 'Please provide either phone number or email'
-  }
+  // // Contact validation
+  // if (!formData.phone_number && !formData.email) {
+  //   errors.contact = 'Please provide either phone number or email'
+  // }
 
-  if (formData.phone_number && !isValidPhone(formData.phone_number)) {
-    errors.phone_number = 'Please enter a valid phone number'
-  }
+  // if (formData.phone_number && !isValidPhone(formData.phone_number)) {
+  //   errors.phone_number = 'Please enter a valid phone number'
+  // }
 
-  if (formData.email && !isValidEmail(formData.email)) {
-    errors.email = 'Please enter a valid email address'
-  }
+  // if (formData.email && !isValidEmail(formData.email)) {
+  //   errors.email = 'Please enter a valid email address'
+  // }
 
   // Delivery preference validation
-  if ((formData.phone_number || formData.email) && !formData.delivery_preference) {
-    errors.delivery_preference = 'Please select delivery preference'
-  }
+  // if ((formData.phone_number || formData.email) && !formData.delivery_preference) {
+  //   errors.delivery_preference = 'Please select delivery preference'
+  // }
 
   // Optional fields length validation
-  if (formData.person_description && formData.person_description.length > 500) {
-    errors.person_description = 'Person description must be 500 characters or less'
-  }
+  // if (formData.person_description && formData.person_description.length > 500) {
+  //   errors.person_description = 'Person description must be 500 characters or less'
+  // }
 
   if (formData.song_type && formData.song_type.length > 300) {
     errors.song_type = 'Song type must be 300 characters or less'
   }
 
-  if (formData.additional_details && formData.additional_details.length > 1000) {
-    errors.additional_details = 'Additional details must be 1000 characters or less'
-  }
+  // if (formData.additional_details && formData.additional_details.length > 1000) {
+  //   errors.additional_details = 'Additional details must be 1000 characters or less'
+  // }
 
   return {
     isValid: Object.keys(errors).length === 0,

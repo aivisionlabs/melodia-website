@@ -95,9 +95,15 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (!requestId || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+          <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        </div>
+        <div className="relative text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -106,14 +112,21 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+          <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        </div>
+        <div className="relative text-center">
+          <div className="bg-white/90 backdrop-blur-sm border border-red-200 rounded-2xl p-8 max-w-md shadow-2xl">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
             <p className="text-red-600 mb-4">{error}</p>
             <Button
               onClick={() => router.push('/dashboard')}
               variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-50"
             >
               Back to Dashboard
             </Button>
@@ -125,8 +138,14 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (!request || !approvedDraft) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+          <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        </div>
+        <div className="relative text-center">
           <p className="text-gray-600">No data available</p>
         </div>
       </div>
@@ -136,146 +155,208 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   const lyricsText = approvedDraft.edited_text || approvedDraft.generated_text;
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto py-8 px-4">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Song from Lyrics</h1>
-          <p className="text-gray-600 mt-2">
-            Configure song settings and generate your final song
-          </p>
+        <div className="text-center mb-8">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Create Song from Lyrics
+              </h1>
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <svg className="h-8 w-8 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Configure song settings and generate your final song
+            </p>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Panel - Approved Lyrics */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Approved Lyrics</h2>
-            
-            {/* Request Info */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h3 className="font-medium mb-2">Song Request Details</h3>
-              <div className="text-sm space-y-1">
-                <p><span className="font-medium">Recipient:</span> {request.recipient_name}</p>
-                <p><span className="font-medium">Relationship:</span> {request.recipient_relationship}</p>
-                <p><span className="font-medium">Languages:</span> {request.languages.join(', ')}</p>
-                {request.person_description && (
-                  <p><span className="font-medium">Description:</span> {request.person_description}</p>
-                )}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-6">
+              <div className="text-center space-y-3">
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="p-3 bg-white/20 rounded-2xl">
+                    <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold">Approved Lyrics</h2>
+                  <div className="p-3 bg-white/20 rounded-2xl">
+                    <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-white/90 text-sm">
+                  Version {approvedDraft.version}
+                </p>
               </div>
             </div>
-            
-            {/* Lyrics Display */}
-            <div>
-              <h3 className="font-medium mb-2">Lyrics (Version {approvedDraft.version})</h3>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">
+            <div className="p-8">
+              {/* Lyrics Display */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap max-h-96 overflow-y-auto shadow-inner">
                 {lyricsText}
               </div>
             </div>
           </div>
           
           {/* Right Panel - Song Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Song Settings</h2>
-            
-            <div className="space-y-6">
-              {/* Voice Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Voice Style</label>
-                <select
-                  value={voice}
-                  onChange={(e) => setVoice(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                >
-                  <option value="default">Default Voice</option>
-                  <option value="male">Male Voice</option>
-                  <option value="female">Female Voice</option>
-                  <option value="child">Child Voice</option>
-                  <option value="elderly">Elderly Voice</option>
-                </select>
-              </div>
-              
-              {/* Music Style */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Music Style</label>
-                <select
-                  value={style}
-                  onChange={(e) => setStyle(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                >
-                  <option value="pop">Pop</option>
-                  <option value="rock">Rock</option>
-                  <option value="jazz">Jazz</option>
-                  <option value="classical">Classical</option>
-                  <option value="folk">Folk</option>
-                  <option value="electronic">Electronic</option>
-                  <option value="country">Country</option>
-                  <option value="blues">Blues</option>
-                </select>
-              </div>
-              
-              {/* Genre */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Genre</label>
-                <select
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                >
-                  <option value="pop">Pop</option>
-                  <option value="rock">Rock</option>
-                  <option value="jazz">Jazz</option>
-                  <option value="classical">Classical</option>
-                  <option value="folk">Folk</option>
-                  <option value="electronic">Electronic</option>
-                  <option value="country">Country</option>
-                  <option value="blues">Blues</option>
-                  <option value="hip-hop">Hip Hop</option>
-                  <option value="r&b">R&B</option>
-                </select>
-              </div>
-              
-              {/* BPM */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Tempo (BPM): {bpm}
-                </label>
-                <input
-                  type="range"
-                  min="60"
-                  max="200"
-                  value={bpm}
-                  onChange={(e) => setBpm(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Slow (60)</span>
-                  <span>Fast (200)</span>
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white p-6">
+              <div className="text-center space-y-3">
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="p-3 bg-white/20 rounded-2xl">
+                    <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold">Song Settings</h2>
+                  <div className="p-3 bg-white/20 rounded-2xl">
+                    <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
+                <p className="text-white/90 text-sm">
+                  Configure your song parameters
+                </p>
               </div>
-              
-              {/* Create Button */}
-              <div className="pt-4">
-                <Button
-                  onClick={handleCreateSong}
-                  disabled={creating}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3"
-                >
-                  {creating ? 'Creating Song...' : 'Create Song'}
-                </Button>
-              </div>
-              
-              {/* Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <div className="text-blue-600 mr-2">ℹ️</div>
-                  <div className="text-blue-800 text-sm">
-                    <p className="font-medium">Song Creation Process:</p>
-                    <ul className="mt-1 space-y-1">
-                      <li>• Your song will be generated using AI</li>
-                      <li>• This may take 5-10 minutes</li>
-                      <li>• You'll receive a notification when ready</li>
-                      <li>• You can track progress in your dashboard</li>
-                    </ul>
+            </div>
+            <div className="p-8">
+              <div className="space-y-6">
+                {/* Voice Selection */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">Voice Style</label>
+                  <select
+                    value={voice}
+                    onChange={(e) => setVoice(e.target.value)}
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-blue-300"
+                  >
+                    <option value="default">Default Voice</option>
+                    <option value="male">Male Voice</option>
+                    <option value="female">Female Voice</option>
+                    <option value="child">Child Voice</option>
+                    <option value="elderly">Elderly Voice</option>
+                  </select>
+                </div>
+                
+                {/* Music Style */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">Music Style</label>
+                  <select
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value)}
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
+                  >
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="jazz">Jazz</option>
+                    <option value="classical">Classical</option>
+                    <option value="folk">Folk</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="country">Country</option>
+                    <option value="blues">Blues</option>
+                  </select>
+                </div>
+                
+                {/* Genre */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">Genre</label>
+                  <select
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-purple-300"
+                  >
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="jazz">Jazz</option>
+                    <option value="classical">Classical</option>
+                    <option value="folk">Folk</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="country">Country</option>
+                    <option value="blues">Blues</option>
+                    <option value="hip-hop">Hip Hop</option>
+                    <option value="r&b">R&B</option>
+                  </select>
+                </div>
+                
+                {/* BPM */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 text-gray-700">
+                    Tempo (BPM): <span className="text-blue-600 font-semibold">{bpm}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="60"
+                    max="200"
+                    value={bpm}
+                    onChange={(e) => setBpm(parseInt(e.target.value))}
+                    className="w-full h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>Slow (60)</span>
+                    <span>Fast (200)</span>
+                  </div>
+                </div>
+                
+                {/* Create Button */}
+                <div className="pt-4">
+                  <Button
+                    onClick={handleCreateSong}
+                    disabled={creating}
+                    className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {creating ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Creating Song...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                        Create Song
+                      </div>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Info */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                  <div className="flex items-start">
+                    <div className="text-blue-600 mr-3 text-xl">ℹ️</div>
+                    <div className="text-blue-800 text-sm">
+                      <p className="font-semibold mb-2">Song Creation Process:</p>
+                      <ul className="space-y-1">
+                        <li>• Your song will be generated using AI</li>
+                        <li>• This may take 5-10 minutes</li>
+                        <li>• You'll receive a notification when ready</li>
+                        <li>• You can track progress in your dashboard</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>

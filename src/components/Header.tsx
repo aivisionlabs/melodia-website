@@ -29,14 +29,14 @@ const Header = () => {
       <div className="hidden md:flex items-center gap-6">
         <Link
           href="/library"
-          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
+          className="text-gray-700 hover:text-blue-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Creations section"
         >
           Library
         </Link>
         <Link
           href="/#testimonials-title"
-          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
+          className="text-gray-700 hover:text-blue-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Testimonials section"
         >
           Testimonials
@@ -51,7 +51,7 @@ const Header = () => {
               </Button>
             </Link>
             <Link href="/create-song">
-              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white">
                 Create Song
               </Button>
             </Link>
@@ -72,7 +72,7 @@ const Header = () => {
               </Button>
             </Link>
             <Link href="/auth/signup">
-              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white">
                 Sign Up
               </Button>
             </Link>
@@ -87,7 +87,7 @@ const Header = () => {
         {isAuthenticated ? (
           <div className="flex items-center gap-2">
             <Link href="/create-song">
-              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white text-xs">
                 Create
               </Button>
             </Link>
@@ -115,7 +115,7 @@ const Header = () => {
         {/* Hamburger Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 text-gray-700 hover:text-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 rounded"
+          className="p-2 text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 rounded"
           aria-label="Toggle navigation menu"
           aria-expanded={isMenuOpen}
         >
@@ -133,7 +133,7 @@ const Header = () => {
           <nav className="flex flex-col py-2" aria-label="Mobile navigation">
             <Link
               href="/library"
-              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
               aria-label="Go to Songs Library"
             >
@@ -141,7 +141,7 @@ const Header = () => {
             </Link>
             <Link
               href="/#testimonials-title"
-              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
               aria-label="Jump to Testimonials section"
             >
@@ -151,7 +151,7 @@ const Header = () => {
               <>
                 <Link
                   href="/dashboard"
-                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Go to Dashboard"
                 >
@@ -159,7 +159,7 @@ const Header = () => {
                 </Link>
                 <Link
                   href="/create-song"
-                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Create New Song"
                 >
@@ -170,7 +170,7 @@ const Header = () => {
               <>
                 <Link
                   href="/auth/login"
-                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign In"
                 >
@@ -178,7 +178,7 @@ const Header = () => {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                  className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign Up"
                 >
