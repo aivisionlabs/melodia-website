@@ -98,12 +98,12 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
-        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-amber-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-40 left-1/2 w-80 h-80 bg-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
       </div>
 
       <div className="relative max-w-7xl mx-auto py-8 px-4">
@@ -112,15 +112,15 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
           <div className="space-y-4">
             <div className="flex items-center justify-center space-x-2">
               <div className="p-3 bg-white/20 rounded-2xl">
-                <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-8 w-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">
                 Create Lyrics
               </h1>
               <div className="p-3 bg-white/20 rounded-2xl">
-                <svg className="h-8 w-8 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-8 w-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -150,7 +150,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
         {!requestId || !songRequest ? (
           <div className="flex justify-center items-center py-12">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading...</p>
             </div>
           </div>
@@ -159,7 +159,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
           {/* Left Panel - Controls */}
           <div className="lg:col-span-1">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden sticky top-8">
-              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-6">
+              <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white p-6">
                 <div className="text-center space-y-3">
                   <div className="flex items-center justify-center space-x-3">
                     <div className="p-3 bg-white/20 rounded-2xl">
@@ -215,7 +215,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
           <div className="lg:col-span-2 space-y-6">
             {/* Tab Navigation */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
+              <div className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-b border-gray-200">
                 <nav className="flex space-x-8 px-6">
                   <button
                     onClick={() => setActiveTab('editor')}

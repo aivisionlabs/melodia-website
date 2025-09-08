@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
-import { PublicSong, SongRequest } from '@/types'
-import { getUserSongs, getUserSongRequests } from '@/lib/song-request-actions'
-import { Music, Plus, LogOut, User, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { PublicSong, SongRequest, SongRequestFormData } from '@/types'
+import { getUserSongs, getUserSongRequests, createSongRequest } from '@/lib/song-request-actions'
+import { Music, Plus, LogOut, User, Clock, CheckCircle, XCircle, Heart, Globe, MessageCircle, Play, ChevronRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/toast'
 import { useSongStatus } from '@/hooks/use-song-status-client'
@@ -105,9 +107,42 @@ export default function DashboardPage() {
   const [userSongs, setUserSongs] = useState<PublicSong[]>([])
   const [songRequests, setSongRequests] = useState<SongRequest[]>([])
   const [isLoadingSongs, setIsLoadingSongs] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { addToast } = useToast()
+
+  // Form state for new song creation
+  const [formData, setFormData] = useState<SongRequestFormData>({
+    requester_name: '',
+    phone_number: '',
+    email: '',
+    delivery_preference: undefined,
+    recipient_name: '',
+    recipient_relationship: '',
+    languages: ['English'],
+    person_description: '',
+    song_type: '',
+    emotions: [],
+    additional_details: ''
+  })
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
+  // Static songs data for display
+  const staticSongs = [
+    { id: 1, title: "Top 50", likes: "50K", image: "/images/static-songs/top50.svg" },
+    { id: 2, title: "Emotional", likes: "10K", image: "/images/static-songs/emotional.svg" },
+    { id: 3, title: "House", likes: "19K", image: "/images/static-songs/house.svg" },
+    { id: 4, title: "Study", likes: "20K", image: "/images/static-songs/study.svg" },
+    { id: 5, title: "Lofi", likes: "20K", image: "/images/static-songs/lofi.svg" },
+    { id: 6, title: "Afrobeat", likes: "13K", image: "/images/static-songs/afrobeat.svg" },
+    { id: 7, title: "Classical", likes: "10K", image: "/images/static-songs/classical.svg" },
+    { id: 8, title: "Pop", likes: "25K", image: "/images/static-songs/pop.svg" },
+    { id: 9, title: "Rock", likes: "15K", image: "/images/static-songs/rock.svg" },
+    { id: 10, title: "Jazz", likes: "8K", image: "/images/static-songs/jazz.svg" }
+  ]
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -123,28 +158,16 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, user])
 
-  // Helper function to check if any songs are processing
-  const hasProcessingSongs = () => {
-    return songRequests.some(request => {
-      const status = getStatusText(request.status, request.lyrics_status, request)
-      return status === 'Generating Lyrics' || status === 'Processing' || 
-             (request.status === 'processing' && !request.generated_song_id)
-    })
-  }
-
-  // Auto-refresh data every 30 seconds only if there are processing songs
+  // Pre-fill user data if available
   useEffect(() => {
-    if (!isAuthenticated || !user) return
-
-    const interval = setInterval(() => {
-      // Only refresh if there are songs currently processing
-      if (hasProcessingSongs()) {
-        loadUserData()
-      }
-    }, 30000) // Refresh every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [isAuthenticated, user, songRequests])
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        requester_name: user.name || '',
+        email: user.email || ''
+      }))
+    }
+  }, [user])
 
   const loadUserData = async () => {
     if (!user?.id) return
@@ -196,184 +219,93 @@ export default function DashboardPage() {
     }
   }
 
-  const getStatusIcon = (status: string, lyricsStatus?: string) => {
-    // Phase 6: Check lyrics status first if available
-    if (lyricsStatus) {
-      switch (lyricsStatus) {
-        case 'approved':
-          return <CheckCircle className="h-4 w-4 text-green-500" />
-        case 'needs_review':
-          return <Clock className="h-4 w-4 text-yellow-500" />
-        case 'generating':
-          return <Clock className="h-4 w-4 text-blue-500" />
-        case 'pending':
-          return <Clock className="h-4 w-4 text-gray-500" />
-      }
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {}
+
+    if (!formData.recipient_name.trim()) {
+      errors.recipient_name = 'Who is this song for? (Required)'
+    } else if (formData.recipient_name.length < 3) {
+      errors.recipient_name = 'Name must be at least 3 characters'
     }
 
-    // Fallback to original status
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'processing':
-        return <Clock className="h-4 w-4 text-yellow-500" />
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />
+    if (!formData.recipient_relationship.trim()) {
+      errors.recipient_relationship = 'Relationship is required'
     }
+
+    if (!formData.additional_details?.trim()) {
+      errors.additional_details = 'Please tell us more about the song'
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
-  const getStatusText = (status: string, lyricsStatus?: string, request?: any) => {
-    // Check if song failed first (priority check)
-    if (status === 'failed' || request?.status === 'failed') {
-      return 'Failed'
-    }
-
-    // Check if song is completed (has song_url and not failed)
-    if (request?.generated_song_id && request?.status !== 'failed') {
-      return 'Completed'
-    }
-
-    // Phase 6: Check lyrics status first if available
-    if (lyricsStatus) {
-      switch (lyricsStatus) {
-        case 'approved':
-          return 'Ready for Song Creation'
-        case 'needs_review':
-          return 'Lyrics Need Review'
-        case 'generating':
-          return 'Generating Lyrics'
-        case 'pending':
-          return 'Pending Lyrics'
-      }
-    }
-
-    // Fallback to original status
-    return status.charAt(0).toUpperCase() + status.slice(1)
-  }
-
-  const getStatusColor = (status: string, lyricsStatus?: string, request?: any) => {
-    // Check if song failed first (priority check)
-    if (status === 'failed' || request?.status === 'failed') {
-      return 'bg-red-100 text-red-800'
-    }
-
-    // Check if song is completed (has song_url and not failed)
-    if (request?.generated_song_id && request?.status !== 'failed') {
-      return 'bg-green-100 text-green-800'
-    }
-
-    // Phase 6: Check lyrics status first if available
-    if (lyricsStatus) {
-      switch (lyricsStatus) {
-        case 'approved':
-          return 'bg-green-100 text-green-800'
-        case 'needs_review':
-          return 'bg-yellow-100 text-yellow-800'
-        case 'generating':
-          return 'bg-blue-100 text-blue-800'
-        case 'pending':
-          return 'bg-gray-100 text-gray-800'
-      }
-    }
-
-    // Fallback to original status
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800'
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'failed':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getActionButton = (request: SongRequest) => {
-    // Phase 6: Show appropriate action based on lyrics status
-    if (request.lyrics_status) {
-      switch (request.lyrics_status) {
-        case 'pending':
-          return (
-            <Link href={`/create-lyrics/${request.id}`}>
-              <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                Create Lyrics
-              </Button>
-            </Link>
-          )
-        case 'needs_review':
-          return (
-            <Link href={`/create-lyrics/${request.id}`}>
-              <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
-                Edit Lyrics
-              </Button>
-            </Link>
-          )
-        case 'approved':
-          // Check if song has already been created
-          if (request.generated_song_id) {
-            // Song exists - redirect to listen to it
-            return (
-              <SongLinkButton songId={request.generated_song_id} />
-            )
-          } else {
-            // Lyrics approved but song not created yet
-            return (
-              <Link href={`/create-song-from-lyrics/${request.id}`}>
-                <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white">
-                  Create Song
-                </Button>
-              </Link>
-            )
-          }
-      }
-    }
-
-    // Fallback for old requests without lyrics status
-    return (
-      <Link href={`/create-lyrics/${request.id}`}>
-        <Button variant="outline" size="sm">
-          View
-        </Button>
-      </Link>
-    )
-  }
-
-  // Helper function to get display name for status filter
-  const getStatusDisplayName = (filter: string) => {
-    switch (filter) {
-      case 'ready': return 'Ready for Song Creation'
-      case 'pending': return 'Pending Lyrics'
-      case 'completed': return 'Completed'
-      case 'failed': return 'Failed'
-      default: return filter
-    }
-  }
-
-  // Filter function for song requests based on status
-  const getFilteredSongRequests = () => {
-    if (statusFilter === 'all') {
-      return songRequests
+  const handleInputChange = (field: keyof SongRequestFormData, value: string | string[]) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }))
     }
     
-    return songRequests.filter((request) => {
-      const statusText = getStatusText(request.status, request.lyrics_status, request)
+    // Clear general error when user makes changes
+    if (error) {
+      setError(null)
+    }
+  }
+
+  const isFormValid = (): boolean => {
+    const hasRecipientName = formData.recipient_name.trim().length >= 3
+    const hasRelationship = formData.recipient_relationship.trim().length > 0
+    const hasAdditionalDetails = (formData.additional_details?.trim().length || 0) > 0
+    
+    return hasRecipientName && hasRelationship && hasAdditionalDetails
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!validateForm()) {
+      setError('Please fill in all required fields to continue.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const result = await createSongRequest(formData, user?.id)
       
-      // Filter based on exact status text
-      if (statusFilter === 'ready') {
-        return statusText === 'Ready for Song Creation'
-      } else if (statusFilter === 'pending') {
-        return statusText === 'Pending Lyrics'
-      } else if (statusFilter === 'completed') {
-        return statusText === 'Completed'
-      } else if (statusFilter === 'failed') {
-        return statusText === 'Failed'
+      if (result.success) {
+        addToast({
+          type: 'success',
+          title: 'Request Submitted!',
+          message: 'Your song request has been submitted successfully. Now let\'s create the lyrics!'
+        })
+        // Redirect to lyrics creation page after success
+        setTimeout(() => {
+          router.push(`/create-lyrics/${result.requestId}`)
+        }, 2000)
+      } else {
+        const errorMessage = result.error || 'Failed to submit song request. Please try again.'
+        setError(errorMessage)
+        addToast({
+          type: 'error',
+          title: 'Submission Failed',
+          message: errorMessage
+        })
       }
-      
-      return false
-    })
+    } catch {
+      const errorMessage = 'Failed to submit song request. Please try again.'
+      setError(errorMessage)
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (loading) {
@@ -385,39 +317,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
-        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
-      </div>
-
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-lg relative">
+      <header className="bg-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">N</span>
+              <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                <Music className="h-6 w-6 text-white" />
               </div>
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Melodia
-              </Link>
-              <span className="text-gray-500">|</span>
-              <span className="text-gray-700 font-medium">Dashboard</span>
+              <span className="text-xl font-bold text-white">MELODIA</span>
             </div>
 
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-700 font-medium">{user?.name || user?.email}</span>
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-300">{user?.name || user?.email}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -427,121 +348,221 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="relative max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="px-4 sm:px-0 mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            Welcome back, {user?.name || 'User'}!
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Song Creation Form */}
+        <div className="text-center mb-8 md:mb-12 px-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
+            Create Songs In Under 60-Seconds
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Manage your songs and track your song creation requests.
+          <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto">
+            <span className="text-yellow-400 font-semibold">HOLD YOUR BREATH:</span> Describe your song and prepare to be surprised.
           </p>
         </div>
 
-        {/* My Songs Section - Single Column */}
-        <div className="px-4 sm:px-0">
-          <Card className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-8">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-white/20 rounded-2xl">
-                      <Music className="h-8 w-8" />
+        {/* Song Creation Form */}
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto mb-8 md:mb-16 px-4">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4 md:p-8">
+              {/* Method Selection Tabs */}
+              <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-6 md:mb-8">
+                <button
+                  type="button"
+                  className="flex items-center space-x-2 px-3 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors text-sm md:text-base"
+                >
+                  <Music className="h-4 w-4 md:h-5 md:w-5" />
+                  <span>Generate</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center space-x-2 px-3 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors text-sm md:text-base"
+                >
+                  <Music className="h-4 w-4 md:h-5 md:w-5" />
+                  <span>Song Wizard</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center space-x-2 px-3 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors relative text-sm md:text-base"
+                >
+                  <Music className="h-4 w-4 md:h-5 md:w-5" />
+                  <span>Custom Lyrics</span>
+                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-yellow-500 text-black text-xs px-1 md:px-2 py-0.5 md:py-1 rounded-full font-bold">PRO</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center space-x-2 px-3 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors relative text-sm md:text-base"
+                >
+                  <Music className="h-4 w-4 md:h-5 md:w-5" />
+                  <span>Instrumental</span>
+                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-yellow-500 text-black text-xs px-1 md:px-2 py-0.5 md:py-1 rounded-full font-bold">PRO</span>
+                </button>
+              </div>
+
+              {/* Form Fields */}
+              <div className="space-y-4 md:space-y-6">
+                {/* Who is this song for? */}
+                <div className="space-y-2">
+                  <Label htmlFor="recipient_name" className="text-white font-medium text-sm md:text-base">
+                    Who is this song for?
+                  </Label>
+                  <Input
+                    id="recipient_name"
+                    value={formData.recipient_name}
+                    onChange={(e) => handleInputChange('recipient_name', e.target.value)}
+                    placeholder="e.g., LiLi, my wife"
+                    className="h-12 md:h-14 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 text-sm md:text-base"
+                  />
+                  {validationErrors.recipient_name && (
+                    <p className="text-red-400 text-xs md:text-sm">{validationErrors.recipient_name}</p>
+                  )}
+                </div>
+
+                {/* Language Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="languages" className="text-white font-medium text-sm md:text-base">
+                    Language
+                  </Label>
+                  <Input
+                    id="languages"
+                    value={formData.languages?.join(', ') || ''}
+                    onChange={(e) => handleInputChange('languages', e.target.value.split(',').map(l => l.trim()).filter(l => l))}
+                    placeholder="Hindi, English, or any language"
+                    className="h-12 md:h-14 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 text-sm md:text-base"
+                  />
+                  <p className="text-gray-400 text-xs md:text-sm">Type any language you want the song in</p>
+                </div>
+
+                {/* Tell us more about the song */}
+                <div className="space-y-2">
+                  <Label htmlFor="additional_details" className="text-white font-medium text-sm md:text-base">
+                    Tell us more about the song
+                  </Label>
+                  <textarea
+                    id="additional_details"
+                    value={formData.additional_details}
+                    onChange={(e) => handleInputChange('additional_details', e.target.value)}
+                    placeholder="Basic details about who the song is for, their story, genre, style preferences..."
+                    className="w-full h-24 md:h-32 p-3 md:p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 resize-none text-sm md:text-base"
+                    maxLength={1000}
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-400 text-xs md:text-sm">Share the story, genre, and style you want</p>
+                    <p className="text-gray-400 text-xs md:text-sm">{(formData.additional_details || '').length}/1000</p>
                     </div>
-                    <h2 className="text-3xl font-bold">My Songs</h2>
-                    <div className="p-3 bg-white/20 rounded-2xl">
-                      <Clock className="h-8 w-8" />
+                  {validationErrors.additional_details && (
+                    <p className="text-red-400 text-xs md:text-sm">{validationErrors.additional_details}</p>
+                  )}
                     </div>
+
+                {/* Hidden fields for form compatibility */}
+                <input type="hidden" name="recipient_relationship" value={formData.recipient_relationship || 'friend'} />
+                <input type="hidden" name="person_description" value={formData.person_description || ''} />
+                <input type="hidden" name="song_type" value={formData.song_type || ''} />
+
+                {/* Error Display */}
+                {error && (
+                  <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-xl">
+                    {error}
                   </div>
-                  <div className="flex items-center space-x-4">
-                    {/* Create New Song Button */}
-                    <Link href="/create-song">
-                      <Button className="bg-white/20 hover:bg-white/30 text-white border-2 border-white/30 hover:border-white/50 font-semibold py-2 px-4 rounded-xl transition-all duration-300 transform hover:scale-105">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create New Song
+                )}
+
+                {/* Submit Button */}
+                <div className="flex justify-center pt-4">
+                  <Button
+                    type="submit"
+                    disabled={!isFormValid() || isSubmitting}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 md:px-12 py-3 md:py-4 text-base md:text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-black mr-2 md:mr-3"></div>
+                        Creating Song...
+                      </div>
+                    ) : (
+                      'Create Song'
+                    )}
                       </Button>
-                    </Link>
-                    {/* Filter UI */}
-                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-white font-medium text-sm">Filter:</span>
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          className="px-3 py-1.5 border-2 border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-200 hover:border-white/50 bg-white/90 text-gray-800 text-sm"
-                        >
-                          <option value="all">All Songs</option>
-                          <option value="ready">Ready for Song Creation</option>
-                          <option value="pending">Pending Lyrics</option>
-                          <option value="completed">Completed</option>
-                          <option value="failed">Failed</option>
-                        </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+
+        {/* Static Songs Section */}
+        <div className="mb-8 md:mb-16 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 text-center">Popular Songs</h2>
+          <div className="relative">
+            <div className="flex space-x-3 md:space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+              {staticSongs.map((song) => (
+                <div
+                  key={song.id}
+                  className="flex-shrink-0 w-48 md:w-64 bg-gray-800 rounded-xl overflow-hidden hover:scale-105 transition-transform duration-200 cursor-pointer group"
+                >
+                  <div className="relative">
+                    <img 
+                      src={song.image} 
+                      alt={song.title}
+                      className="w-full h-36 md:h-48 object-cover"
+                    />
+                    <div className="absolute top-2 md:top-4 right-2 md:right-4">
+                      <div className="w-6 h-6 md:w-8 md:h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <Play className="h-3 w-3 md:h-4 md:w-4 text-white" />
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-8">
-              {isLoadingSongs ? (
-                <LoadingSpinner size="lg" text="Loading requests..." />
-              ) : getFilteredSongRequests().length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="p-6 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl inline-block mb-6">
-                    <Clock className="h-16 w-16 text-blue-600 mx-auto" />
+                  <div className="p-3 md:p-4">
+                    <h3 className="text-white font-semibold text-base md:text-lg mb-1">{song.title}</h3>
+                    <p className="text-gray-400 text-xs md:text-sm">{song.likes} Likes</p>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    {statusFilter === 'all' ? 'No song requests yet' : `No songs with "${getStatusDisplayName(statusFilter)}" status`}
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    {statusFilter === 'all' 
-                      ? 'Start creating beautiful personalized songs for your loved ones'
-                      : 'Try selecting a different filter or create a new song request'
-                    }
-                  </p>
-                  <Link href="/create-song">
-                    <Button className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl">
-                      <Plus className="h-5 w-5 mr-2" />
-                      Make Your First Request
-                    </Button>
-                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {getFilteredSongRequests().map((request) => (
+              ))}
+            </div>
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 hidden md:block">
+              <div className="w-8 h-16 bg-gray-700/50 rounded-l-lg flex items-center justify-center">
+                <ChevronRight className="h-6 w-6 text-white" />
+              </div>
+            </div>
+                  </div>
+                </div>
+
+        {/* My Songs Section */}
+        {songRequests.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">My Songs</h2>
+            <div className="space-y-4">
+              {songRequests.slice(0, 5).map((request) => (
                     <div
                       key={request.id}
-                      className="bg-gradient-to-r from-gray-50 to-blue-50 border-2 border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                  className="bg-gray-800 rounded-xl p-6 hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            {getStatusIcon(request.status, request.lyrics_status)}
-                            <h3 className="text-xl font-semibold text-gray-900">
+                    <div>
+                      <h3 className="text-white font-semibold text-lg">
                               Song for {request.recipient_name}
                             </h3>
-                          </div>
-                          <p className="text-gray-600 mb-2">
+                      <p className="text-gray-400">
                             {request.recipient_relationship} • {request.languages?.join(', ')}
                           </p>
-                          <p className="text-sm text-gray-500">
-                            Requested on {new Date(request.created_at).toLocaleDateString()}
+                      <p className="text-gray-500 text-sm">
+                        {new Date(request.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end space-y-3">
-                          <span className={`text-sm px-4 py-2 rounded-full font-medium ${getStatusColor(request.status, request.lyrics_status, request)}`}>
-                            {getStatusText(request.status, request.lyrics_status, request)}
+                    <div className="flex items-center space-x-3">
+                      <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm">
+                        {request.status}
                           </span>
-                          {getActionButton(request)}
+                      <Button
+                        size="sm"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                      >
+                        View
+                      </Button>
                         </div>
                       </div>
                     </div>
                   ))}
+            </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
       </main>
     </div>
   )

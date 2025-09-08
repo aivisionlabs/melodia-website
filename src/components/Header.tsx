@@ -29,14 +29,14 @@ const Header = () => {
       <div className="hidden md:flex items-center gap-6">
         <Link
           href="/library"
-          className="text-gray-700 hover:text-blue-600 font-medium transition-colors focus:underline"
+          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Creations section"
         >
           Library
         </Link>
         <Link
           href="/#testimonials-title"
-          className="text-gray-700 hover:text-blue-600 font-medium transition-colors focus:underline"
+          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Testimonials section"
         >
           Testimonials

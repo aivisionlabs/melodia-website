@@ -27,10 +27,10 @@ export function SongStatusIndicator({
       case 'processing':
         return {
           icon: Clock,
-          color: 'text-blue-500',
-          bgColor: 'bg-blue-100',
+          color: 'text-yellow-500',
+          bgColor: 'bg-yellow-100',
           text: 'Generating Song',
-          textColor: 'text-blue-700'
+          textColor: 'text-yellow-700'
         }
       case 'failed':
         return {

@@ -95,7 +95,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (!requestId || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 flex items-center justify-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
@@ -103,7 +103,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
           <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
         </div>
         <div className="relative text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 flex items-center justify-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
@@ -138,7 +138,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   
   if (!request || !approvedDraft) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 flex items-center justify-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
@@ -155,12 +155,12 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
   const lyricsText = approvedDraft.edited_text || approvedDraft.generated_text;
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
-        <div className="absolute top-40 left-1/2 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-amber-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-40 left-1/2 w-80 h-80 bg-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
       </div>
 
       <div className="relative max-w-7xl mx-auto py-8 px-4">
@@ -169,15 +169,15 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
           <div className="space-y-4">
             <div className="flex items-center justify-center space-x-2">
               <div className="p-3 bg-white/20 rounded-2xl">
-                <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-8 w-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">
                 Create Song from Lyrics
               </h1>
               <div className="p-3 bg-white/20 rounded-2xl">
-                <svg className="h-8 w-8 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-8 w-8 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -191,7 +191,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Panel - Approved Lyrics */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-6">
+            <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white p-6">
               <div className="text-center space-y-3">
                 <div className="flex items-center justify-center space-x-3">
                   <div className="p-3 bg-white/20 rounded-2xl">
@@ -221,7 +221,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
           
           {/* Right Panel - Song Settings */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white p-6">
+            <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white p-6">
               <div className="text-center space-y-3">
                 <div className="flex items-center justify-center space-x-3">
                   <div className="p-3 bg-white/20 rounded-2xl">
@@ -249,7 +249,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                   <select
                     value={voice}
                     onChange={(e) => setVoice(e.target.value)}
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-blue-300"
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 hover:border-yellow-300"
                   >
                     <option value="default">Default Voice</option>
                     <option value="male">Male Voice</option>
@@ -265,7 +265,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                   <select
                     value={style}
                     onChange={(e) => setStyle(e.target.value)}
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-indigo-300"
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 hover:border-amber-300"
                   >
                     <option value="pop">Pop</option>
                     <option value="rock">Rock</option>
@@ -284,7 +284,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                   <select
                     value={genre}
                     onChange={(e) => setGenre(e.target.value)}
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 hover:border-purple-300"
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 hover:border-orange-300"
                   >
                     <option value="pop">Pop</option>
                     <option value="rock">Rock</option>
@@ -302,7 +302,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                 {/* BPM */}
                 <div>
                   <label className="block text-sm font-medium mb-3 text-gray-700">
-                    Tempo (BPM): <span className="text-blue-600 font-semibold">{bpm}</span>
+                    Tempo (BPM): <span className="text-yellow-600 font-semibold">{bpm}</span>
                   </label>
                   <input
                     type="range"
@@ -310,7 +310,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                     max="200"
                     value={bpm}
                     onChange={(e) => setBpm(parseInt(e.target.value))}
-                    className="w-full h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-3 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-lg appearance-none cursor-pointer slider"
                     style={{
                       background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 100%)`
                     }}
@@ -326,7 +326,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                   <Button
                     onClick={handleCreateSong}
                     disabled={creating}
-                    className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {creating ? (
                       <div className="flex items-center justify-center">
@@ -345,10 +345,10 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                 </div>
                 
                 {/* Info */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl p-6">
                   <div className="flex items-start">
-                    <div className="text-blue-600 mr-3 text-xl">ℹ️</div>
-                    <div className="text-blue-800 text-sm">
+                    <div className="text-yellow-600 mr-3 text-xl">ℹ️</div>
+                    <div className="text-yellow-800 text-sm">
                       <p className="font-semibold mb-2">Song Creation Process:</p>
                       <ul className="space-y-1">
                         <li>• Your song will be generated using AI</li>
