@@ -6,7 +6,7 @@ export const usePageTracking = () => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname) {
+    if (pathname && typeof window !== 'undefined') {
       const pageTitle = getPageTitle(pathname);
       const pageUrl = `${window.location.origin}${pathname}`;
       trackPageView(pageTitle, pageUrl);

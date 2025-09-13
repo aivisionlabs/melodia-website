@@ -80,8 +80,8 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
       const result = await createSongFromLyricsAction(parseInt(requestId));
       
       if (result.success) {
-        // Navigate to dashboard on success
-        router.push('/dashboard');
+        // Navigate to home page on success
+        router.push('/');
       } else {
         setError(result.error || 'Failed to create song');
       }
@@ -124,7 +124,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
             <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
             <p className="text-red-600 mb-4">{error}</p>
             <Button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/')}
               variant="outline"
               className="border-red-300 text-red-700 hover:bg-red-50"
             >

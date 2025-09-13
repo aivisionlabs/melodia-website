@@ -8,10 +8,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
-import { SongRequestFormData, PublicSong, SongRequest } from '@/types'
-import { createSongRequest, getUserSongs, getUserSongRequests } from '@/lib/song-request-actions'
+import { SongRequestFormData } from '@/types'
+import { createSongRequest } from '@/lib/song-request-actions'
 // import { generateLyrics } from '@/lib/llm-integration' // No longer needed - using API directly
-import { Music, User, LogOut, Play, ChevronRight, Menu, X, Clock, CheckCircle, XCircle, Heart, Globe, MessageCircle } from 'lucide-react'
+import { Music, User, LogOut, Play, ChevronRight } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/toast'
 import { MediaPlayer } from '@/components/MediaPlayer'
@@ -20,7 +20,6 @@ export default function HomePage() {
   const { user, loading, logout, isAuthenticated } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
   const { addToast } = useToast()
 
@@ -45,100 +44,95 @@ export default function HomePage() {
   const [songLyrics, setSongLyrics] = useState<any[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Dashboard state for authenticated users
-  const [userSongs, setUserSongs] = useState<PublicSong[]>([])
-  const [songRequests, setSongRequests] = useState<SongRequest[]>([])
-  const [isLoadingSongs, setIsLoadingSongs] = useState(false)
-
   // Real songs data for display
   const staticSongs = [
-    {
-      id: 1,
-      title: "Ruchi My Queen",
-      genre: "Hip Hop, Rap, Urban",
-      duration: "2:59",
-      audio: "/audio/ruchi-my-queen.mp3",
+    { 
+      id: 1, 
+      title: "Ruchi My Queen", 
+      genre: "Hip Hop, Rap, Urban", 
+      duration: "2:59", 
+      audio: "/audio/ruchi-my-queen.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/ruchi-my-queen.json"
     },
-    {
-      id: 2,
-      title: "Kaleidoscope Heart",
-      genre: "Romantic, Acoustic, Ballad",
-      duration: "3:09",
-      audio: "/audio/kaleidoscope.mp3",
+    { 
+      id: 2, 
+      title: "Kaleidoscope Heart", 
+      genre: "Romantic, Acoustic, Ballad", 
+      duration: "3:09", 
+      audio: "/audio/kaleidoscope.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/kaleidoscope-heart.json"
     },
-    {
-      id: 3,
-      title: "Same Office, Different Hearts",
-      genre: "Love Story",
-      duration: "3:15",
-      audio: "/audio/office-love.mp3",
+    { 
+      id: 3, 
+      title: "Same Office, Different Hearts", 
+      genre: "Love Story", 
+      duration: "3:15", 
+      audio: "/audio/office-love.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/same-office-different-hearts.json"
     },
-    {
-      id: 4,
-      title: "A Kid's Night Musical",
-      genre: "Musical",
-      duration: "3:01",
-      audio: "/audio/kids-musical.mp3",
+    { 
+      id: 4, 
+      title: "A Kid's Night Musical", 
+      genre: "Musical", 
+      duration: "3:01", 
+      audio: "/audio/kids-musical.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/kids-night-musical.json"
     },
-    {
-      id: 5,
-      title: "Lipsa Birthday Song",
-      genre: "Birthday, Celebration, Party",
-      duration: "3:01",
-      audio: "/audio/birthday-queen.mp3",
+    { 
+      id: 5, 
+      title: "Lipsa Birthday Song", 
+      genre: "Birthday, Celebration, Party", 
+      duration: "3:01", 
+      audio: "/audio/birthday-queen.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/lipsa-birthday-song.json"
     },
-    {
-      id: 6,
-      title: "Nirvan's Birthday Song",
-      genre: "Birthday Party",
-      duration: "1:53",
-      audio: "/audio/nirvan-birthday.mp3",
+    { 
+      id: 6, 
+      title: "Nirvan's Birthday Song", 
+      genre: "Birthday Party", 
+      duration: "1:53", 
+      audio: "/audio/nirvan-birthday.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/nirvan-birthday-song.json"
     },
-    {
-      id: 7,
-      title: "Ram and Akanksha's Wedding Anthem",
-      genre: "Wedding",
-      duration: "3:00",
-      audio: "/audio/wedding-anthem.mp3",
+    { 
+      id: 7, 
+      title: "Ram and Akanksha's Wedding Anthem", 
+      genre: "Wedding", 
+      duration: "3:00", 
+      audio: "/audio/wedding-anthem.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/ram-akanksha-wedding-anthem.json"
     },
-    {
-      id: 8,
-      title: "Har Lamha Naya",
-      genre: "Romantic",
-      duration: "2:45",
-      audio: "/audio/har-lamha-naya.mp3",
+    { 
+      id: 8, 
+      title: "Har Lamha Naya", 
+      genre: "Romantic", 
+      duration: "2:45", 
+      audio: "/audio/har-lamha-naya.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/har-lamha-naya.json"
     },
-    {
-      id: 9,
-      title: "Jassi Di Jaan",
-      genre: "Punjabi, Celebration",
-      duration: "2:30",
-      audio: "/audio/jassi-di-jaan.mp3",
+    { 
+      id: 9, 
+      title: "Jassi Di Jaan", 
+      genre: "Punjabi, Celebration", 
+      duration: "2:30", 
+      audio: "/audio/jassi-di-jaan.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/jassi-di-jaan.json"
     },
-    {
-      id: 10,
-      title: "Sweet Dreams Tonight",
-      genre: "Lullaby",
-      duration: "2:15",
-      audio: "/audio/sweet-dreams-tonight.mp3",
+    { 
+      id: 10, 
+      title: "Sweet Dreams Tonight", 
+      genre: "Lullaby", 
+      duration: "2:15", 
+      audio: "/audio/sweet-dreams-tonight.mp3", 
       image: "/images/melodia-logo-og.jpeg",
       lyrics: "/lyrics/sweet-dreams-tonight.json"
     }
@@ -161,14 +155,7 @@ export default function HomePage() {
     }
   }, [selectedSong])
 
-  // Load user data when authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadUserData()
-    }
-  }, [isAuthenticated, user])
-
-  // Pre-fill user data if available and restore pending form data
+  // Pre-fill user data if available
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
@@ -176,78 +163,8 @@ export default function HomePage() {
         requester_name: user.name || '',
         email: user.email || ''
       }))
-
-      // Check if there's pending form data from before login
-      const pendingFormData = sessionStorage.getItem('pendingLyricsForm')
-      if (pendingFormData) {
-        try {
-          const parsedData = JSON.parse(pendingFormData)
-          setFormData(prev => ({
-            ...prev,
-            ...parsedData,
-            requester_name: user.name || parsedData.recipient_name || '',
-            email: user.email || parsedData.email || ''
-          }))
-
-          // Clear the pending form data
-          sessionStorage.removeItem('pendingLyricsForm')
-
-          // Show success message
-          addToast({
-            type: 'success',
-            title: 'Welcome back!',
-            message: 'Your form has been restored. You can now create your lyrics!'
-          })
-        } catch (error) {
-          console.error('Error parsing pending form data:', error)
-          sessionStorage.removeItem('pendingLyricsForm')
-        }
-      }
     }
-  }, [user, addToast])
-
-  const loadUserData = async () => {
-    if (!user?.id) return
-
-    try {
-      setIsLoadingSongs(true)
-
-      // Load user's songs and requests in parallel
-      const [songsResult, requestsResult] = await Promise.all([
-        getUserSongs(user.id),
-        getUserSongRequests(user.id)
-      ])
-
-      if (songsResult.success) {
-        setUserSongs(songsResult.songs || [])
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Failed to load songs',
-          message: songsResult.error || 'Please try again later'
-        })
-      }
-
-      if (requestsResult.success) {
-        setSongRequests(requestsResult.requests || [])
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Failed to load requests',
-          message: requestsResult.error || 'Please try again later'
-        })
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error)
-      addToast({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load your data. Please refresh the page.'
-      })
-    } finally {
-      setIsLoadingSongs(false)
-    }
-  }
+  }, [user])
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
@@ -266,7 +183,7 @@ export default function HomePage() {
       errors.languages = 'Please enter a language'
     } else {
       const validLanguages = ['hindi', 'english', 'punjabi', 'bengali', 'tamil', 'telugu', 'gujarati', 'marathi', 'kannada', 'malayalam', 'odia', 'assamese', 'urdu', 'sanskrit']
-      const hasValidLanguage = formData.languages.some(lang =>
+      const hasValidLanguage = formData.languages.some(lang => 
         validLanguages.some(valid => lang.toLowerCase().includes(valid))
       )
       if (!hasValidLanguage) {
@@ -284,17 +201,17 @@ export default function HomePage() {
 
   const handleInputChange = (field: keyof SongRequestFormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-
+    
     // Clear validation error for this field
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }))
     }
-
+    
     // Clear general error when user makes changes
     if (error) {
       setError(null)
     }
-
+    
     // Clear any previous state when user makes changes
   }
 
@@ -302,7 +219,7 @@ export default function HomePage() {
     const hasRecipientName = formData.recipient_name.trim().length >= 3
     const hasLanguage = formData.languages && formData.languages.length > 0
     const hasAdditionalDetails = (formData.additional_details?.trim().length || 0) > 0
-
+    
     return hasRecipientName && hasLanguage && hasAdditionalDetails
   }
 
@@ -331,22 +248,6 @@ export default function HomePage() {
     e.preventDefault()
     setError(null)
 
-    // Check if user is authenticated first
-    if (!isAuthenticated) {
-      // Store form data in session storage for after login
-      sessionStorage.setItem('pendingLyricsForm', JSON.stringify(formData))
-
-      // Show message and redirect to login
-      addToast({
-        type: 'info',
-        title: 'Login Required',
-        message: 'Please log in to create your personalized lyrics!'
-      })
-
-      router.push('/auth/login')
-      return
-    }
-
     if (!validateForm()) {
       // Show specific validation errors instead of generic message
       const errors = Object.values(validationErrors).filter(error => error)
@@ -367,7 +268,7 @@ export default function HomePage() {
         languages: formData.languages,
         additional_details: formData.additional_details
       });
-
+      
       // Generate lyrics using API
       const response = await fetch('/api/generate-lyrics', {
         method: 'POST',
@@ -391,7 +292,7 @@ export default function HomePage() {
         // Show specific error message in the form
         const errorMessage = lyricsResult.message || 'Failed to generate lyrics. Please try again.'
         const suggestion = lyricsResult.example ? `Suggestion: ${lyricsResult.example}` : ''
-
+        
         setError(`${errorMessage} ${suggestion}`)
         addToast({
           type: 'error',
@@ -410,16 +311,16 @@ export default function HomePage() {
         languages: formData.languages.join(','),
         additional_details: formData.additional_details || ''
       })
-
+      
       addToast({
         type: 'success',
         title: 'Lyrics Generated!',
         message: 'Your personalized lyrics have been created successfully!'
       })
-
+      
       // Redirect to new lyrics display page
       router.push(`/lyrics-display-new?${params.toString()}`)
-
+      
     } catch (error) {
       const errorMessage = 'Failed to generate lyrics. Please try again.'
       setError(errorMessage)
@@ -446,7 +347,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
-
+      
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -454,45 +355,22 @@ export default function HomePage() {
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
                 <Music className="h-6 w-6 text-white" />
-              </div>
+      </div>
               <span className="text-xl font-bold text-yellow-400">MELODIA</span>
-            </div>
+          </div>
 
             <div className="flex items-center space-x-4">
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-
-                {isAuthenticated && (
-                  <Link
-                    href="/my-songs"
-                    className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                  >
-                    My Songs
-                  </Link>
-                )}
-            
-              </div>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden text-gray-300 hover:text-yellow-400 p-2"
-                aria-label="Toggle menu"
-              >
-                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
-
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4 text-gray-300" />
                     <span className="text-sm text-gray-200">{user?.name || user?.email}</span>
-                  </div>
+          </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="border-slate-600 text-gray-200 hover:bg-slate-700 hover:border-slate-500"
+                    className="border-slate-600 text-gray-200 !bg-slate-700 "
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Logout
@@ -516,55 +394,24 @@ export default function HomePage() {
                     >
                       Get Started
                     </Button>
-                  </Link>
+                    </Link>
                 </div>
               )}
-            </div>
+              </div>
           </div>
         </div>
       </header>
-
-      {/* Mobile Menu Dropdown */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-slate-800 border-b border-slate-700 shadow-lg">
-          <nav className="flex flex-col py-2" aria-label="Mobile navigation">
-            <Link
-              href="/library"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Library
-            </Link>
-            {isAuthenticated && (
-              <Link
-                href="/my-songs"
-                className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                My Songs
-              </Link>
-            )}
-            <Link
-              href="/#testimonials-title"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Testimonials
-            </Link>
-          </nav>
-        </div>
-      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Main Song Creation Form */}
         <div className="text-center mb-8 md:mb-12 px-4">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             Create Songs In Under 60-Seconds
-          </h1>
+              </h1>
           <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto">
             <span className="text-yellow-400 font-semibold">HOLD YOUR BREATH:</span> Describe your song and prepare to be surprised.
           </p>
-        </div>
+            </div>
 
         {/* Song Creation Form */}
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto mb-8 md:mb-16 px-4">
@@ -588,7 +435,7 @@ export default function HomePage() {
                   {validationErrors.recipient_name && (
                     <p className="text-red-500 text-xs md:text-sm">{validationErrors.recipient_name}</p>
                   )}
-                </div>
+          </div>
 
                 {/* Language Selection */}
                 <div className="space-y-2">
@@ -666,8 +513,6 @@ export default function HomePage() {
                         <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-black mr-2 md:mr-3"></div>
                         Generating Lyrics...
                       </div>
-                    ) : !isAuthenticated ? (
-                      'Login to Create Lyrics'
                     ) : (
                       'Create Lyrics'
                     )}
@@ -683,7 +528,7 @@ export default function HomePage() {
         <div className="mb-8 md:mb-16 px-4">
           <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 text-center">Popular Songs</h2>
           <div className="relative">
-            <div
+            <div 
               ref={scrollContainerRef}
               className="flex space-x-3 md:space-x-4 overflow-x-auto pb-4 scrollbar-hide"
             >
@@ -693,8 +538,8 @@ export default function HomePage() {
                   className="flex-shrink-0 w-48 md:w-64 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:scale-105 transition-transform duration-200 cursor-pointer group"
                 >
                   <div className="relative">
-                    <img
-                      src={song.image}
+                    <img 
+                      src={song.image} 
                       alt={song.title}
                       className="w-full h-36 md:h-48 object-cover"
                     />
@@ -711,10 +556,10 @@ export default function HomePage() {
                     <h3 className="text-white font-semibold text-base md:text-lg mb-1">{song.title}</h3>
                     <p className="text-gray-300 text-xs md:text-sm mb-1">{song.genre}</p>
                     <p className="text-gray-400 text-xs">{song.duration}</p>
-                  </div>
-                </div>
-              ))}
             </div>
+          </div>
+              ))}
+          </div>
             <div className="absolute right-0 top-1/2 transform -translate-y-1/2 hidden md:block">
               <button
                 onClick={scrollToLast}
@@ -735,7 +580,7 @@ export default function HomePage() {
             </div>
             <p className="text-gray-300 text-sm md:text-base">watch real reactions, see how our songs touch hearts</p>
           </div>
-
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
             {/* Testimonial 1 */}
             <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -791,7 +636,7 @@ export default function HomePage() {
 
           <div className="text-center">
             <p className="text-gray-300 text-sm md:text-base mb-4">Watch how it works - and the emotions it creates.</p>
-            <Button
+            <Button 
               onClick={scrollToTop}
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3 rounded-xl"
             >
@@ -799,70 +644,6 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
-
-        {/* My Songs Section - Only show for authenticated users */}
-        {isAuthenticated && (
-          <div className="mb-8 md:mb-16 px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center">My Songs</h2>
-            {isLoadingSongs ? (
-              <div className="flex justify-center py-8">
-                <LoadingSpinner size="lg" text="Loading your songs..." />
-              </div>
-            ) : songRequests.length > 0 ? (
-              <div className="space-y-4 max-w-4xl mx-auto">
-                {songRequests.slice(0, 5).map((request) => (
-                  <div
-                    key={request.id}
-                    className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 hover:bg-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg md:text-xl mb-2">
-                          Song for {request.recipient_name}
-                        </h3>
-                        <p className="text-gray-300 text-sm md:text-base mb-1">
-                          {request.recipient_relationship} • {request.languages?.join(', ')}
-                        </p>
-                        <p className="text-gray-400 text-xs md:text-sm">
-                          {new Date(request.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-medium">
-                          {request.status}
-                        </span>
-                        <Button
-                          size="sm"
-                          className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-                          onClick={() => router.push(`/my-songs`)}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {songRequests.length > 5 && (
-                  <div className="text-center mt-6">
-                    <Button
-                      onClick={() => router.push('/my-songs')}
-                      className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-xl"
-                    >
-                      View All Songs ({songRequests.length})
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-300 text-lg mb-4">No songs created yet</p>
-                <p className="text-gray-400 text-sm">Create your first personalized song above!</p>
-              </div>
-            )}
-          </div>
-        )}
       </main>
 
 

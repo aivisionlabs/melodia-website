@@ -116,7 +116,6 @@ const SECURITY_TESTS = [
 const FILE_STRUCTURE_TESTS = [
   'src/app/auth/login/page.tsx',
   'src/app/auth/signup/page.tsx',
-  'src/app/dashboard/page.tsx',
   'src/app/create-song/page.tsx',
   'src/components/ui/error-boundary.tsx',
   'src/components/ui/loading-spinner.tsx',

@@ -398,7 +398,7 @@ export async function approveLyricsAction(draftId: number, requestId: number) {
       .where(eq(songRequestsTable.id, requestId))
 
     revalidatePath(`/create-lyrics/${requestId}`)
-    revalidatePath('/dashboard')
+    revalidatePath('/')
     return { success: true }
   } catch (error) {
     console.error('Error approving lyrics:', error)
@@ -531,7 +531,7 @@ export async function createSongFromLyricsAction(requestId: number) {
       })
       .where(eq(songRequestsTable.id, requestId))
 
-    revalidatePath('/dashboard')
+    revalidatePath('/')
     return { success: true, taskId }
   } catch (error) {
     console.error('Error creating song from lyrics:', error)

@@ -37,8 +37,8 @@ export default function SignupPage() {
     const result = await register(email, password, name)
     
     if (result.success) {
-      // Redirect to dashboard or home page
-      router.push('/dashboard')
+      // Redirect to home page
+      router.push('/')
     }
     
     setIsSubmitting(false)

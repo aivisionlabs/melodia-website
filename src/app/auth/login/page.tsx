@@ -28,8 +28,8 @@ export default function LoginPage() {
     const result = await login(email, password)
     
     if (result.success) {
-      // Redirect to dashboard or home page
-      router.push('/dashboard')
+      // Redirect to home page
+      router.push('/')
     }
     
     setIsSubmitting(false)

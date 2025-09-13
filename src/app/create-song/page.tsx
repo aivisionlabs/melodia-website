@@ -238,7 +238,7 @@ export default function CreateSongPage() {
         {/* Header */}
         <div className="mb-8 sm:mb-12">
           <Link 
-            href="/dashboard" 
+            href="/" 
             className="inline-flex items-center text-gray-600 hover:text-yellow-600 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 rounded-lg px-2 py-1"
             aria-label="Go back to dashboard"
           >

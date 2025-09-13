@@ -176,7 +176,7 @@ class MockSunoAPI {
     }, SUNO_CONFIG.MOCK_DELAYS.SUCCESS * 1000);
 
     return {
-      code: 200,
+      code: 0,
       msg: 'success',
       data: {
         taskId
@@ -194,7 +194,7 @@ class MockSunoAPI {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     return {
-      code: 200,
+      code: 0,
       msg: 'success',
       data: {
         taskId,
@@ -220,7 +220,7 @@ class MockSunoAPI {
     const mockAlignedWords = this.generateMockAlignedWords(request.musicIndex);
 
     return {
-      code: 200,
+      code: 0,
       msg: 'success',
       data: {
         alignedWords: mockAlignedWords,
