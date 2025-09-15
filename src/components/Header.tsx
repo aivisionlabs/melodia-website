@@ -26,7 +26,35 @@ const Header = () => {
       </Link>
 
       {/* Desktop Navigation and CTA */}
-      <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-6">
+          <Link
+            href="/contact"
+            className="text-gray-700 hover:text-purple-600 font-medium transition-colors focus:underline"
+            aria-label="Contact Us"
+          >
+            Contact
+          </Link>
+          <Link
+            href="/terms"
+            className="text-gray-700 hover:text-purple-600 font-medium transition-colors focus:underline"
+            aria-label="Terms and Conditions"
+          >
+            Terms
+          </Link>
+          <Link
+            href="/privacy"
+            className="text-gray-700 hover:text-purple-600 font-medium transition-colors focus:underline"
+            aria-label="Privacy Policy"
+          >
+            Privacy
+          </Link>
+          <Link
+            href="/refund"
+            className="text-gray-700 hover:text-purple-600 font-medium transition-colors focus:underline"
+            aria-label="Refund Policy"
+          >
+            Refund
+          </Link>
         {/* <Link
           href="/library"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
@@ -162,6 +190,38 @@ const Header = () => {
             >
               Testimonials
             </Link>
+              <Link
+                href="/contact"
+                className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Contact Us"
+              >
+                Contact
+              </Link>
+              <Link
+                href="/terms"
+                className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Terms and Conditions"
+              >
+                Terms
+              </Link>
+              <Link
+                href="/privacy"
+                className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Privacy Policy"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/refund"
+                className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Refund Policy"
+              >
+                Refund
+              </Link>
             {isAuthenticated ? (
               <>
                 <Link

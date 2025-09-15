@@ -614,7 +614,30 @@ export default function HomePage() {
             <div className="flex items-center space-x-4">
               {/* Navigation Links */}
               <div className="hidden md:flex items-center space-x-6">
-
+                <Link
+                  href="/contact"
+                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+                >
+                  Contact
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+                >
+                  Terms
+                </Link>
+                <Link
+                  href="/privacy"
+                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+                >
+                  Privacy
+                </Link>
+                <Link
+                  href="/refund"
+                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+                >
+                  Refund
+                </Link>
                 {isAuthenticated && (
                   <Link
                     href="/my-songs"
@@ -681,6 +704,34 @@ export default function HomePage() {
       {isMenuOpen && (
         <div className="md:hidden bg-slate-800 border-b border-slate-700 shadow-lg">
           <nav className="flex flex-col py-2" aria-label="Mobile navigation">
+            <Link
+              href="/contact"
+              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            <Link
+              href="/terms"
+              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/refund"
+              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Refund
+            </Link>
             <Link
               href="/library"
               className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
