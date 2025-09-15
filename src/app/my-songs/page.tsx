@@ -149,8 +149,15 @@ export default function MySongsPage() {
       try {
         return JSON.parse(lyrics)
       } catch {
-        // If it's not valid JSON, treat it as plain text and create a simple lyrics array
-        return [{ text: lyrics, start: 0, end: 30000 }]
+        // If it's not valid JSON, treat it as plain text and create a proper lyrics array
+        const lines = lyrics.split('\n').filter(line => line.trim() !== '')
+        const lyricsArray = lines.map((line, index) => ({
+          index: index,
+          text: line.trim(),
+          start: index * 5000, // 5 seconds per line
+          end: (index + 1) * 5000
+        }))
+        return lyricsArray
       }
     }
     
@@ -161,15 +168,29 @@ export default function MySongsPage() {
   const handleVariantSelectForPlayer = (variant: any, variantIndex: number) => {
     if (!selectedSongForVariants) return
 
+    // Get the correct lyrics for this variant
+    let variantLyrics = null
+    if (selectedSongForVariants.timestamped_lyrics_variants && 
+        selectedSongForVariants.timestamped_lyrics_variants[variantIndex]) {
+      // Use variant-specific timestamped lyrics if available
+      variantLyrics = selectedSongForVariants.timestamped_lyrics_variants[variantIndex]
+    } else if (selectedSongForVariants.timestamp_lyrics) {
+      // Fallback to main timestamped lyrics
+      variantLyrics = selectedSongForVariants.timestamp_lyrics
+    } else {
+      // Fallback to parsed plain text lyrics
+      variantLyrics = parseLyrics(selectedSongForVariants.lyrics)
+    }
+
     // Create song object for MediaPlayer
     const songForPlayer = {
       title: selectedSongForVariants.title,
       artist: selectedSongForVariants.recipient_name,
       song_url: variant.audioUrl || variant.streamAudioUrl,
       slug: selectedSongForVariants.title.toLowerCase().replace(/\s+/g, '-'),
-      lyrics: parseLyrics(selectedSongForVariants.lyrics),
-      timestamp_lyrics: null,
-      timestamped_lyrics_variants: null,
+      lyrics: variantLyrics,
+      timestamp_lyrics: selectedSongForVariants.timestamp_lyrics || null,
+      timestamped_lyrics_variants: selectedSongForVariants.timestamped_lyrics_variants || null,
       selected_variant: variantIndex,
       // Suno-specific fields for timestamped lyrics
       suno_task_id: selectedSongForVariants.suno_task_id,
@@ -177,7 +198,7 @@ export default function MySongsPage() {
     }
 
     setSelectedSong(songForPlayer)
-    setSongLyrics(songForPlayer.lyrics || [])
+    setSongLyrics(variantLyrics || [])
   }
 
   // Handle listen button click
@@ -191,21 +212,33 @@ export default function MySongsPage() {
       handleVariantSelectForPlayer(item.variants[0], 0)
     } else {
       // Fallback for songs without variants
+      let songLyrics = null
+      if (item.timestamped_lyrics_variants && item.timestamped_lyrics_variants[0]) {
+        // Use variant-specific timestamped lyrics if available
+        songLyrics = item.timestamped_lyrics_variants[0]
+      } else if (item.timestamp_lyrics) {
+        // Fallback to main timestamped lyrics
+        songLyrics = item.timestamp_lyrics
+      } else {
+        // Fallback to parsed plain text lyrics
+        songLyrics = parseLyrics(item.lyrics)
+      }
+
       const songForPlayer = {
         title: item.title,
         artist: item.recipient_name,
         song_url: item.audio_url,
         slug: item.title.toLowerCase().replace(/\s+/g, '-'),
-        lyrics: parseLyrics(item.lyrics),
-        timestamp_lyrics: null,
-        timestamped_lyrics_variants: null,
+        lyrics: songLyrics,
+        timestamp_lyrics: item.timestamp_lyrics || null,
+        timestamped_lyrics_variants: item.timestamped_lyrics_variants || null,
         selected_variant: 0,
         // Suno-specific fields for timestamped lyrics
         suno_task_id: item.suno_task_id,
         suno_audio_id: item.song_id?.toString() // Use song ID as audio ID
       }
       setSelectedSong(songForPlayer)
-      setSongLyrics(songForPlayer.lyrics || [])
+      setSongLyrics(songLyrics || [])
     }
   }
 

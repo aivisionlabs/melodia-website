@@ -27,27 +27,27 @@ const Header = () => {
 
       {/* Desktop Navigation and CTA */}
       <div className="hidden md:flex items-center gap-6">
-        <Link
+        {/* <Link
           href="/library"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Creations section"
         >
           Library
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/my-songs"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Go to My Songs"
         >
           My Songs
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/#testimonials-title"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
           aria-label="Jump to Testimonials section"
         >
           Testimonials
-        </Link>
+        </Link> */}
         
         {isAuthenticated ? (
           <div className="flex items-center gap-4">
@@ -57,11 +57,11 @@ const Header = () => {
                 Dashboard
               </Button>
             </Link>
-            <Link href="/create-song">
+            {/* <Link href="/create-song">
               <Button size="sm" className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white">
                 Create Song
               </Button>
-            </Link>
+            </Link> */}
             <Button
               variant="ghost"
               size="sm"
@@ -146,14 +146,14 @@ const Header = () => {
             >
               Library
             </Link>
-            <Link
+            {/* <Link
               href="/my-songs"
               className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
               aria-label="Go to My Songs"
             >
               My Songs
-            </Link>
+            </Link> */}
             <Link
               href="/#testimonials-title"
               className="px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"

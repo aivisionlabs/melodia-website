@@ -28,6 +28,8 @@ export interface UserContentItem {
     duration: number;
   }>;
   selected_variant?: number;
+  timestamped_lyrics_variants?: { [variantIndex: number]: any[] };
+  timestamp_lyrics?: any[];
 }
 
 export async function getUserContent(userId: number): Promise<UserContentItem[]> {
@@ -54,7 +56,9 @@ export async function getUserContent(userId: number): Promise<UserContentItem[]>
             song_url: songsTable.song_url,
             suno_task_id: songsTable.suno_task_id,
             suno_variants: songsTable.suno_variants,
-            selected_variant: songsTable.selected_variant
+            selected_variant: songsTable.selected_variant,
+            timestamped_lyrics_variants: songsTable.timestamped_lyrics_variants,
+            timestamp_lyrics: songsTable.timestamp_lyrics
           })
           .from(songsTable)
           .where(eq(songsTable.id, request.generated_song_id))
@@ -74,7 +78,9 @@ export async function getUserContent(userId: number): Promise<UserContentItem[]>
             song_id: song[0].id,
             suno_task_id: song[0].suno_task_id || undefined,
             variants: Array.isArray(song[0].suno_variants) ? song[0].suno_variants : undefined,
-            selected_variant: song[0].selected_variant || 0
+            selected_variant: song[0].selected_variant || 0,
+            timestamped_lyrics_variants: song[0].timestamped_lyrics_variants || undefined,
+            timestamp_lyrics: song[0].timestamp_lyrics || undefined
           });
         }
       } else {

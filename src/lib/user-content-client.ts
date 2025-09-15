@@ -25,6 +25,8 @@ export interface UserContentItem {
     duration: number;
   }>;
   selected_variant?: number;
+  timestamped_lyrics_variants?: { [variantIndex: number]: any[] };
+  timestamp_lyrics?: any[];
 }
 
 export function getButtonForContent(item: UserContentItem) {
