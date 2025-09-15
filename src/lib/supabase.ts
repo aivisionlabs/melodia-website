@@ -29,6 +29,7 @@ export interface Database {
           tags: string[] | null
           suno_task_id: string | null
           metadata: any
+          user_id: number | null
         }
         Insert: {
           id?: number
@@ -54,6 +55,7 @@ export interface Database {
           tags?: string[] | null
           suno_task_id?: string | null
           metadata?: any
+          user_id?: number | null
         }
         Update: {
           id?: number
@@ -79,6 +81,95 @@ export interface Database {
           tags?: string[] | null
           suno_task_id?: string | null
           metadata?: any
+          user_id?: number | null
+        }
+      }
+      users: {
+        Row: {
+          id: number
+          email: string
+          password_hash: string
+          name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          email: string
+          password_hash: string
+          name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          email?: string
+          password_hash?: string
+          name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      song_requests: {
+        Row: {
+          id: number
+          user_id: number | null
+          requester_name: string
+          phone_number: string | null
+          email: string | null
+          delivery_preference: 'email' | 'whatsapp' | 'both' | null
+          recipient_name: string
+          recipient_relationship: string
+          languages: string[]
+          person_description: string | null
+          song_type: string | null
+          emotions: string[] | null
+          additional_details: string | null
+          status: 'pending' | 'processing' | 'completed' | 'failed'
+          suno_task_id: string | null
+          generated_song_id: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id?: number | null
+          requester_name: string
+          phone_number?: string | null
+          email?: string | null
+          delivery_preference?: 'email' | 'whatsapp' | 'both' | null
+          recipient_name: string
+          recipient_relationship: string
+          languages: string[]
+          person_description?: string | null
+          song_type?: string | null
+          emotions?: string[] | null
+          additional_details?: string | null
+          status?: 'pending' | 'processing' | 'completed' | 'failed'
+          suno_task_id?: string | null
+          generated_song_id?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: number | null
+          requester_name?: string
+          phone_number?: string | null
+          email?: string | null
+          delivery_preference?: 'email' | 'whatsapp' | 'both' | null
+          recipient_name?: string
+          recipient_relationship?: string
+          languages?: string[]
+          person_description?: string | null
+          song_type?: string | null
+          emotions?: string[] | null
+          additional_details?: string | null
+          status?: 'pending' | 'processing' | 'completed' | 'failed'
+          suno_task_id?: string | null
+          generated_song_id?: number | null
+          created_at?: string
+          updated_at?: string
         }
       }
       song_analytics: {

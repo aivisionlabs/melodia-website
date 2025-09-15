@@ -1,122 +1,70 @@
-# Scripts Directory
+# Melodia Scripts Directory
 
-This directory contains utility scripts for the Melodia website.
+This directory contains all the scripts needed for setting up, developing, testing, and deploying the Melodia application.
 
-## Migration Script
+## 🚀 Quick Start
 
-### migrate-songs.ts
-
-This script migrates songs from the constants file to the database using Drizzle ORM.
-
-#### Prerequisites
-
-1. **Database Setup**: Ensure your PostgreSQL database is running and accessible
-2. **Environment Variables**: Set up your `.env.local` file with:
-   ```
-   DATABASE_URL=postgresql://username:password@localhost:5432/database_name
-   ```
-3. **TypeScript Runtime**: The script uses `tsx` to run TypeScript files directly (already available via npx)
-
-#### Usage
+For new users, start here:
 
 ```bash
-npx tsx scripts/migrate-songs.ts
+# Essential setup (required)
+chmod +x scripts/essential/setup-complete.sh
+./scripts/essential/setup-complete.sh
 ```
 
-#### What it does
+## 📁 Directory Structure
 
-- Checks for existing songs to avoid duplicates
-- Migrates all songs from `src/lib/constants.ts` to the database
-- Sets appropriate default values for new fields
-- Marks existing songs as "completed" status
+### 🎯 [Essential Scripts](essential/) - **Start Here**
+Required for basic setup and operation
+- `setup-complete.sh` - One-command setup from scratch
+- `setup-complete-database.sql` - Complete database schema
+- `SETUP_README.md` - Detailed setup documentation
 
-#### Database Schema
+### 🚀 [Production Scripts](production/)
+For deployment and production management
+- `deploy-to-production.sh` - Production deployment automation
+- `migrate-local-to-production.sh` - Local to production migration
 
-The script works with the following schema:
-- `songs` table with fields: id, title, lyrics, timestamp_lyrics, music_style, etc.
-- Uses Drizzle ORM for type-safe database operations
+### 🧪 [Testing Scripts](testing/)
+For development and testing
+- `test-phase5.js` - Comprehensive testing suite
+- `test-lyrics-api.mjs` - Lyrics API testing
+- `test-slug-generation.mjs` - Slug generation testing
 
-## Lyrics Conversion Script
+### 🔧 [Utility Scripts](utilities/)
+For specific content and data management tasks
+- `optimize-og-image.mjs` - Open Graph image optimization
+- `set-song-sequence.mjs` - Song sequence management
+- `convert-aligned-words.mjs` - Lyrics alignment conversion
 
-This script converts aligned words data into a line-by-line format suitable for the FullPageMediaPlayer component.
+### 🔧 [Maintenance Scripts](maintenance/)
+For ongoing maintenance and monitoring
+- `check-song-requests.mjs` - Song request monitoring
+- `run-timestamped-lyrics-cleanup.sh` - Lyrics cleanup utility
 
-## Usage
+## 📖 Documentation
 
-1. **Prepare your aligned words data**: Make sure your `align-words.mjs` file contains the aligned words array with timing information.
+Each subdirectory contains its own README with detailed usage instructions.
 
-2. **Run the conversion script**:
-   ```bash
-   node scripts/convert-aligned-words.mjs
-   ```
+## 🎯 For New Users
 
-3. **The script will**:
-   - Convert aligned words into meaningful lyric lines
-   - Clean and format the text
-   - Create proper timing information in milliseconds
-   - Save the result to `public/lyrics/yaara-converted.json`
+1. **Start with Essential Scripts** - Run the setup script first
+2. **Explore Testing Scripts** - Run tests to verify everything works
+3. **Use Utilities as Needed** - For specific content management tasks
+4. **Check Maintenance Scripts** - For ongoing monitoring and cleanup
 
-## Output Format
+## 🔄 For Developers
 
-The script generates a JSON file with the following structure:
+- Edit scripts in their respective categories
+- Update category READMEs when adding new scripts
+- Keep the main `SCRIPTS_SUMMARY.md` updated
+- Test scripts before committing changes
 
-```json
-{
-  "songId": "yaara",
-  "title": "Yaara",
-  "artist": "Unknown Artist",
-  "timestamp_lyrics": [
-    {
-      "index": 0,
-      "text": "Yaad hai woh din, college ki सीढ़ियाँ (seedhiyaan)?",
-      "start": 8834,
-      "end": 16197
-    },
-    // ... more lines
-  ]
-}
-```
+## 📊 Summary
 
-## Using in FullPageMediaPlayer
+- **Total Scripts**: 13 files
+- **Categories**: 5 organized directories
+- **Essential**: 3 files (required for setup)
+- **Optional**: 10 files (for specific use cases)
 
-To use the converted lyrics in your FullPageMediaPlayer:
-
-1. **Import the converted lyrics**:
-   ```typescript
-   import yaaraLyrics from '@/public/lyrics/yaara-converted.json';
-   ```
-
-2. **Use in your song data**:
-   ```typescript
-   const song = {
-     id: "yaara",
-     title: "Yaara",
-     artist: "Unknown Artist",
-     audioUrl: "/audio/yaara.mp3",
-     duration: 209,
-     timestamp_lyrics: yaaraLyrics.timestamp_lyrics
-   };
-   ```
-
-## Customization
-
-You can modify the script to:
-
-- **Change song metadata**: Update `songId`, `title`, and `artist` in the script
-- **Adjust line breaking logic**: Modify the `shouldBreakLine` function
-- **Change output location**: Update the `outputPath` variable
-- **Add more post-processing**: Extend the `postProcessLines` function
-
-## Algorithm Details
-
-The script uses several strategies to create meaningful lyric lines:
-
-1. **Timing-based breaks**: Breaks lines when there are significant gaps (> 1.5 seconds)
-2. **Content-based breaks**: Breaks after punctuation and section markers
-3. **Length-based breaks**: Breaks when lines get too long (> 80 characters)
-4. **Post-processing**: Merges very short consecutive lines
-
-## Troubleshooting
-
-- **If lines are too long**: Increase the character limit in `shouldBreakLine`
-- **If lines are too short**: Decrease the character limit or adjust the merge logic
-- **If timing seems off**: Check that your aligned words data has correct timing information
+This organization makes it easy to find the right script for any task! 🎉

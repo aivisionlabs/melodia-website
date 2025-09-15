@@ -9,6 +9,7 @@ import {
   trackEngagementEvent,
   trackNavigationEvent,
 } from "@/lib/analytics";
+import { fetchTimestampedLyrics, TimestampedLyricsResponse } from "@/lib/suno-timestamped-lyrics-client";
 
 // iOS Audio Context type declaration
 declare global {
@@ -38,6 +39,9 @@ interface MediaPlayerProps {
     } | null;
     selected_variant?: number;
     slug?: string;
+    // Suno-specific fields for timestamped lyrics
+    suno_task_id?: string;
+    suno_audio_id?: string;
   };
   onClose: () => void;
 }
@@ -49,6 +53,8 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
+  const [sunoTimestampedLyrics, setSunoTimestampedLyrics] = useState<TimestampedLyricsResponse | null>(null);
+  const [isLoadingTimestampedLyrics, setIsLoadingTimestampedLyrics] = useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
@@ -69,6 +75,53 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
     // Priority: song_url (new field) > audioUrl (legacy field)
     return song.song_url || song.audioUrl;
   }, [song.song_url, song.audioUrl]);
+
+  // Helper function to format lyrics text for better display
+  const formatLyricsText = useCallback((text: string) => {
+    if (!text) return text;
+    
+    // Split long lines into smaller chunks for better readability
+    const maxLength = 50; // Maximum characters per line
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      if ((currentLine + ' ' + word).length > maxLength && currentLine.length > 0) {
+        lines.push(currentLine.trim());
+        currentLine = word;
+      } else {
+        currentLine += (currentLine ? ' ' : '') + word;
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine.trim());
+    }
+    
+    return lines.join('\n');
+  }, []);
+
+  // Fetch Suno timestamped lyrics
+  const fetchSunoTimestampedLyrics = useCallback(async () => {
+    if (!song.suno_task_id || !song.suno_audio_id || sunoTimestampedLyrics || isLoadingTimestampedLyrics) return;
+
+    setIsLoadingTimestampedLyrics(true);
+    try {
+      const response = await fetchTimestampedLyrics(
+        song.suno_task_id, 
+        song.suno_audio_id, 
+        song.selected_variant || 0
+      );
+      if (response.success) {
+        setSunoTimestampedLyrics(response);
+      }
+    } catch (error) {
+      console.error('Error fetching Suno timestamped lyrics:', error);
+    } finally {
+      setIsLoadingTimestampedLyrics(false);
+    }
+  }, [song.suno_task_id, song.suno_audio_id, song.selected_variant, sunoTimestampedLyrics, isLoadingTimestampedLyrics]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -145,16 +198,25 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
-    // Priority 1: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line: any) => ({
+    // Priority 1: Use Suno timestamped lyrics if available (highest priority)
+    if (sunoTimestampedLyrics && sunoTimestampedLyrics.lyrics.length > 0) {
+      return sunoTimestampedLyrics.lyrics.map((line: any) => ({
         ...line,
-        isActive: timeMs >= line.start && timeMs < line.end,
-        isPast: timeMs >= line.end,
+        isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
+        isPast: isPlaying && timeMs >= line.end,
       }));
     }
 
-    // Priority 2: Use timestamped lyrics variants if available (fallback)
+    // Priority 2: Use timestamp_lyrics (final variation) if available
+    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+      return song.timestamp_lyrics.map((line: any) => ({
+        ...line,
+        isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
+        isPast: isPlaying && timeMs >= line.end,
+      }));
+    }
+
+    // Priority 3: Use timestamped lyrics variants if available (fallback)
     if (song.timestamped_lyrics_variants) {
       // If no selected_variant is set, default to variant 0
       const variantToUse =
@@ -175,23 +237,23 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
         return selectedVariantLyrics.map((line: any) => ({
           ...line,
-          isActive: timeMs >= line.start && timeMs < line.end,
-          isPast: timeMs >= line.end,
+          isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
+          isPast: isPlaying && timeMs >= line.end,
         }));
       }
     }
 
-    // Priority 3: Use the legacy lyrics prop if available
+    // Priority 4: Use the legacy lyrics prop if available
     if (song.lyrics && song.lyrics.length > 0) {
       console.log("MediaPlayer: Using legacy lyrics prop");
       return song.lyrics.map((line: any) => ({
         ...line,
-        isActive: timeMs >= line.start && timeMs < line.end,
-        isPast: timeMs >= line.end,
+        isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
+        isPast: isPlaying && timeMs >= line.end,
       }));
     }
 
-    // Priority 4: Fallback to static lyrics only if no song lyrics available
+    // Priority 5: Fallback to static lyrics only if no song lyrics available
     const staticLyrics = [
       {
         index: 0,
@@ -243,20 +305,20 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       },
     ];
 
-    // When not playing, show static lyrics with first line highlighted
+    // When not playing, show static lyrics without highlighting
     if (!isPlaying || audioError) {
       return staticLyrics.map((line: any, index: number) => ({
         ...line,
-        isActive: index === 0, // Highlight first line when not playing
-        isPast: index > 0,
+        isActive: false, // Don't highlight any line when not playing
+        isPast: false,
       }));
     }
 
     // When playing, show static lyrics with timing-based highlighting
     return staticLyrics.map((line: any) => ({
       ...line,
-      isActive: timeMs >= line.start && timeMs < line.end,
-      isPast: timeMs >= line.end,
+      isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
+      isPast: isPlaying && timeMs >= line.end,
     }));
   };
 
@@ -580,6 +642,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
     }
   }, [isIOS, getAudioUrl]);
 
+  // Fetch Suno timestamped lyrics when component mounts
+  useEffect(() => {
+    fetchSunoTimestampedLyrics();
+  }, [fetchSunoTimestampedLyrics]);
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] md:max-h-[90vh] overflow-hidden">
@@ -684,10 +751,20 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
           {/* Loading State */}
           {isLoading && !audioError && (
+            <div className="mb-4 p-3 md:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 text-yellow-700">
+                <div className="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-b-2 border-yellow-700"></div>
+                <span className="text-xs md:text-sm">Loading audio...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Timestamped Lyrics Loading State */}
+          {isLoadingTimestampedLyrics && (
             <div className="mb-4 p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 text-blue-700">
                 <div className="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-b-2 border-blue-700"></div>
-                <span className="text-xs md:text-sm">Loading audio...</span>
+                <span className="text-xs md:text-sm">Loading synchronized lyrics...</span>
               </div>
             </div>
           )}
@@ -796,22 +873,22 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               msOverflowStyle: "none",
             }}
           >
-            <div className="space-y-8 md:space-y-10">
+            <div className="space-y-4 md:space-y-6">
               {lyrics.map((line, index) => (
                 <div
                   key={index}
                   ref={(el) => {
                     lyricRefs.current[index] = el;
                   }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
+                  className={`text-center transition-all duration-700 ease-out min-h-[3rem] md:min-h-[3.5rem] flex items-center justify-center relative ${
                     line.isActive
-                      ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
+                      ? "text-lg md:text-xl font-bold text-yellow-600 transform scale-105"
                       : line.isPast
-                      ? "text-base md:text-lg text-gray-400 opacity-60"
-                      : "text-base md:text-lg text-gray-500 opacity-80"
+                      ? "text-sm md:text-base text-gray-400 opacity-60"
+                      : "text-sm md:text-base text-gray-500 opacity-80"
                   }`}
                   style={{
-                    transform: line.isActive ? "scale(1.1)" : "scale(1)",
+                    transform: line.isActive ? "scale(1.05)" : "scale(1)",
                     transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
                 >
@@ -825,8 +902,8 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                     <div className="absolute -left-6 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
                   )}
 
-                  <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
-                    {line.text || "\u00A0"}
+                  <span className="px-4 md:px-6 py-2 md:py-3 rounded-lg leading-relaxed whitespace-pre-line break-words max-w-full">
+                    {formatLyricsText(line.text) || "\u00A0"}
                   </span>
 
                   {/* Subtle glow effect for active lyric */}

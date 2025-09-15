@@ -1,42 +1,10 @@
 'use server'
 
-import { Song, PublicSong, AlignedWord } from '@/types';
+import { Song, PublicSong } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 import { createServerSupabaseClient } from './supabase';
-
-
-// Rate limiting map (in production, use Redis or similar)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-
-const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
-const RATE_LIMIT_MAX = 100 // requests per window
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const userLimit = rateLimitMap.get(ip)
-
-  if (!userLimit || now > userLimit.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
-    return true
-  }
-
-  if (userLimit.count >= RATE_LIMIT_MAX) {
-    return false
-  }
-
-  userLimit.count++
-  return true
-}
-
-// Input validation
-function validateSongId(id: string): boolean {
-  if (!id || typeof id !== 'string') return false
-  return /^\d+$/.test(id)
-}
-
-function sanitizeSearchQuery(query: string): string {
-  return query.trim().toLowerCase().slice(0, 50)
-}
+import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting';
+import { validateSongId, sanitizeSearchQuery } from './utils/validation';
 
 /**
  * Get all songs with optional search and pagination
@@ -54,7 +22,7 @@ export async function getSongs(
 }> {
   try {
     // Rate limiting
-    if (!checkRateLimit(ip)) {
+    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
       return {
         songs: [],
         total: 0,
@@ -154,7 +122,7 @@ export async function getSong(
 }> {
   try {
     // Rate limiting
-    if (!checkRateLimit(ip)) {
+    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
       return {
         song: null,
         error: 'Too many requests. Please try again later.'
@@ -175,7 +143,7 @@ export async function getSong(
     // Query with only public fields
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
       .eq('id', id)
       .single()
 
@@ -207,7 +175,6 @@ export async function getSong(
       lyrics: data.lyrics,
       timestamp_lyrics: data.timestamp_lyrics,
       timestamped_lyrics_variants: data.timestamped_lyrics_variants,
-      selected_variant: data.selected_variant,
       music_style: data.music_style,
       service_provider: data.service_provider,
       song_url: data.song_url,
@@ -238,7 +205,7 @@ export async function searchSongs(
 }> {
   try {
     // Rate limiting
-    if (!checkRateLimit(ip)) {
+    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
       return {
         songs: [],
         error: 'Too many requests. Please try again later.'
@@ -258,7 +225,7 @@ export async function searchSongs(
 
     const { data, error } = await supabase
       .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
       .ilike('title', `%${sanitizedQuery}%`)
       .limit(20)
 
@@ -277,7 +244,6 @@ export async function searchSongs(
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants,
-      selected_variant: song.selected_variant,
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,
@@ -545,19 +511,15 @@ export async function getActiveSongsAction(): Promise<
       song_requester: song.song_requester ?? null,
       prompt: song.prompt ?? null,
       song_url: song.song_url ?? null,
-      duration: song.duration ?? null,
+      duration: song.duration?.toString() ?? null, // Convert number to string
       slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
+      is_active: song.is_active ?? undefined,
       status: song.status ?? undefined,
       categories: song.categories ?? undefined,
       tags: song.tags ?? undefined,
       suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants as any,
-      selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata as any,
-      sequence: song.sequence ?? undefined,
+      user_id: song.user_id ?? undefined,
     }));
 
     return { success: true, songs };

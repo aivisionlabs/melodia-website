@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { lyricsDraftsTable, songRequestsTable } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { requestId, lyrics, recipient_name, languages, additional_details } = body;
+
+    // Validate required fields
+    if (!requestId || !lyrics) {
+      return NextResponse.json(
+        { error: true, message: 'Request ID and lyrics are required' },
+        { status: 400 }
+      );
+    }
+
+    // Store lyrics in lyrics_drafts table
+    const [newLyricsDraft] = await db
+      .insert(lyricsDraftsTable)
+      .values({
+        song_request_id: requestId,
+        version: 1,
+        generated_text: lyrics,
+        edited_text: null,
+        status: 'draft'
+      })
+      .returning({
+        id: lyricsDraftsTable.id
+      });
+
+    if (!newLyricsDraft) {
+      return NextResponse.json(
+        { error: true, message: 'Failed to store lyrics' },
+        { status: 500 }
+      );
+    }
+
+    // Update song request status to indicate lyrics are ready
+    await db
+      .update(songRequestsTable)
+      .set({
+        lyrics_status: 'needs_review',
+        updated_at: new Date()
+      })
+      .where(eq(songRequestsTable.id, requestId));
+
+    return NextResponse.json({
+      success: true,
+      lyricsDraftId: newLyricsDraft.id
+    });
+
+  } catch (error) {
+    console.error('Error storing lyrics:', error);
+    return NextResponse.json(
+      { error: true, message: 'Failed to store lyrics. Please try again.' },
+      { status: 500 }
+    );
+  }
+}

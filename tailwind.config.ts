@@ -61,12 +61,22 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Yellow theme colors
+				'yellow-primary': '#facc15',
+				'yellow-secondary': '#fbbf24',
+				'yellow-accent': '#f59e0b',
+				'yellow-light': '#fef3c7',
+				'yellow-lighter': '#fef08a',
+				'yellow-dark': '#ca8a04'
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-secondary': 'var(--gradient-secondary)',
-				'gradient-accent': 'var(--gradient-accent)'
+				'gradient-accent': 'var(--gradient-accent)',
+				'gradient-yellow': 'linear-gradient(135deg, #facc15 0%, #fbbf24 50%, #f59e0b 100%)',
+				'gradient-yellow-light': 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #facc15 100%)',
+				'gradient-yellow-warm': 'linear-gradient(135deg, #fef08a 0%, #fde047 50%, #facc15 100%)'
 			},
 			boxShadow: {
 				'glow': 'var(--shadow-glow)',

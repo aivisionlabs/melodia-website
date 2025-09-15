@@ -47,6 +47,7 @@ interface Song {
   selected_variant?: number;
   lyrics?: string | null;
   slug?: string;
+  suno_variants?: any[];
 }
 
 interface FullPageMediaPlayerProps {
@@ -60,6 +61,12 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
+  const [timestampedLyrics, setTimestampedLyrics] = useState<LyricLine[]>([]);
+  const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
+  const [lyricsGenerationAttempted, setLyricsGenerationAttempted] = useState(false);
+  const [lyricsGenerationError, setLyricsGenerationError] = useState<string | null>(null);
+  const [timingOffset, setTimingOffset] = useState(0); // Manual timing adjustment
+  const [lastActiveIndex, setLastActiveIndex] = useState(-1);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
@@ -82,6 +89,47 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
     // Priority: song_url (new field) > audioUrl (legacy field)
     return song.song_url || song.audioUrl;
   }, [song.song_url, song.audioUrl]);
+
+  // Function to generate timestamped lyrics
+  const generateTimestampedLyrics = useCallback(async () => {
+    if (isGeneratingLyrics || lyricsGenerationAttempted) return;
+    
+    setIsGeneratingLyrics(true);
+    setLyricsGenerationError(null);
+    setLyricsGenerationAttempted(true);
+    
+    try {
+      console.log('Attempting to generate timestamped lyrics for song:', song.id);
+      
+      const response = await fetch('/api/song/generate-timestamped-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          songId: song.id,
+          variantIndex: song.selected_variant || 0
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.lyrics) {
+        setTimestampedLyrics(data.lyrics);
+        console.log('Timestamped lyrics generated successfully:', data.lyrics);
+      } else {
+        const errorMsg = data.error || 'Failed to generate timestamped lyrics';
+        console.error('Failed to generate timestamped lyrics:', errorMsg);
+        setLyricsGenerationError(errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = 'Network error while generating timestamped lyrics';
+      console.error('Error generating timestamped lyrics:', error);
+      setLyricsGenerationError(errorMsg);
+    } finally {
+      setIsGeneratingLyrics(false);
+    }
+  }, [song.id, song.selected_variant, isGeneratingLyrics, lyricsGenerationAttempted]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -157,34 +205,147 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
     };
   }, [getAudioUrl, isLoading, isIOS]);
 
+  // Auto-generate timestamped lyrics when component mounts if not available
+  useEffect(() => {
+    const hasTimestampedLyrics = 
+      (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) ||
+      (song.timestamped_lyrics_variants && song.timestamped_lyrics_variants[song.selected_variant || 0]) ||
+      timestampedLyrics.length > 0;
+
+    // Check if song has variants before attempting generation
+    const hasVariants = song.suno_variants && Array.isArray(song.suno_variants) && song.suno_variants.length > 0;
+
+    if (!hasTimestampedLyrics && !isGeneratingLyrics && !lyricsGenerationAttempted && hasVariants) {
+      console.log('No timestamped lyrics found, generating...');
+      generateTimestampedLyrics();
+    } else if (!hasVariants && !hasTimestampedLyrics) {
+      console.log('Song has no variants, will use static lyrics fallback');
+      console.log('Song lyrics data:', {
+        hasLyrics: !!song.lyrics,
+        lyricsLength: song.lyrics?.length || 0,
+        lyricsPreview: song.lyrics?.substring(0, 100) || 'No lyrics'
+      });
+      setLyricsGenerationError('This song was not generated through Suno API, so synchronized lyrics are not available. Showing static lyrics instead.');
+    }
+  }, [song, generateTimestampedLyrics, isGeneratingLyrics, lyricsGenerationAttempted, timestampedLyrics.length]);
+
   const getLyricsAtTime = (timeMs: number) => {
-    // Priority 1: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line) => ({
+    let allLyrics: any[] = [];
+
+    // Priority 1: Use generated timestamped lyrics if available
+    if (timestampedLyrics && timestampedLyrics.length > 0) {
+      allLyrics = timestampedLyrics.map((line) => ({
         ...line,
         isActive: timeMs >= line.start && timeMs < line.end,
         isPast: timeMs >= line.end,
       }));
     }
-
-    // Priority 2: Use timestamped lyrics variants if available
-    if (
+    // Priority 2: Use timestamp_lyrics (final variation) if available
+    else if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
+      allLyrics = song.timestamp_lyrics.map((line) => ({
+        ...line,
+        isActive: timeMs >= line.start && timeMs < line.end,
+        isPast: timeMs >= line.end,
+      }));
+    }
+    // Priority 3: Use timestamped lyrics variants if available
+    else if (
       song.timestamped_lyrics_variants &&
       song.selected_variant !== undefined
     ) {
       const selectedVariantLyrics =
         song.timestamped_lyrics_variants[song.selected_variant];
       if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
-        return selectedVariantLyrics.map((line) => ({
+        allLyrics = selectedVariantLyrics.map((line) => ({
           ...line,
           isActive: timeMs >= line.start && timeMs < line.end,
           isPast: timeMs >= line.end,
         }));
       }
     }
+    // Priority 4: Fallback to static lyrics if available
+    else if (song.lyrics) {
+      const lines = song.lyrics.split('\n').filter(line => line.trim().length > 0);
+      
+      // Use a much more aggressive timing approach
+      // Use shorter line durations for more responsive highlighting
+      const songDurationMs = duration > 0 ? duration * 1000 : lines.length * 3000; // 3 seconds per line as default
+      
+      // Use shorter line duration for more responsive highlighting
+      const lineDuration = songDurationMs / lines.length;
+      
+      // Apply timing offset for manual adjustment
+      const adjustedTimeMs = timeMs + timingOffset;
+      
+      allLyrics = lines.map((line, index) => {
+        const start = index * lineDuration;
+        const end = (index + 1) * lineDuration;
+        
+        return {
+          index,
+          text: line.trim(),
+          start,
+          end,
+          // More aggressive timing - smaller buffer
+          isActive: adjustedTimeMs >= start && adjustedTimeMs < end,
+          isPast: adjustedTimeMs >= end,
+        };
+      });
+    }
 
-    // Priority 3: Return empty array if no lyrics available
-    return [];
+    // If no lyrics available, return empty array
+    if (allLyrics.length === 0) {
+      return [];
+    }
+
+    // Find the currently active line
+    const activeIndex = allLyrics.findIndex(line => line.isActive);
+    
+    // Debug logging (reduced frequency)
+    if (timeMs % 10000 < 200) { // Log every 10 seconds
+      console.log('Lyrics timing debug:', {
+        timeMs,
+        currentTime: currentTime,
+        activeIndex,
+        totalLines: allLyrics.length,
+        activeLine: activeIndex >= 0 ? allLyrics[activeIndex]?.text : 'None',
+        songDuration: duration,
+        lineDuration: allLyrics.length > 0 ? (allLyrics[0]?.end - allLyrics[0]?.start) : 0
+      });
+    }
+    
+    // If no active line, show first few lines
+    if (activeIndex === -1) {
+      return allLyrics.slice(0, 5); // Show first 5 lines
+    }
+
+    // Check if current line is a chorus/section header
+    const currentLine = allLyrics[activeIndex];
+    const isChorusOrSection = currentLine?.text && (
+      currentLine.text.includes('(अंतरा / Chorus)') ||
+      currentLine.text.includes('(मुखड़ा / Verse)') ||
+      currentLine.text.includes('(Chorus)') ||
+      currentLine.text.includes('(Verse)') ||
+      currentLine.text.includes('(अंतरा)') ||
+      currentLine.text.includes('(मुखड़ा)') ||
+      currentLine.text.includes('**(') // Any section header with **
+    );
+
+    let contextStart, contextEnd;
+    
+    if (isChorusOrSection) {
+      // For chorus/section headers, show them at the top with more context below
+      contextStart = Math.max(0, activeIndex - 1); // 1 line before
+      contextEnd = Math.min(allLyrics.length, activeIndex + 6); // 5 lines after
+    } else {
+      // Normal context: 2 lines before + active + 3 lines after
+      contextStart = Math.max(0, activeIndex - 2);
+      contextEnd = Math.min(allLyrics.length, activeIndex + 4);
+    }
+    
+    const contextLyrics = allLyrics.slice(contextStart, contextEnd);
+    
+    return contextLyrics;
   };
 
   useEffect(() => {
@@ -202,6 +363,46 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       audio.removeEventListener("loadedmetadata", updateDuration);
     };
   }, []);
+
+  // Additional manual update for more responsive highlighting
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const interval = setInterval(() => {
+      const audio = audioRef.current;
+      if (audio) {
+        setCurrentTime(audio.currentTime);
+      }
+    }, 50); // Update every 50ms for even more responsive highlighting
+
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Auto-adjust timing offset based on audio progress
+  useEffect(() => {
+    if (!isPlaying || !song.lyrics) return;
+
+    const lines = song.lyrics.split('\n').filter(line => line.trim().length > 0);
+    const songDurationMs = duration > 0 ? duration * 1000 : lines.length * 3000;
+    const lineDuration = songDurationMs / lines.length;
+    
+    // Calculate expected current line based on time
+    const expectedLine = Math.floor(currentTime * 1000 / lineDuration);
+    
+    // If we're consistently ahead or behind, adjust the offset
+    if (expectedLine !== lastActiveIndex && expectedLine >= 0 && expectedLine < lines.length) {
+      const expectedTime = expectedLine * lineDuration;
+      const actualTime = currentTime * 1000;
+      const difference = actualTime - expectedTime;
+      
+      // If difference is significant (> 500ms), adjust offset
+      if (Math.abs(difference) > 500) {
+        setTimingOffset(prev => prev - difference * 0.5); // Gradual adjustment
+      }
+      
+      setLastActiveIndex(expectedLine);
+    }
+  }, [currentTime, isPlaying, song.lyrics, duration, lastActiveIndex]);
 
   const togglePlay = async () => {
     const audio = audioRef.current;
@@ -413,11 +614,16 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       const containerCenter = containerHeight / 2;
       const targetScrollTop = elementCenter - containerCenter;
 
-      // Smooth scroll to the calculated position
-      container.scrollTo({
-        top: Math.max(0, targetScrollTop),
-        behavior: "smooth",
-      });
+      // Only scroll if the element is not already well-positioned
+      const currentScrollTop = container.scrollTop;
+      const scrollThreshold = 150; // Only scroll if the element is more than 150px away from center
+
+      if (Math.abs(targetScrollTop - currentScrollTop) > scrollThreshold) {
+        container.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: "smooth",
+        });
+      }
     });
   }, [currentTime, lyrics]);
 
@@ -554,22 +760,119 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           <div className="h-[calc(40vh-80px)]"></div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="space-y-8 md:space-y-10">
+            {/* Loading indicator for timestamped lyrics generation */}
+            {isGeneratingLyrics && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Generating synchronized lyrics...</p>
+              </div>
+            )}
+            
+            {/* Error display for lyrics generation */}
+            {lyricsGenerationError && (
+              <div className="text-center py-12">
+                {lyricsGenerationError.includes('not generated through Suno API') ? (
+                  <div className="text-yellow-600 mb-4">
+                    <Music className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-sm">Static lyrics will be shown</p>
+                    <p className="text-xs text-gray-500 mt-1">{lyricsGenerationError}</p>
+                    
+                    {/* Manual timing adjustment controls */}
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs text-gray-500">Timing adjustment:</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <button
+                          onClick={() => setTimingOffset(prev => prev - 500)}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                        >
+                          -0.5s
+                        </button>
+                        <button
+                          onClick={() => setTimingOffset(prev => prev - 100)}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                        >
+                          -0.1s
+                        </button>
+                        <span className="text-xs text-gray-500 min-w-[60px] text-center">
+                          {timingOffset > 0 ? '+' : ''}{(timingOffset / 1000).toFixed(1)}s
+                        </span>
+                        <button
+                          onClick={() => setTimingOffset(prev => prev + 100)}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                        >
+                          +0.1s
+                        </button>
+                        <button
+                          onClick={() => setTimingOffset(prev => prev + 500)}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                        >
+                          +0.5s
+                        </button>
+                        <button
+                          onClick={() => setTimingOffset(0)}
+                          className="px-3 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-red-500 mb-4">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-sm">Could not generate synchronized lyrics</p>
+                    <p className="text-xs text-gray-500 mt-1">{lyricsGenerationError}</p>
+                    <button
+                      onClick={() => {
+                        setLyricsGenerationAttempted(false);
+                        setLyricsGenerationError(null);
+                        generateTimestampedLyrics();
+                      }}
+                      className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors mt-2"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="space-y-6 md:space-y-8">
               {lyrics.map((line, index) => (
                 <div
                   key={index}
                   ref={(el) => {
                     lyricRefs.current[index] = el;
                   }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
+                  className={`text-center transition-all duration-700 ease-out min-h-[3rem] md:min-h-[3.5rem] flex items-center justify-center relative ${
                     line.isActive
-                      ? "text-xl md:text-2xl lg:text-3xl font-bold text-yellow-600 transform scale-110"
+                      ? line.text && (
+                          line.text.includes('(अंतरा / Chorus)') ||
+                          line.text.includes('(मुखड़ा / Verse)') ||
+                          line.text.includes('(Chorus)') ||
+                          line.text.includes('(Verse)') ||
+                          line.text.includes('(अंतरा)') ||
+                          line.text.includes('(मुखड़ा)') ||
+                          line.text.includes('**(')
+                        )
+                        ? "text-lg md:text-xl font-bold text-yellow-500 transform scale-105 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-200"
+                        : "text-xl md:text-2xl lg:text-3xl font-bold text-yellow-600 transform scale-110"
                       : line.isPast
                       ? "text-base md:text-lg text-gray-400 opacity-60"
                       : "text-base md:text-lg text-gray-500 opacity-80"
                   }`}
                   style={{
-                    transform: line.isActive ? "scale(1.1)" : "scale(1)",
+                    transform: line.isActive 
+                      ? (line.text && (
+                          line.text.includes('(अंतरा / Chorus)') ||
+                          line.text.includes('(मुखड़ा / Verse)') ||
+                          line.text.includes('(Chorus)') ||
+                          line.text.includes('(Verse)') ||
+                          line.text.includes('(अंतरा)') ||
+                          line.text.includes('(मुखड़ा)') ||
+                          line.text.includes('**(')
+                        ) ? "scale(1.05)" : "scale(1.1)")
+                      : "scale(1)",
                     transition:
                       "all 0.7s cubic-bezier(0.4, 0, 0.2, 1), font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1), line-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}

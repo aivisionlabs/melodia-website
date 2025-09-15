@@ -1,0 +1,128 @@
+---
+description: This is feature development guide
+alwaysApply: false
+---
+# Feature Development Guide
+
+## Upcoming Features (from phase/requirements.md)
+
+Based on the requirements in [phase/requirements.md](mdc:phase/requirements.md), the following features need to be implemented:
+
+### 1. Authentication System
+- Login/Signup pages (no forgot password initially)
+- Session management with cookies
+- User state management
+
+### 2. User Dashboard
+- "My Songs" section for authenticated users
+- Logout functionality
+- User-specific song management
+
+### 3. Song Creation Form
+- Form with user input validation
+- "Create" button enabled only after successful validation
+- Integration with existing song generation system
+
+## Implementation Guidelines
+
+### For New Routes
+Create new directories in `src/app/`:
+```
+src/app/
+├── auth/
+│   ├── login/
+│   │   └── page.tsx
+│   └── signup/
+│       └── page.tsx
+├── dashboard/
+│   └── page.tsx
+└── create-song/
+    └── page.tsx
+```
+
+### For New Components
+Add to `src/components/`:
+- Authentication forms (LoginForm, SignupForm)
+- Dashboard components (UserDashboard, MySongs)
+- Song creation form (SongCreationForm)
+
+### For New Types
+Extend [src/types/index.ts](mdc:src/types/index.ts):
+```typescript
+export interface User {
+  id: string
+  email: string
+  name?: string
+  created_at: string
+}
+
+export interface SongCreationForm {
+  title: string
+  lyrics?: string
+  music_style: string
+  prompt: string
+  // ... other fields
+}
+```
+
+### For New Server Actions
+Add to [src/lib/actions.ts](mdc:src/lib/actions.ts):
+- User authentication functions
+- User-specific song fetching
+- Song creation with validation
+
+### For New Hooks
+Create in `src/hooks/`:
+- `use-auth.ts` - User authentication state
+- `use-song-creation.ts` - Song creation form state
+- `use-user-songs.ts` - User's song management
+
+## Database Schema Updates
+
+The existing [init.sql](mdc:init.sql) has an `admin_users` table. For user authentication, you may need to:
+
+1. Create a `users` table for regular users
+2. Add user_id foreign key to songs table
+3. Add authentication-related fields
+
+## Integration Points
+
+### Existing Components to Extend
+- [src/components/Header.tsx](mdc:src/components/Header.tsx) - Add login/logout buttons
+- [src/components/SongList.tsx](mdc:src/components/SongList.tsx) - Filter by user
+- [src/app/page.tsx](mdc:src/app/page.tsx) - Add "My Songs" section
+
+### Existing Actions to Extend
+- [src/lib/actions.ts](mdc:src/lib/actions.ts) - Add user-specific queries
+- [src/lib/suno-api.ts](mdc:src/lib/suno-api.ts) - Integrate with song creation
+
+## Validation Patterns
+
+Follow the existing validation patterns in [src/lib/actions.ts](mdc:src/lib/actions.ts):
+```typescript
+// Input validation
+function validateSongId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false
+  return /^\d+$/.test(id)
+}
+
+function sanitizeSearchQuery(query: string): string {
+  return query.trim().toLowerCase().slice(0, 50)
+}
+```
+
+## Security Considerations
+
+1. Use Server Actions for all database operations
+2. Implement proper input validation and sanitization
+3. Use the existing rate limiting patterns
+4. Ensure user data isolation
+5. Follow the PublicSong interface pattern for public data
+
+## UI/UX Guidelines
+
+1. Follow existing component patterns from [src/components/](mdc:src/components/)
+2. Use Tailwind CSS classes consistently
+3. Implement responsive design
+4. Add proper loading states and error handling
+5. Use the existing toast notification system ([src/hooks/use-toast.ts](mdc:src/hooks/use-toast.ts))

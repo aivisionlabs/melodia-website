@@ -1,13 +1,13 @@
 import { eq, desc, and } from 'drizzle-orm';
 import { db } from '../index';
-import { SelectSong, songsTable } from '../schema';
+import { SelectSong, songsTable, songRequestsTable } from '../schema';
 
 export async function getAllSongs(): Promise<SelectSong[]> {
   return db
     .select()
     .from(songsTable)
-    .where(and(eq(songsTable.add_to_library, true), eq(songsTable.is_deleted, false)))
-    .orderBy(songsTable.sequence, songsTable.created_at);
+    .where(eq(songsTable.is_active, true))
+    .orderBy(desc(songsTable.created_at));
 }
 
 export async function getSongBySlug(slug: string): Promise<SelectSong | undefined> {
@@ -16,8 +16,7 @@ export async function getSongBySlug(slug: string): Promise<SelectSong | undefine
     .from(songsTable)
     .where(and(
       eq(songsTable.slug, slug),
-      eq(songsTable.is_deleted, false),
-      eq(songsTable.add_to_library, true)
+      eq(songsTable.is_active, true)
     ))
     .limit(1);
 
@@ -59,6 +58,26 @@ export async function getSongByIdQuery(id: number): Promise<SelectSong | undefin
     .select()
     .from(songsTable)
     .where(eq(songsTable.id, id))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function getSongRequestById(id: number): Promise<any | undefined> {
+  const result = await db
+    .select()
+    .from(songRequestsTable)
+    .where(eq(songRequestsTable.id, id))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function getSongRequestByTaskId(taskId: string): Promise<any | undefined> {
+  const result = await db
+    .select()
+    .from(songRequestsTable)
+    .where(eq(songRequestsTable.suno_task_id, taskId))
     .limit(1);
 
   return result[0];

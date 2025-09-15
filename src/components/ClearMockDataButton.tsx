@@ -5,24 +5,23 @@ import { useToast } from "@/hooks/use-toast";
 import { SunoAPIFactory } from "@/lib/suno-api";
 
 export default function ClearMockDataButton() {
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearMockData = async () => {
     setIsClearing(true);
     try {
       SunoAPIFactory.getAPI().clearMockData();
-      toast({
+      addToast({
+        type: "success",
         title: "Mock data cleared",
-        description: "All mock API data has been cleared successfully.",
-        duration: 3000,
+        message: "All mock API data has been cleared successfully.",
       });
     } catch (error) {
-      toast({
+      addToast({
+        type: "error",
         title: "Error clearing mock data",
-        description: "Failed to clear mock data. Please try again.",
-        variant: "destructive",
-        duration: 5000,
+        message: "Failed to clear mock data. Please try again.",
       });
     } finally {
       setIsClearing(false);

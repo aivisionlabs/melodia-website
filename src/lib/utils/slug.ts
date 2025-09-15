@@ -32,6 +32,45 @@ export function generateBaseSlug(title: string): string {
 }
 
 /**
+ * Generate a unique slug by checking against existing slugs in the database
+ * @param baseSlug - The base slug to make unique
+ * @returns A unique slug string
+ */
+export async function generateUniqueSlug(baseSlug: string): Promise<string> {
+  // If base slug is empty, use a default
+  if (!baseSlug || baseSlug.trim() === '') {
+    baseSlug = 'song';
+  }
+
+  let slug = baseSlug;
+  let counter = 1;
+  const maxAttempts = 1000;
+
+  console.log(`Generating unique slug for base: "${baseSlug}"`);
+
+  while (counter <= maxAttempts) {
+    // Check if slug exists in database (including deleted songs)
+    const { getSongBySlugAll } = await import('../db/queries/select');
+    const existingSong = await getSongBySlugAll(slug);
+
+    if (!existingSong) {
+      console.log(`Generated unique slug: "${slug}" (attempt ${counter})`);
+      return slug;
+    }
+
+    // Generate next slug with counter
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  // Fallback: use timestamp to ensure uniqueness
+  const timestamp = Date.now();
+  const fallbackSlug = `${baseSlug}-${timestamp}`;
+  console.log(`Using fallback slug: "${fallbackSlug}" after ${maxAttempts} attempts`);
+  return fallbackSlug;
+}
+
+/**
  * Validate if a slug is valid
  * @param slug - The slug to validate
  * @returns True if the slug is valid

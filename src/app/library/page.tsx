@@ -100,7 +100,7 @@ export default function SongLibraryPage() {
                   style: string | null
                 ) => {
                   if (!categories || categories.length === 0) {
-                    if (!style) return "from-blue-400 to-purple-500";
+                    if (!style) return "from-yellow-400 to-yellow-600";
 
                     const styleLower = style.toLowerCase();
                     if (styleLower.includes("birthday"))
@@ -111,12 +111,12 @@ export default function SongLibraryPage() {
                     )
                       return "from-green-400 to-teal-500";
                     if (styleLower.includes("lullaby"))
-                      return "from-indigo-400 to-blue-500";
+                      return "from-yellow-400 to-yellow-600";
                     if (styleLower.includes("motivational"))
-                      return "from-orange-400 to-red-500";
+                      return "from-yellow-400 to-yellow-600";
                     if (styleLower.includes("musical"))
-                      return "from-purple-400 to-pink-500";
-                    return "from-blue-400 to-purple-500";
+                      return "from-yellow-400 to-yellow-600";
+                    return "from-yellow-400 to-yellow-600";
                   }
 
                   // Use categories for color generation
@@ -133,23 +133,23 @@ export default function SongLibraryPage() {
                     categoryText.includes("lullaby") ||
                     categoryText.includes("sleep")
                   )
-                    return "from-indigo-400 to-blue-500";
+                    return "from-yellow-400 to-yellow-600";
                   if (
                     categoryText.includes("motivational") ||
                     categoryText.includes("inspirational")
                   )
-                    return "from-orange-400 to-red-500";
+                    return "from-yellow-400 to-yellow-600";
                   if (
                     categoryText.includes("musical") ||
                     categoryText.includes("party")
                   )
-                    return "from-purple-400 to-pink-500";
+                    return "from-yellow-400 to-yellow-600";
                   if (
                     categoryText.includes("acoustic") ||
                     categoryText.includes("ballad")
                   )
-                    return "from-yellow-400 to-orange-500";
-                  return "from-blue-400 to-purple-500";
+                    return "from-yellow-400 to-yellow-600";
+                  return "from-yellow-400 to-yellow-600";
                 };
 
                 return (

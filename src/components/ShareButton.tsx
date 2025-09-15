@@ -21,7 +21,7 @@ export const ShareButton = ({
   onShare,
   onCopyLink,
 }: ShareButtonProps) => {
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   const handleShare = async () => {
     // Use slug-based URL if available, otherwise fall back to songId
@@ -41,10 +41,10 @@ export const ShareButton = ({
         onShare?.();
 
         // Show success toast for native sharing
-        toast({
+        addToast({
+          type: "success",
           title: "Shared successfully!",
-          description: "The song link has been shared.",
-          duration: 3000,
+          message: "The song link has been shared.",
         });
       } catch (error) {
         console.log("Error sharing:", error);
@@ -63,10 +63,10 @@ export const ShareButton = ({
         onCopyLink?.();
 
         // Show success toast for clipboard copy
-        toast({
+        addToast({
+          type: "success",
           title: "Link copied!",
-          description: "Song link has been copied to your clipboard.",
-          duration: 3000,
+          message: "Song link has been copied to your clipboard.",
         });
       })
       .catch(() => {
@@ -82,10 +82,10 @@ export const ShareButton = ({
         onCopyLink?.();
 
         // Show success toast for fallback copy
-        toast({
+        addToast({
+          type: "success",
           title: "Link copied!",
-          description: "Song link has been copied to your clipboard.",
-          duration: 3000,
+          message: "Song link has been copied to your clipboard.",
         });
       });
   };

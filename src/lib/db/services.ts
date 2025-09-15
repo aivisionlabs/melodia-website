@@ -2,7 +2,7 @@ import { getAllSongs as getAllSongsQuery, getSongBySlug as getSongBySlugQuery, g
 import { createSong as createSongQuery } from './queries/insert';
 import { updateSongStatus as updateSongStatusQuery, updateSongWithVariants as updateSongWithVariantsQuery } from './queries/update';
 import { Song } from '@/types';
-import { generateBaseSlug } from '@/lib/utils/slug';
+import { generateBaseSlug, generateUniqueSlug } from '@/lib/utils/slug';
 
 // Song Services
 export async function getAllSongs(): Promise<Song[]> {
@@ -150,40 +150,7 @@ export async function getSongById(id: number): Promise<Song | null> {
 }
 
 
-// Helper function to generate unique slug
-async function generateUniqueSlug(baseSlug: string): Promise<string> {
-  // If base slug is empty, use a default
-  if (!baseSlug || baseSlug.trim() === '') {
-    baseSlug = 'song';
-  }
 
-  let slug = baseSlug;
-  let counter = 1;
-  const maxAttempts = 1000;
-
-  console.log(`Generating unique slug for base: "${baseSlug}"`);
-
-  while (counter <= maxAttempts) {
-    // Check if slug exists in database (including deleted songs)
-    const { getSongBySlugAll } = await import('./queries/select');
-    const existingSong = await getSongBySlugAll(slug);
-
-    if (!existingSong) {
-      console.log(`Generated unique slug: "${slug}" (attempt ${counter})`);
-      return slug;
-    }
-
-    // Generate next slug with counter
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
-  // Fallback: use timestamp to ensure uniqueness
-  const timestamp = Date.now();
-  const fallbackSlug = `${baseSlug}-${timestamp}`;
-  console.log(`Using fallback slug: "${fallbackSlug}" after ${maxAttempts} attempts`);
-  return fallbackSlug;
-}
 
 export async function createSong(songData: {
   title: string;
@@ -216,12 +183,10 @@ export async function createSong(songData: {
       music_style: songData.music_style,
       categories: songData.categories || [],
       tags: songData.tags || [],
-      negative_tags: songData.negative_tags,
       prompt: songData.prompt || songData.lyrics,
       slug,
       status: 'draft',
-      add_to_library: false,
-      is_deleted: false,
+      is_active: false,
     };
 
     const song = await createSongQuery(newSong);
@@ -262,10 +227,10 @@ export async function updateSongWithSunoVariants(
   songId: number,
   sunoVariants: any[],
   selectedVariant?: number,
-  addToLibrary?: boolean
+  isActive?: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, addToLibrary);
+    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, isActive);
     return { success: true };
   } catch (error) {
     console.error('Error updating song with variants:', error);
