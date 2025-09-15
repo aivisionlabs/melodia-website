@@ -21,7 +21,7 @@ export default function TermsPage() {
         <div className="bg-slate-800 rounded-lg shadow-lg p-8 prose prose-lg max-w-none border border-slate-700">
           <h2 className="text-2xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
           <p className="text-gray-300 mb-6">
-            By accessing and using Melodia ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+            By accessing and using Melodia (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
           </p>
 
           <h2 className="text-2xl font-semibold text-white mb-4">2. Description of Service</h2>

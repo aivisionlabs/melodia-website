@@ -13,7 +13,6 @@ interface SongProgressCardProps {
 }
 
 export function SongProgressCard({ 
-  songId, 
   title, 
   estimatedCompletion, 
   onRefresh,

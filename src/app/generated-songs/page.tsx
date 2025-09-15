@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ interface FormData {
   additional_details: string
 }
 
-export default function GeneratedSongsPage() {
+function GeneratedSongsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [songs, setSongs] = useState<SongData[]>([])
@@ -42,7 +42,7 @@ export default function GeneratedSongsPage() {
     
     if (sessionData) {
       // Use session data
-      const { title, styleOfMusic, lyrics, recipient_name, languages, additional_details } = sessionData
+      const {  styleOfMusic, lyrics, recipient_name, languages, additional_details } = sessionData
       
       // Extract name from recipient_name (e.g., "suchi, my friend" -> "suchi")
       const name = recipient_name.split(',')[0].trim()
@@ -87,8 +87,7 @@ export default function GeneratedSongsPage() {
         
         setSongs(songs)
         
-        // Start generation process
-        generateSongOnce(title, lyrics, styleOfMusic, recipient_name, songs)
+        // Note: Song generation will be handled by the second useEffect after generateSongOnce is declared
       }
       
       setFormData({ recipient_name, languages, additional_details })
@@ -129,8 +128,7 @@ export default function GeneratedSongsPage() {
         
         setSongs(songs)
         
-        // Start generation process
-        generateSongOnce(title, lyrics, styleOfMusic, recipient_name, songs)
+        // Note: Song generation will be handled by the second useEffect after generateSongOnce is declared
       }
 
       if (recipient_name && languages.length > 0 && additional_details) {
@@ -139,7 +137,26 @@ export default function GeneratedSongsPage() {
     }
   }, [searchParams])
 
-  const generateSongOnce = async (title: string, lyrics: string, style: string, recipient_name: string, songs: SongData[]) => {
+  const saveSongsToLocalStorage = useCallback((songsToSave: SongData[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const existingSongs = JSON.parse(localStorage.getItem('melodia-saved-songs') || '[]')
+        const newSongs = songsToSave.map(song => ({
+          ...song,
+          createdAt: new Date().toISOString(),
+          recipientName: formData?.recipient_name || 'Unknown',
+          id: `${Date.now()}-${song.id}`
+        }))
+        const allSongs = [...existingSongs, ...newSongs]
+        localStorage.setItem('melodia-saved-songs', JSON.stringify(allSongs))
+        console.log('Songs auto-saved to My Songs:', newSongs.length)
+      } catch (error) {
+        console.error('Error saving songs:', error)
+      }
+    }
+  }, [formData?.recipient_name])
+
+  const generateSongOnce = useCallback(async (title: string, lyrics: string, style: string, recipient_name: string, songs: SongData[]) => {
     try {
       // Call Suno API to generate real song
       const response = await fetch('/api/generate-song', {
@@ -218,28 +235,47 @@ export default function GeneratedSongsPage() {
       setSongs(updatedSongs)
       saveSongsToLocalStorage(updatedSongs)
     }
-  }
+  }, [saveSongsToLocalStorage])
 
   // No timer needed - songs are immediately ready and saved
 
-  const saveSongsToLocalStorage = (songsToSave: SongData[]) => {
-    if (typeof window !== 'undefined') {
-      try {
-        const existingSongs = JSON.parse(localStorage.getItem('melodia-saved-songs') || '[]')
-        const newSongs = songsToSave.map(song => ({
-          ...song,
-          createdAt: new Date().toISOString(),
-          recipientName: formData?.recipient_name || 'Unknown',
-          id: `${Date.now()}-${song.id}`
-        }))
-        const allSongs = [...existingSongs, ...newSongs]
-        localStorage.setItem('melodia-saved-songs', JSON.stringify(allSongs))
-        console.log('Songs auto-saved to My Songs:', newSongs.length)
-      } catch (error) {
-        console.error('Error saving songs:', error)
+  useEffect(() => {
+    if (searchParams.get('title') && searchParams.get('lyrics') && searchParams.get('style') && searchParams.get('recipient_name')) {
+      const title = searchParams.get('title')!
+      const lyrics = searchParams.get('lyrics')!
+      const style = searchParams.get('style')!
+      const recipient_name = searchParams.get('recipient_name')!
+      const languages = searchParams.get('languages')?.split(',') || []
+      const additional_details = searchParams.get('additional_details') || ''
+
+      if (recipient_name && languages.length > 0 && additional_details) {
+        setFormData({ recipient_name, languages, additional_details })
+        
+        // Trigger song generation
+        const songs: SongData[] = [
+          {
+            id: 'song-1',
+            title: title || `${recipient_name.split(',')[0].trim()} - Version 1`,
+            lyrics: lyrics,
+            styleOfMusic: style,
+            status: 'generating',
+            audioUrl: undefined
+          },
+          {
+            id: 'song-2',
+            title: title || `${recipient_name.split(',')[0].trim()} - Version 2`,
+            lyrics: lyrics,
+            styleOfMusic: style,
+            status: 'generating',
+            audioUrl: undefined
+          }
+        ]
+        
+        setSongs(songs)
+        generateSongOnce(title, lyrics, style, recipient_name, songs)
       }
     }
-  }
+  }, [searchParams, generateSongOnce])
 
   const handlePlaySong = (song: SongData) => {
     setSelectedSong(song)
@@ -351,7 +387,7 @@ export default function GeneratedSongsPage() {
 
         {/* Songs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {songs.map((song, index) => (
+          {songs.map((song) => (
             <Card key={song.id} className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30 hover:bg-yellow-500/10 transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -497,5 +533,13 @@ export default function GeneratedSongsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function GeneratedSongsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GeneratedSongsContent />
+    </Suspense>
   )
 }

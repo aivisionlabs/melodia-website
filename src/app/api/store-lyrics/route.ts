@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requestId, lyrics, recipient_name, languages, additional_details } = body;
+    const { requestId, lyrics } = body;
 
     // Validate required fields
     if (!requestId || !lyrics) {

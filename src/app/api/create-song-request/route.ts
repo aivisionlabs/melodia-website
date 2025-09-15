@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSongRequest } from '@/lib/song-request-actions';
 import { getCurrentUser } from '@/lib/user-actions';
-import { shouldRequirePayment } from '@/lib/payment-config';
 
 export async function POST(request: NextRequest) {
   try {

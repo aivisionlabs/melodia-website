@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { songRequestsTable, songsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
-import { isValidEmail, isValidPhone, sanitizeInput } from './utils/validation'
+import { sanitizeInput } from './utils/validation'
 import { shouldRequirePayment } from './payment-config'
 
 // Input validation functions
@@ -204,7 +204,11 @@ export async function getUserSongRequests(
       // Phase 6: Lyrics workflow fields
       lyrics_status: request.lyrics_status as 'pending' | 'generating' | 'needs_review' | 'approved',
       approved_lyrics_id: request.approved_lyrics_id,
-      lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null
+      lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null,
+      // Payment integration fields
+      payment_id: request.payment_id,
+      payment_status: request.payment_status as 'pending' | 'paid' | 'failed' | 'refunded',
+      payment_required: request.payment_required || false
     }))
 
     return {

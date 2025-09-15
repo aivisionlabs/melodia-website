@@ -32,9 +32,7 @@ export function StructuredData({ song, type }: StructuredDataProps) {
           description: song.lyrics?.substring(0, 200) + "...",
           url: `https://melodia-songs.com/library/${song.slug}`,
           duration: song.duration
-            ? `PT${Math.floor(parseFloat(song.duration) / 60)}M${
-                parseFloat(song.duration) % 60
-              }S`
+            ? `PT${Math.floor(song.duration / 60)}M${song.duration % 60}S`
             : undefined,
           genre: song.music_style,
           creator: {

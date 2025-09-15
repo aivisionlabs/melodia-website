@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkAndUpdateSongStatus, getSongWithStatus } from '@/lib/services/song-status-service'
+import {  getSongWithStatus } from '@/lib/services/song-status-service'
 import { checkSunoJobStatusAction } from '@/lib/lyrics-actions'
 import { getSongById } from '@/lib/db/queries/select'
 import { updateSongStatusWithTracking, updateSongUrl, incrementStatusCheckCount } from '@/lib/db/queries/update'

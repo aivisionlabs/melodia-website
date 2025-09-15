@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { songRequestsTable, lyricsDraftsTable, songsTable } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export interface UserContentItem {
   id: string;
@@ -79,8 +79,8 @@ export async function getUserContent(userId: number): Promise<UserContentItem[]>
             suno_task_id: song[0].suno_task_id || undefined,
             variants: Array.isArray(song[0].suno_variants) ? song[0].suno_variants : undefined,
             selected_variant: song[0].selected_variant || 0,
-            timestamped_lyrics_variants: song[0].timestamped_lyrics_variants || undefined,
-            timestamp_lyrics: song[0].timestamp_lyrics || undefined
+            timestamped_lyrics_variants: song[0].timestamped_lyrics_variants as { [variantIndex: number]: any[] } | undefined,
+            timestamp_lyrics: song[0].timestamp_lyrics as any[] | undefined
           });
         }
       } else {

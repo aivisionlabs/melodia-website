@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { PricingPlan, PricingPlansProps } from '@/types/payment';
 import { formatAmount } from '@/lib/razorpay-client';
 
@@ -31,7 +31,7 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
         setError(data.message || 'Failed to fetch pricing plans');
       }
     } catch (err) {
-      setError('Failed to fetch pricing plans');
+      setError(err instanceof Error ? err.message : 'Failed to fetch pricing plans');
     } finally {
       setLoading(false);
     }

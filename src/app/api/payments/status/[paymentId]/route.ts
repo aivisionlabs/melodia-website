@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { paymentsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/user-actions';
-import { PaymentStatusResponse } from '@/types/payment';
+import { PaymentStatusResponse, PaymentStatus } from '@/types/payment';
 
 export async function GET(
   request: NextRequest,
@@ -59,16 +59,16 @@ export async function GET(
       payment: {
         id: payment[0].id,
         user_id: payment[0].user_id,
-        song_request_id: payment[0].song_request_id,
+        song_request_id: payment[0].song_request_id || 0,
         razorpay_payment_id: payment[0].razorpay_payment_id || '',
         razorpay_order_id: payment[0].razorpay_order_id || '',
-        amount: payment[0].amount,
-        currency: payment[0].currency,
-        status: payment[0].status,
-        payment_method: payment[0].payment_method,
-        created_at: payment[0].created_at.toISOString(),
-        updated_at: payment[0].updated_at.toISOString(),
-        metadata: payment[0].metadata,
+        amount: Number(payment[0].amount),
+        currency: payment[0].currency || 'USD',
+        status: payment[0].status as PaymentStatus,
+        payment_method: payment[0].payment_method || undefined,
+        created_at: payment[0].created_at?.toISOString() || new Date().toISOString(),
+        updated_at: payment[0].updated_at?.toISOString() || new Date().toISOString(),
+        metadata: payment[0].metadata as Record<string, any> | undefined,
       },
     };
 

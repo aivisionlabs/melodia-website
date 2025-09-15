@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { songRequestsTable, paymentsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/user-actions';
-import { shouldRequirePayment } from '@/lib/payment-config';
 
 export async function POST(request: NextRequest) {
   try {

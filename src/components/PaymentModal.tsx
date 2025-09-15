@@ -3,35 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { PaymentModalProps, PaymentFlowState } from '@/types/payment';
-import { openRazorpayCheckout, formatAmount, handleRazorpayClientError } from '@/lib/razorpay-client';
+import { openRazorpayCheckout, handleRazorpayClientError } from '@/lib/razorpay-client';
 import PricingPlans from './PricingPlans';
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  onError,
   songRequestId,
   planId,
-  amount,
-  currency,
 }) => {
   const [flowState, setFlowState] = useState<PaymentFlowState>({
-    step: 'idle',
+    step: 'select-plan',
+    loading: false,
   });
   const [selectedPlanId, setSelectedPlanId] = useState<number>(planId);
-  const [orderData, setOrderData] = useState<any>(null);
+  const [ setOrderData] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setFlowState({ step: 'idle' });
+      setFlowState({ step: 'select-plan', loading: false });
       setSelectedPlanId(planId);
     }
   }, [isOpen, planId]);
 
   const handleCreateOrder = async () => {
     try {
-      setFlowState({ step: 'loading' });
+      setFlowState({ step: 'payment', loading: true });
 
       const response = await fetch('/api/payments/create-order', {
         method: 'POST',
@@ -48,36 +46,36 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
       if (data.success) {
         setOrderData(data);
-        setFlowState({ step: 'checkout' });
+        setFlowState({ step: 'payment', loading: false });
         await handlePayment(data);
       } else {
-        setFlowState({ step: 'error', error: data.message });
+        setFlowState({ step: 'error', error: data.message, loading: false });
       }
     } catch (error) {
-      setFlowState({ step: 'error', error: 'Failed to create payment order' });
+      setFlowState({ step: 'error', error: error instanceof Error ? error.message : 'Failed to create payment order', loading: false });
     }
   };
 
   const handlePayment = async (orderData: any) => {
     try {
-      setFlowState({ step: 'checkout' });
+      setFlowState({ step: 'payment', loading: true });
 
       await openRazorpayCheckout(
         orderData,
         async (paymentId, orderId, signature) => {
-          setFlowState({ step: 'verifying' });
+          setFlowState({ step: 'verification', loading: true });
           await verifyPayment(paymentId, orderId, signature);
         },
         (error) => {
-          setFlowState({ step: 'error', error: error.description });
+          setFlowState({ step: 'error', error: error.description, loading: false });
         },
         () => {
-          setFlowState({ step: 'idle' });
+          setFlowState({ step: 'select-plan', loading: false });
         }
       );
     } catch (error) {
       const clientError = handleRazorpayClientError(error);
-      setFlowState({ step: 'error', error: clientError.message });
+      setFlowState({ step: 'error', error: clientError.message, loading: false });
     }
   };
 
@@ -98,18 +96,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const data = await response.json();
 
       if (data.success) {
-        setFlowState({ step: 'success' });
+        setFlowState({ step: 'success', loading: false });
         onSuccess(data.paymentId);
       } else {
-        setFlowState({ step: 'error', error: data.message });
+        setFlowState({ step: 'error', error: data.message, loading: false });
       }
     } catch (error) {
-      setFlowState({ step: 'error', error: 'Failed to verify payment' });
+      setFlowState({ step: 'error', error: error instanceof Error ? error.message : 'Failed to verify payment', loading: false });
     }
   };
 
   const handleRetry = () => {
-    setFlowState({ step: 'idle' });
+    setFlowState({ step: 'select-plan', loading: false });
   };
 
   const handleClose = () => {
@@ -136,7 +134,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <div className="p-6">
-          {flowState.step === 'idle' && (
+          {flowState.step === 'select-plan' && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -172,21 +170,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {flowState.step === 'loading' && (
+          {flowState.step === 'payment' && flowState.loading && (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Creating payment order...</p>
             </div>
           )}
 
-          {flowState.step === 'checkout' && (
+          {flowState.step === 'payment' && !flowState.loading && (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Opening payment gateway...</p>
             </div>
           )}
 
-          {flowState.step === 'verifying' && (
+          {flowState.step === 'verification' && (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Verifying payment...</p>

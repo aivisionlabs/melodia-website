@@ -2,8 +2,6 @@
 
 import { 
   CreateOrderResponse, 
-  VerifyPaymentRequest, 
-  VerifyPaymentResponse,
   PaymentError 
 } from '@/types/payment';
 

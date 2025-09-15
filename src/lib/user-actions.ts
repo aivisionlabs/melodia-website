@@ -195,7 +195,7 @@ export async function loginUser(
     }
 
     // Remove password hash from response and convert dates to strings
-    const { password_hash: _, ...userWithoutPassword } = userData
+    const { ...userWithoutPassword } = userData
     const userForResponse: User = {
       ...userWithoutPassword,
       created_at: userData.created_at.toISOString(),

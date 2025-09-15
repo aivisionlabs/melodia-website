@@ -16,7 +16,6 @@ interface LyricsControlsProps {
 }
 
 export function LyricsControls({ 
-  requestId, 
   onGenerate, 
   onRegenerate, 
   onRefine, 
@@ -35,13 +34,6 @@ export function LyricsControls({
       setLanguages(initialLanguages);
     }
   }, [initialLanguages]);
-
-  // Also update when component mounts with initialLanguages
-  React.useEffect(() => {
-    if (initialLanguages && initialLanguages.length > 0) {
-      setLanguages(initialLanguages);
-    }
-  }, []);
   
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -70,7 +62,6 @@ export function LyricsControls({
     if (!onRefine || !refineText.trim() || !currentDraft) return;
     setIsGenerating(true);
     try {
-      const currentLyrics = currentDraft.edited_text || currentDraft.generated_text;
       const params = {
         language: languages,
         structure: currentDraft.structure

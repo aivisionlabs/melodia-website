@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         status: paymentStatus,
         payment_method: razorpayPayment.method,
         metadata: {
-          ...payment[0].metadata,
+          ...(payment[0].metadata as Record<string, any> || {}),
           razorpay_payment: razorpayPayment,
           verified_at: new Date().toISOString(),
         },
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         .set({
           payment_id: payment[0].id,
         })
-        .where(eq(songsTable.id, payment[0].song_request_id));
+        .where(eq(songsTable.id, payment[0].song_request_id || 0));
     }
 
     const response: VerifyPaymentResponse = {

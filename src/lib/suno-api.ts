@@ -217,7 +217,7 @@ class MockSunoAPI {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Generate mock aligned words based on the variant
-    const mockAlignedWords = this.generateMockAlignedWords(request.musicIndex);
+    const mockAlignedWords = this.generateMockAlignedWords();
 
     return {
       code: 0,
@@ -231,7 +231,7 @@ class MockSunoAPI {
     };
   }
 
-  private generateMockAlignedWords(variantIndex: number): Array<{
+  private generateMockAlignedWords(): Array<{
     word: string;
     success: boolean;
     startS: number; // Changed from start_s to startS
@@ -258,7 +258,7 @@ class MockSunoAPI {
     }> = [];
     let currentTime = 0;
 
-    baseLyrics.forEach((line, lineIndex) => {
+    baseLyrics.forEach((line) => {
       const words = line.split(' ');
       const lineDuration = 3 + Math.random() * 2; // 3-5 seconds per line
       const wordDuration = lineDuration / words.length;
@@ -423,7 +423,7 @@ export class SunoAPI {
 
   // Method to create a task with a specific ID (for client-side task creation)
   // This is a no-op for the real API since tasks are created server-side
-  createTaskWithId(taskId: string, request: SunoGenerateRequest) {
+  createTaskWithId(taskId: string) {
     // For real API, this method does nothing since tasks are created server-side
     // and should already exist when this is called
     console.log(`Real API: Task ${taskId} should already exist from server-side creation`);

@@ -1,10 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { db } from './db'
 import { lyricsDraftsTable, songsTable, songRequestsTable } from './db/schema'
-import { eq, desc, and } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { GenerateLyricsParams, LyricsDraft } from '@/types'
 import { config } from './config'
 
@@ -12,7 +11,7 @@ import { config } from './config'
 function buildLyricsPrompt(params: GenerateLyricsParams, songRequest: any): string {
   const { language, structure, refineText } = params
 
-  let prompt = `Create ${language.join(' and ')} lyrics for a personalized song with the following details:
+  const prompt = `Create ${language.join(' and ')} lyrics for a personalized song with the following details:
 
 Recipient: ${songRequest.recipient_name}
 Relationship: ${songRequest.recipient_relationship}
@@ -33,24 +32,6 @@ Please create heartfelt, personalized lyrics that capture the essence of the rel
 }
 
 // Helper function to build refinement prompt
-function buildRefinementPrompt(originalLyrics: string, refineText: string, songRequest: any): string {
-  return `Please improve and refine the following lyrics based on the user's feedback.
-
-Original Lyrics:
-${originalLyrics}
-
-User's Refinement Request:
-${refineText}
-
-Song Context:
-Recipient: ${songRequest.recipient_name}
-Relationship: ${songRequest.recipient_relationship}
-Person Description: ${songRequest.person_description || 'Not specified'}
-Song Type: ${songRequest.song_type || 'Personal'}
-Emotions: ${songRequest.emotions?.join(', ') || 'Not specified'}
-
-Please provide improved lyrics that address the user's feedback while maintaining the emotional connection and personal touch of the original.`
-}
 
 // Helper function to build refinement prompt with version history context
 function buildRefinementPromptWithHistory(currentLyrics: string, refineText: string, songRequest: any, allDrafts: any[]): string {
@@ -59,7 +40,7 @@ function buildRefinementPromptWithHistory(currentLyrics: string, refineText: str
   // Build version history context
   if (allDrafts.length > 1) {
     versionHistory = '\n\nVersion History Context:\n';
-    allDrafts.forEach((draft, index) => {
+    allDrafts.forEach((draft) => {
       const versionInfo = `Version ${draft.version}:`;
       const promptInfo = draft.prompt_input?.refineText ? `Refinement: "${draft.prompt_input.refineText}"` : 'Initial generation';
       versionHistory += `${versionInfo} ${promptInfo}\n`;
@@ -564,7 +545,7 @@ export async function checkSunoJobStatusAction(taskId: string) {
 
     const sunoAPI = SunoAPIFactory.getAPI();
 
-    let song = await getSongByTaskId(taskId);
+    const song = await getSongByTaskId(taskId);
     let songRequest = null;
 
     if (!song) {

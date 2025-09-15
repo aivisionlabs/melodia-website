@@ -2,8 +2,7 @@ import { Song, LyricLine } from '@/types'
 import { getSongById, getSongBySlug } from '@/lib/db/queries/select'
 import { updateSongStatusWithTracking, updateSongUrl, incrementStatusCheckCount } from '@/lib/db/queries/update'
 import { checkSunoJobStatusAction } from '@/lib/lyrics-actions'
-import { getCachedSongStatus, setCachedSongStatus, getCachedSongData, setCachedSongData, invalidateSongCache } from './cache-service'
-import { handleSongStatusError, SongStatusError } from './error-handling-service'
+import { getCachedSongData, setCachedSongData, invalidateSongCache, getCachedSongStatus } from './cache-service'
 
 export interface SongStatus {
   status: 'loading' | 'ready' | 'processing' | 'failed' | 'pending'

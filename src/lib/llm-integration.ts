@@ -129,13 +129,13 @@ Create a song using ONLY these 3 inputs. Do not add extra words or descriptions.
     try {
       const result = JSON.parse(cleanText);
       return result;
-    } catch (parseError) {
+    } catch {
       // Try to extract JSON from the text if it's embedded
       const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           return JSON.parse(jsonMatch[0]);
-        } catch (extractError) {
+        } catch {
           throw new Error('Failed to parse JSON from Gemini response');
         }
       }

@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 
 export async function POST(request: NextRequest) {
   try {
-    const { taskId, audioId, musicIndex = 0 } = await request.json()
+    const { taskId, audioId } = await request.json()
 
     if (!taskId || !audioId) {
       return NextResponse.json(

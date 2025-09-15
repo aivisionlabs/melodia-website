@@ -42,7 +42,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
               created_at: request.created_at.toISOString(),
               updated_at: request.updated_at.toISOString(),
               lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null
-            };
+            } as SongRequest;
             setSongRequest(songRequest);
           } else {
             console.log('No request found for ID:', requestId);
@@ -88,10 +88,10 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
     console.log('Compare drafts:', draft1.id, draft2.id);
   };
 
-  const handleRefine = async (refineText: string, params: any) => {
+  const handleRefine = async (refineText: string) => {
     if (!currentDraft) return;
     const currentLyrics = currentDraft.edited_text || currentDraft.generated_text;
-    const result = await refineLyrics(currentLyrics, refineText, params);
+    const result = await refineLyrics(currentLyrics, refineText);
     if (result.success) {
       setActiveTab('editor');
     }
@@ -256,7 +256,7 @@ export default function CreateLyricsPage({ params }: { params: Promise<{ request
                     requestId={requestId}
                     currentDraft={currentDraft}
                     onSave={saveDraft}
-                    onApprove={(draftId) => {
+                    onApprove={() => {
                       setShowApproveModal(true);
                       return Promise.resolve();
                     }}

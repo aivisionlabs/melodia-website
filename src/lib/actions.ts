@@ -79,7 +79,7 @@ export async function getSongs(
     }
 
     // Transform data to public format
-    const publicSongs: PublicSong[] = (data || []).map(song => ({
+    const publicSongs: PublicSong[] = (data as any[] || []).map(song => ({
       id: song.id,
       title: song.title,
       lyrics: song.lyrics,
@@ -170,16 +170,17 @@ export async function getSong(
 
     // Transform data to public format
     const publicSong: PublicSong = {
-      id: data.id,
-      title: data.title,
-      lyrics: data.lyrics,
-      timestamp_lyrics: data.timestamp_lyrics,
-      timestamped_lyrics_variants: data.timestamped_lyrics_variants,
-      music_style: data.music_style,
-      service_provider: data.service_provider,
-      song_url: data.song_url,
-      duration: data.duration,
-      slug: data.slug
+      id: (data as any).id,
+      title: (data as any).title,
+      lyrics: (data as any).lyrics,
+      timestamp_lyrics: (data as any).timestamp_lyrics,
+      timestamped_lyrics_variants: (data as any).timestamped_lyrics_variants,
+      selected_variant: (data as any).selected_variant,
+      music_style: (data as any).music_style,
+      service_provider: (data as any).service_provider,
+      song_url: (data as any).song_url,
+      duration: (data as any).duration,
+      slug: (data as any).slug
     }
 
     return { song: publicSong }
@@ -238,12 +239,13 @@ export async function searchSongs(
     }
 
     // Transform data to public format
-    const publicSongs: PublicSong[] = (data || []).map(song => ({
+    const publicSongs: PublicSong[] = (data as any[] || []).map(song => ({
       id: song.id,
       title: song.title,
       lyrics: song.lyrics,
       timestamp_lyrics: song.timestamp_lyrics,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants,
+      selected_variant: song.selected_variant,
       music_style: song.music_style,
       service_provider: song.service_provider,
       song_url: song.song_url,
@@ -292,7 +294,7 @@ export async function getSongStats(): Promise<{
       throw durationError
     }
 
-    const totalDuration = durationData?.reduce((sum, song) => sum + (song.duration || 0), 0) || 0
+    const totalDuration = (durationData as any[])?.reduce((sum, song) => sum + (song.duration || 0), 0) || 0
 
     // Get popular styles
     const { data: stylesData, error: stylesError } = await supabase
@@ -304,7 +306,7 @@ export async function getSongStats(): Promise<{
       throw stylesError
     }
 
-    const styleCounts = stylesData?.reduce((acc, song) => {
+    const styleCounts = (stylesData as any[])?.reduce((acc, song) => {
       if (song.music_style) {
         acc[song.music_style] = (acc[song.music_style] || 0) + 1
       }
@@ -312,7 +314,7 @@ export async function getSongStats(): Promise<{
     }, {} as Record<string, number>) || {}
 
     const popularStyles = Object.entries(styleCounts)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 5)
       .map(([style]) => style)
 
@@ -511,7 +513,7 @@ export async function getActiveSongsAction(): Promise<
       song_requester: song.song_requester ?? null,
       prompt: song.prompt ?? null,
       song_url: song.song_url ?? null,
-      duration: song.duration?.toString() ?? null, // Convert number to string
+      duration: song.duration ?? null, // Keep as number
       slug: song.slug,
       is_active: song.is_active ?? undefined,
       status: song.status ?? undefined,

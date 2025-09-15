@@ -57,7 +57,7 @@ export const usersTable = pgTable('users', {
 });
 
 // Song requests table for form submissions
-export const songRequestsTable = pgTable('song_requests', {
+export const songRequestsTable: any = pgTable('song_requests', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id'), // Reference to user who made this request (nullable for guest requests)
   requester_name: text('requester_name').notNull(),

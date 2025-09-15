@@ -307,7 +307,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
     // When not playing, show static lyrics without highlighting
     if (!isPlaying || audioError) {
-      return staticLyrics.map((line: any, index: number) => ({
+      return staticLyrics.map((line: any) => ({
         ...line,
         isActive: false, // Don't highlight any line when not playing
         isPast: false,
