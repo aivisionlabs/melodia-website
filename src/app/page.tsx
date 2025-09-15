@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
-import { SongRequestFormData, PublicSong, SongRequest } from '@/types'
-import { createSongRequest, getUserSongs, getUserSongRequests } from '@/lib/song-request-actions'
+import { SongRequestFormData } from '@/types'
+// Removed unused imports: getUserSongs, getUserSongRequests
 import { fetchUserContent, UserContentItem, getButtonForContent } from '@/lib/user-content-client'
 // import { generateLyrics } from '@/lib/llm-integration' // No longer needed - using API directly
-import { Music, User, LogOut, Play, ChevronRight, Menu, X, Clock, CheckCircle, XCircle, Heart, Globe, MessageCircle } from 'lucide-react'
+import { Music, User, LogOut, Play, ChevronRight, Menu, X } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/toast'
 import { MediaPlayer } from '@/components/MediaPlayer'
@@ -50,8 +51,6 @@ export default function HomePage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Dashboard state for authenticated users
-  const [userSongs, setUserSongs] = useState<PublicSong[]>([])
-  const [songRequests, setSongRequests] = useState<SongRequest[]>([])
   const [userContent, setUserContent] = useState<UserContentItem[]>([])
   const [isLoadingSongs, setIsLoadingSongs] = useState(false)
 
@@ -59,7 +58,6 @@ export default function HomePage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showPaymentRequired, setShowPaymentRequired] = useState(false)
   const [pendingSongRequest, setPendingSongRequest] = useState<any>(null)
-  const [selectedPlanId, setSelectedPlanId] = useState<number>(1) // Default to Basic Plan
 
   // Real songs data for display
   const staticSongs = [
@@ -172,12 +170,35 @@ export default function HomePage() {
     }
   }, [selectedSong])
 
+  const loadUserData = useCallback(async () => {
+    if (!user?.id) return
+
+    try {
+      setIsLoadingSongs(true)
+
+      // Load user's content (lyrics drafts + songs + requests) via API
+      const content = await fetchUserContent(user.id)
+      setUserContent(content)
+
+      // User content is already loaded via setUserContent above
+    } catch (error) {
+      console.error('Error loading user data:', error)
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to load your data. Please refresh the page.'
+      })
+    } finally {
+      setIsLoadingSongs(false)
+    }
+  }, [user, addToast])
+
   // Load user data when authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       loadUserData()
     }
-  }, [isAuthenticated, user])
+  }, [isAuthenticated, user, loadUserData])
 
   // Pre-fill user data if available and restore pending form data
   useEffect(() => {
@@ -216,41 +237,6 @@ export default function HomePage() {
       }
     }
   }, [user, addToast])
-
-  const loadUserData = async () => {
-    if (!user?.id) return
-
-    try {
-      setIsLoadingSongs(true)
-
-      // Load user's content (lyrics drafts + songs + requests) via API
-      const content = await fetchUserContent(user.id)
-      setUserContent(content)
-
-      // Also load the old data for backward compatibility
-      const [songsResult, requestsResult] = await Promise.all([
-        getUserSongs(user.id),
-        getUserSongRequests(user.id)
-      ])
-
-      if (songsResult.success) {
-        setUserSongs(songsResult.songs || [])
-      }
-
-      if (requestsResult.success) {
-        setSongRequests(requestsResult.requests || [])
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error)
-      addToast({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load your data. Please refresh the page.'
-      })
-    } finally {
-      setIsLoadingSongs(false)
-    }
-  }
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
@@ -336,7 +322,7 @@ export default function HomePage() {
     setShowPaymentModal(true)
   }
 
-  const handlePaymentSuccess = async (paymentId: number) => {
+  const handlePaymentSuccess = async () => {
     setShowPaymentModal(false)
     
     if (pendingSongRequest) {
@@ -357,22 +343,7 @@ export default function HomePage() {
         })
 
         if (lyricsResponse.ok) {
-          const lyricsResult = await lyricsResponse.json()
-          
-          // Store the generated lyrics
-          const storeResponse = await fetch('/api/store-lyrics', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              requestId: pendingSongRequest.requestId,
-              lyrics: lyricsResult.lyrics,
-              recipient_name: pendingSongRequest.formData.recipient_name,
-              languages: pendingSongRequest.formData.languages,
-              additional_details: pendingSongRequest.formData.additional_details || ''
-            })
-          })
+          await lyricsResponse.json()
 
           addToast({
             type: 'success',
@@ -388,7 +359,7 @@ export default function HomePage() {
       } catch (error) {
         addToast({
           type: 'error',
-          title: 'Error',
+          title: error instanceof Error ? error.message : 'Error',
           message: 'Payment successful but failed to generate lyrics. Please try again.'
         })
       }
@@ -508,7 +479,6 @@ export default function HomePage() {
 
       if (lyricsResponse.status === 402) {
         // Payment required
-        const errorResult = await lyricsResponse.json()
         setPendingSongRequest({ requestId, formData })
         setShowPaymentRequired(true)
         return
@@ -574,7 +544,7 @@ export default function HomePage() {
       router.push(`/lyrics-display?requestId=${requestId}`)
 
     } catch (error) {
-      const errorMessage = 'Failed to generate lyrics. Please try again.'
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate lyrics. Please try again.'
       setError(errorMessage)
       addToast({
         type: 'error',
@@ -897,9 +867,11 @@ export default function HomePage() {
                   className="flex-shrink-0 w-48 md:w-64 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:scale-105 transition-transform duration-200 cursor-pointer group"
                 >
                   <div className="relative">
-                    <img
+                    <Image
                       src={song.image}
                       alt={song.title}
+                      width={256}
+                      height={192}
                       className="w-full h-36 md:h-48 object-cover"
                     />
                     <div className="absolute top-2 md:top-4 right-2 md:right-4">
@@ -1153,7 +1125,7 @@ export default function HomePage() {
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
           songRequestId={pendingSongRequest.requestId}
-          planId={selectedPlanId}
+          planId={1}
           amount={99}
           currency="INR"
         />

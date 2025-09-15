@@ -14,7 +14,6 @@ interface LyricsEditorProps {
 }
 
 export function LyricsEditor({ 
-  requestId, 
   currentDraft, 
   onSave, 
   onApprove, 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Song } from '@/types'
-import { SongStatus, checkAndUpdateSongStatus, getSongWithStatus, shouldCheckStatus } from '@/lib/services/song-status-service'
+import { checkAndUpdateSongStatus, getSongWithStatus } from '@/lib/services/song-status-service'
 
 export interface UseSongStatusReturn {
   song: Song | null
@@ -51,6 +51,17 @@ export function useSongStatus(
   const retryCountRef = useRef<number>(0)
   const currentIntervalRef = useRef<number>(pollingInterval)
 
+  /**
+   * Stop polling
+   */
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current)
+      pollingRef.current = null
+    }
+    isPollingRef.current = false
+  }, [])
+
   // Check if song is ready
   const isReady = status === 'ready' && !!songUrl
 
@@ -96,7 +107,7 @@ export function useSongStatus(
       setError(err instanceof Error ? err.message : 'Failed to fetch song data')
       setIsLoading(false)
     }
-  }, [songId])
+  }, [songId, stopPolling])
 
   /**
    * Check and update song status
@@ -123,7 +134,7 @@ export function useSongStatus(
           ...song,
           status: statusInfo.status === 'ready' ? 'completed' : statusInfo.status,
           song_url: statusInfo.songUrl || song.song_url,
-          duration: statusInfo.duration?.toString() || song.duration
+          duration: statusInfo.duration || song.duration
         })
       }
 
@@ -148,7 +159,7 @@ export function useSongStatus(
         }
       }
     }
-  }, [songId, song, pollingInterval, enableExponentialBackoff, maxRetries])
+  }, [songId, song, pollingInterval, enableExponentialBackoff, maxRetries, stopPolling])
 
   /**
    * Refresh status manually
@@ -187,18 +198,7 @@ export function useSongStatus(
     }
 
     pollingRef.current = setTimeout(poll, pollingInterval)
-  }, [songId, checkStatus, status, pollingInterval, maxPollingTime])
-
-  /**
-   * Stop polling
-   */
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current)
-      pollingRef.current = null
-    }
-    isPollingRef.current = false
-  }, [])
+  }, [songId, checkStatus, status, pollingInterval, maxPollingTime, stopPolling])
 
   // Initial data fetch
   useEffect(() => {

@@ -1,6 +1,5 @@
 'use client'
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { createSongFromLyricsAction, getSongRequestDataAction, getLyricsDraftsAction } from '@/lib/lyrics-actions';
@@ -30,13 +29,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
     getParams();
   }, [params]);
   
-  useEffect(() => {
-    if (requestId) {
-      loadData();
-    }
-  }, [requestId]);
-  
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -87,7 +80,13 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
+  
+  useEffect(() => {
+    if (requestId) {
+      loadData();
+    }
+  }, [requestId, loadData]);
   
   const handleCreateSong = async () => {
     try {

@@ -97,10 +97,11 @@ export function SongDetails({ song }: SongDetailsProps) {
         // Priority 2: Use timestamped lyrics variants if available
         else if (
           song.timestamped_lyrics_variants &&
+          song.selected_variant !== null &&
           song.selected_variant !== undefined
         ) {
-          lyricsToShow =
-            song.timestamped_lyrics_variants[song.selected_variant] || [];
+          const variantIndex = song.selected_variant;
+          lyricsToShow = song.timestamped_lyrics_variants[variantIndex] || [];
         }
 
         if (lyricsToShow.length === 0) return null;

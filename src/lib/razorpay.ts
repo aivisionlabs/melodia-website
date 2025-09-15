@@ -5,16 +5,24 @@ import crypto from 'crypto';
 import { 
   RazorpayOrder, 
   RazorpayPayment, 
-  RazorpayWebhookEvent,
-  CreateOrderRequest,
-  VerifyPaymentRequest 
+  RazorpayWebhookEvent
 } from '@/types/payment';
 
-// Initialize Razorpay instance
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Lazy-loaded Razorpay instance
+let razorpayInstance: Razorpay | null = null;
+
+export function getRazorpayInstance(): Razorpay {
+  if (!razorpayInstance) {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      throw new Error('Razorpay environment variables are not configured');
+    }
+    razorpayInstance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpayInstance;
+}
 
 // Validate Razorpay configuration
 export function validateRazorpayConfig(): boolean {
@@ -58,13 +66,13 @@ export async function createRazorpayOrder(
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpayInstance().orders.create(options);
     
     return {
       id: order.id,
-      amount: order.amount,
+      amount: Number(order.amount),
       currency: order.currency,
-      receipt: order.receipt,
+      receipt: order.receipt || '',
       status: order.status,
       created_at: order.created_at,
     };
@@ -115,29 +123,29 @@ export function verifyWebhookSignature(
 // Get payment details from Razorpay
 export async function getPaymentDetails(paymentId: string): Promise<RazorpayPayment> {
   try {
-    const payment = await razorpay.payments.fetch(paymentId);
+    const payment = await getRazorpayInstance().payments.fetch(paymentId);
     
     return {
       id: payment.id,
       order_id: payment.order_id,
-      amount: payment.amount,
+      amount: Number(payment.amount),
       currency: payment.currency,
       status: payment.status,
       method: payment.method,
-      description: payment.description,
+      description: payment.description || '',
       created_at: payment.created_at,
       captured: payment.captured,
       international: payment.international,
       refund_status: payment.refund_status,
-      amount_refunded: payment.amount_refunded,
+      amount_refunded: Number(payment.amount_refunded),
       notes: payment.notes,
-      fee: payment.fee,
-      tax: payment.tax,
-      error_code: payment.error_code,
-      error_description: payment.error_description,
-      error_source: payment.error_source,
-      error_step: payment.error_step,
-      error_reason: payment.error_reason,
+      fee: Number(payment.fee),
+      tax: Number(payment.tax),
+      error_code: payment.error_code || undefined,
+      error_description: payment.error_description || undefined,
+      error_source: payment.error_source || undefined,
+      error_step: payment.error_step || undefined,
+      error_reason: payment.error_reason || undefined,
     };
   } catch (error) {
     console.error('Error fetching payment details:', error);
@@ -148,13 +156,13 @@ export async function getPaymentDetails(paymentId: string): Promise<RazorpayPaym
 // Get order details from Razorpay
 export async function getOrderDetails(orderId: string): Promise<RazorpayOrder> {
   try {
-    const order = await razorpay.orders.fetch(orderId);
+    const order = await getRazorpayInstance().orders.fetch(orderId);
     
     return {
       id: order.id,
-      amount: order.amount,
+      amount: Number(order.amount),
       currency: order.currency,
-      receipt: order.receipt,
+      receipt: order.receipt || '',
       status: order.status,
       created_at: order.created_at,
     };
@@ -183,7 +191,7 @@ export async function createRefund(
       refundOptions.amount = amount * 100; // Convert to paise
     }
 
-    const refund = await razorpay.payments.refund(paymentId, refundOptions);
+    const refund = await getRazorpayInstance().payments.refund(paymentId, refundOptions);
     return refund;
   } catch (error) {
     console.error('Error creating refund:', error);

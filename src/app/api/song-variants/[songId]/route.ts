@@ -51,10 +51,10 @@ export async function GET(
         primaryUrl: song.song_url,
         duration: song.duration,
         selectedVariant,
-        variants: variants.map((variant: any, index: number) => ({
+        variants: Array.isArray(variants) ? variants.map((variant: any, index: number) => ({
           ...variant,
           isSelected: index === selectedVariant
-        }))
+        })) : []
       }
     })
 
@@ -102,7 +102,7 @@ export async function POST(
     const song = songs[0]
     const variants = song.suno_variants || []
 
-    if (variantIndex < 0 || variantIndex >= variants.length) {
+    if (variantIndex < 0 || variantIndex >= (Array.isArray(variants) ? variants.length : 0)) {
       return NextResponse.json(
         { error: true, message: 'Invalid variant index' },
         { status: 400 }
@@ -110,8 +110,8 @@ export async function POST(
     }
 
     // Update selected variant and primary URL
-    const selectedVariant = variants[variantIndex]
-    const newPrimaryUrl = selectedVariant.audioUrl || selectedVariant.streamAudioUrl
+    const selectedVariant = Array.isArray(variants) ? variants[variantIndex] : null
+    const newPrimaryUrl = selectedVariant?.audioUrl || selectedVariant?.streamAudioUrl
 
     await db
       .update(songsTable)

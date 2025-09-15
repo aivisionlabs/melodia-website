@@ -59,6 +59,7 @@ export interface PublicSong {
   song_url: string | null
   duration: number | null // Changed from string to number to match integer database field
   slug: string
+  selected_variant: number | null
 }
 
 // User authentication interfaces

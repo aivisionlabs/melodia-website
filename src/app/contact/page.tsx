@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Mail, Phone, MapPin, Clock, Music, Heart, Users, Zap, Award, Globe } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -15,7 +16,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Get in touch with us! We'd love to hear from you and help you create amazing personalized songs.
+            Get in touch with us! We&apos;d love to hear from you and help you create amazing personalized songs.
           </p>
         </div>
 
@@ -351,12 +352,12 @@ export default function ContactPage() {
             Join thousands of people who have already created meaningful musical memories with Melodia.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
+            <Link
               href="/"
               className="bg-white text-yellow-600 px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors"
             >
               Start Creating
-            </a>
+            </Link>
             <a
               href="#contact-form"
               className="border-2 border-white text-white px-8 py-3 rounded-full font-semibold text-lg hover:bg-white hover:text-yellow-600 transition-colors"

@@ -136,48 +136,6 @@ function cleanLyrics(lines: LyricLine[]): LyricLine[] {
     .filter((line): line is LyricLine => line !== null && line.text.length > 0);
 }
 
-/**
- * Post-process lines to improve structure
- * @param lines - Array of LyricLine objects
- * @returns Improved LyricLine objects
- */
-function postProcessLines(lines: LyricLine[]): LyricLine[] {
-  const processed: LyricLine[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const nextLine = lines[i + 1];
-
-    // Skip standalone section markers
-    if (line.text.match(/^\([^)]+\)$/)) {
-      continue;
-    }
-
-    // If current line is very short and next line is also short, consider merging
-    if (line.text.length < 30 && nextLine && nextLine.text.length < 30) {
-      const gap = nextLine.start - line.end;
-      if (gap < 1000) {
-        // Less than 1 second gap
-        // Merge the lines
-        processed.push({
-          index: processed.length,
-          text: line.text + " " + nextLine.text,
-          start: line.start,
-          end: nextLine.end,
-        });
-        i++; // Skip the next line since we merged it
-        continue;
-      }
-    }
-
-    processed.push({
-      ...line,
-      index: processed.length,
-    });
-  }
-
-  return processed;
-}
 
 // Format duration from seconds to MM:SS
 export function formatDuration(seconds: number | string | null): string {

@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense, useState, useEffect } from "react";
-import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 import { StructuredData } from "@/components/StructuredData";
 import { SongStatusIndicator } from "@/components/song/SongStatusIndicator";
@@ -98,6 +97,7 @@ function SongPageContent({ slug }: { slug: string }) {
             duration: duration || song.duration,
             timestamp_lyrics: song.timestamp_lyrics,
             timestamped_lyrics_variants: song.timestamped_lyrics_variants,
+            selected_variant: song.selected_variant ?? null,
             lyrics: song.lyrics,
             music_style: song.music_style,
             slug: song.slug,

@@ -1,31 +1,20 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Play, Pause, Download, Share2, ArrowLeft, Music, Trash2, RefreshCw, Loader2, Search, Filter, X } from 'lucide-react'
+import { Play, ArrowLeft, Music, Trash2, RefreshCw, Loader2, Search, Filter, X } from 'lucide-react'
 import Header from '@/components/Header'
 import { useAuth } from '@/hooks/use-auth'
 import { fetchUserContent, UserContentItem, getButtonForContent } from '@/lib/user-content-client'
 import { useToast } from '@/components/ui/toast'
-import { pollSongStatus, SongStatusResponse } from '@/lib/song-status-client'
+import { pollSongStatus } from '@/lib/song-status-client'
 import { VariantSelectionModal } from '@/components/VariantSelectionModal'
 import { MediaPlayer } from '@/components/MediaPlayer'
 
-interface SavedSong {
-  id: string
-  title: string
-  lyrics: string
-  styleOfMusic: string
-  status: 'ready' | 'generating' | 'error'
-  audioUrl?: string | null
-  createdAt: string
-  recipientName: string
-  errorMessage?: string
-}
 
 export default function MySongsPage() {
   const router = useRouter()
@@ -33,12 +22,9 @@ export default function MySongsPage() {
   const { addToast } = useToast()
   const [userContent, setUserContent] = useState<UserContentItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<HTMLAudioElement | null>(null)
-  const [playingSongId, setPlayingSongId] = useState<string | null>(null)
   const [showProgressModal, setShowProgressModal] = useState(false)
   const [progressItem, setProgressItem] = useState<UserContentItem | null>(null)
   const [pollingSongs, setPollingSongs] = useState<Set<string>>(new Set())
-  const [songStatuses, setSongStatuses] = useState<Map<string, SongStatusResponse>>(new Map())
   const cleanupFunctionsRef = useRef<Map<string, () => void>>(new Map())
   
   // Variant selection modal state
@@ -71,7 +57,7 @@ export default function MySongsPage() {
     })
   }
 
-  const loadUserContent = async () => {
+  const loadUserContent = useCallback(async () => {
     if (!user?.id) return
 
     try {
@@ -91,10 +77,10 @@ export default function MySongsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [user?.id, addToast])
 
   // Filter content based on search query and filters
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...userContent]
 
     // Search filter
@@ -128,12 +114,12 @@ export default function MySongsPage() {
     }
 
     setFilteredContent(filtered)
-  }
+  }, [userContent, searchQuery, statusFilter])
 
   // Apply filters when search query or filters change
   useEffect(() => {
     applyFilters()
-  }, [searchQuery, statusFilter, userContent])
+  }, [applyFilters])
 
   // Clear all filters
   const clearFilters = () => {
@@ -251,7 +237,7 @@ export default function MySongsPage() {
     if (user?.id) {
       loadUserContent()
     }
-  }, [user, authLoading, isAuthenticated, router])
+  }, [user, authLoading, isAuthenticated, router, loadUserContent])
 
   // Refresh data when page becomes visible (e.g., when user navigates back from home)
   useEffect(() => {
@@ -283,7 +269,7 @@ export default function MySongsPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [user?.id])
+  }, [user?.id, loadUserContent])
 
   // Start individual song polling for processing songs
   useEffect(() => {
@@ -313,8 +299,7 @@ export default function MySongsPage() {
             (status) => {
               console.log(`Song ${song.id} status update:`, status)
               
-              // Update the song status in our state
-              setSongStatuses(prev => new Map(prev.set(song.id, status)))
+              // Song status will be updated in setUserContent below
               
               // If completed, update the user content
               if (status.status === 'completed' && status.audioUrl) {
@@ -368,19 +353,20 @@ export default function MySongsPage() {
         })
       }
     }
-  }, [userContent, user?.id]) // Removed pollingSongs from dependencies
+  }, [userContent, user?.id, addToast, pollingSongs]) // Added missing dependencies
 
   // Cleanup polling when component unmounts
   useEffect(() => {
+    const cleanupFunctions = cleanupFunctionsRef.current
     return () => {
       console.log('Cleaning up all polling on component unmount')
       // Call all cleanup functions
-      cleanupFunctionsRef.current.forEach((cleanup, songId) => {
+      cleanupFunctions.forEach((cleanup, songId) => {
         console.log(`Stopping polling for song ${songId}`)
         cleanup()
       })
       // Clear the ref
-      cleanupFunctionsRef.current.clear()
+      cleanupFunctions.clear()
     }
   }, []) // Empty dependency array - only run on unmount
 
@@ -470,53 +456,6 @@ export default function MySongsPage() {
     loadUserContent()
   }
 
-  const handleVariantSelect = async (item: UserContentItem, variantIndex: number) => {
-    if (!item.song_id) return
-
-    try {
-      const response = await fetch(`/api/song-variants/${item.song_id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          variantIndex: variantIndex
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to select variant')
-      }
-
-      const result = await response.json()
-
-      if (result.success) {
-        // Update local state
-        setUserContent(prev => prev.map(content => 
-          content.id === item.id 
-            ? { 
-                ...content, 
-                selected_variant: variantIndex,
-                audio_url: result.selectedVariant.audioUrl
-              }
-            : content
-        ))
-
-        addToast({
-          type: 'success',
-          title: 'Variant Selected',
-          message: `Now playing variant ${variantIndex + 1}`
-        })
-      }
-    } catch (error) {
-      console.error('Error selecting variant:', error)
-      addToast({
-        type: 'error',
-        title: 'Variant Selection Failed',
-        message: 'Failed to select variant. Please try again.'
-      })
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

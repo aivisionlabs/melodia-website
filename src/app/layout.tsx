@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { StructuredData } from "@/components/StructuredData";
 import Script from "next/script";
@@ -7,7 +6,6 @@ import { PageTracking } from "@/components/PageTracking";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
 
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Melodia - Create Personalized Songs for loved ones",

@@ -65,6 +65,17 @@ export function useSongStatus(
   const retryCountRef = useRef<number>(0)
   const currentIntervalRef = useRef<number>(pollingInterval)
 
+  /**
+   * Stop polling
+   */
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current)
+      pollingRef.current = null
+    }
+    isPollingRef.current = false
+  }, [])
+
   // Check if song is ready
   const isReady = status === 'ready' && !!songUrl
 
@@ -145,7 +156,7 @@ export function useSongStatus(
       setError(err instanceof Error ? err.message : 'Failed to fetch song data')
       setIsLoading(false)
     }
-  }, [songId, taskId])
+  }, [songId, taskId, stopPolling])
 
   /**
    * Check and update song status via API
@@ -215,7 +226,7 @@ export function useSongStatus(
         }
       }
     }
-  }, [songId, song, pollingInterval, enableExponentialBackoff, maxRetries, taskId])
+  }, [songId, song, pollingInterval, enableExponentialBackoff, maxRetries, taskId, stopPolling])
 
   /**
    * Refresh status manually
@@ -254,18 +265,7 @@ export function useSongStatus(
     }
 
     pollingRef.current = setTimeout(poll, currentIntervalRef.current)
-  }, [songId, checkStatus, status, maxPollingTime])
-
-  /**
-   * Stop polling
-   */
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current)
-      pollingRef.current = null
-    }
-    isPollingRef.current = false
-  }, [])
+  }, [songId, checkStatus, status, maxPollingTime, stopPolling])
 
   // Initial data fetch
   useEffect(() => {

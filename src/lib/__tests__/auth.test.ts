@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { registerUser, loginUser, getCurrentUser, logoutUser } from '../user-actions'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { registerUser, loginUser } from '../user-actions'
 
 // Mock localStorage
 const localStorageMock = {

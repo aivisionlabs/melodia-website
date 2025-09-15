@@ -8,16 +8,17 @@ export function checkRateLimit(ip: string, maxRequests: number): boolean {
   const now = Date.now()
   const userLimit = rateLimitMap.get(ip)
 
-  if (!userLimit || now > userLimit.resetTime) {
+  if (!userLimit || now > (userLimit?.resetTime || 0)) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
     return true
   }
 
-  if (userLimit.count >= maxRequests) {
+  // At this point, userLimit is guaranteed to exist
+  if (userLimit!.count >= maxRequests) {
     return false
   }
 
-  userLimit.count++
+  userLimit!.count++
   return true
 }
 

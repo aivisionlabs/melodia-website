@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
           eq(pricingPlansTable.is_active, true),
           eq(pricingPlansTable.currency, currency)
         )
-      );
+      ) as any;
     } else if (currency) {
-      query = query.where(eq(pricingPlansTable.currency, currency));
+      query = query.where(eq(pricingPlansTable.currency, currency)) as any;
     }
 
     const plans = await query;
@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
         id: plan.id,
         name: plan.name,
         description: plan.description || '',
-        price: plan.price,
-        currency: plan.currency,
+        price: Number(plan.price),
+        currency: plan.currency || 'USD',
         features: plan.features as any,
-        is_active: plan.is_active,
-        created_at: plan.created_at.toISOString(),
-        updated_at: plan.updated_at.toISOString(),
+        is_active: plan.is_active || false,
+        created_at: plan.created_at?.toISOString() || new Date().toISOString(),
+        updated_at: plan.updated_at?.toISOString() || new Date().toISOString(),
       })),
     };
 

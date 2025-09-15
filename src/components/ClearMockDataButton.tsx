@@ -17,7 +17,7 @@ export default function ClearMockDataButton() {
         title: "Mock data cleared",
         message: "All mock API data has been cleared successfully.",
       });
-    } catch (error) {
+    } catch {
       addToast({
         type: "error",
         title: "Error clearing mock data",

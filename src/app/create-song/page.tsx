@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
 import { AVAILABLE_EMOTIONS, SongRequestFormData } from '@/types'
@@ -15,18 +15,13 @@ import { useToast } from '@/components/ui/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { 
   User, 
-  Phone, 
-  Mail, 
   Heart, 
   Music, 
   Send,
   ArrowLeft,
   CheckCircle,
   Sparkles,
-  Star,
-  Mic,
-  Palette,
-  MessageCircle
+  Palette
 } from 'lucide-react'
 
 export default function CreateSongPage() {
@@ -95,15 +90,6 @@ export default function CreateSongPage() {
     return Object.keys(errors).length === 0
   }
 
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
-
-  const isValidPhone = (phone: string): boolean => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
-    return phoneRegex.test(phone.replace(/\s/g, ''))
-  }
 
   const handleInputChange = (field: keyof SongRequestFormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))

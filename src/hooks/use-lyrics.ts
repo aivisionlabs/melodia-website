@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { generateLyricsAction, saveLyricsDraftAction, approveLyricsAction, refineLyricsAction, getLyricsDraftsAction, checkSunoJobStatusAction } from '@/lib/lyrics-actions';
 import { GenerateLyricsParams, LyricsDraft } from '@/types';
 
@@ -8,12 +8,7 @@ export function useLyrics(requestId: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Load drafts on mount
-  useEffect(() => {
-    loadDrafts();
-  }, [requestId]);
-  
-  const loadDrafts = async () => {
+  const loadDrafts = useCallback(async () => {
     try {
       // Don't load drafts if requestId is empty or invalid
       if (!requestId || requestId.trim() === '') {
@@ -32,7 +27,12 @@ export function useLyrics(requestId: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
+  
+  // Load drafts on mount
+  useEffect(() => {
+    loadDrafts();
+  }, [requestId, loadDrafts]);
   
   const generateLyrics = async (params: GenerateLyricsParams) => {
     setLoading(true);
@@ -58,7 +58,7 @@ export function useLyrics(requestId: string) {
         return result;
       }
     } catch (err) {
-      setError('Failed to generate lyrics');
+      setError(err instanceof Error ? err.message : 'Failed to generate lyrics');
       return { success: false, error: 'Failed to generate lyrics' };
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export function useLyrics(requestId: string) {
         );
       }
       return result;
-    } catch (err) {
+    } catch {
       return { success: false, error: 'Failed to save draft' };
     }
   };
@@ -104,7 +104,7 @@ export function useLyrics(requestId: string) {
       }
       return result;
     } catch (err) {
-      return { success: false, error: 'Failed to approve draft' };
+      return { success: false, error: err instanceof Error ? err.message : 'Failed to approve draft' };
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ export function useLyrics(requestId: string) {
     setCurrentDraft(draft);
   };
 
-  const refineLyrics = async (currentLyrics: string, refineText: string, params: GenerateLyricsParams) => {
+  const refineLyrics = async (currentLyrics: string, refineText: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -128,7 +128,7 @@ export function useLyrics(requestId: string) {
         return result;
       }
     } catch (err) {
-      setError('Failed to refine lyrics');
+      setError(err instanceof Error ? err.message : 'Failed to refine lyrics');
       return { success: false, error: 'Failed to refine lyrics' };
     } finally {
       setLoading(false);
@@ -241,7 +241,7 @@ export function useSunoJobStatus(taskId: string | null) {
         setError(result.error || 'Failed to check job status');
       }
     } catch (err) {
-      setError('Failed to check job status');
+      setError(err instanceof Error ? err.message : 'Failed to check job status');
     } finally {
       setLoading(false);
     }

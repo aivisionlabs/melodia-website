@@ -39,7 +39,7 @@ export default function RefundPage() {
                 <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="text-lg font-medium text-white">Partial Refund Available</h3>
-                  <p className="text-gray-300">If you're not satisfied with the generated song quality (within 24 hours)</p>
+                  <p className="text-gray-300">If you&apos;re not satisfied with the generated song quality (within 24 hours)</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -124,7 +124,7 @@ export default function RefundPage() {
               </div>
               <div className="bg-slate-700 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-white mb-2">Quality Issues</h3>
-                <p className="text-gray-300">If you're not satisfied with the song quality, please contact us within 24 hours of receiving your song. We may offer a partial refund or regeneration.</p>
+                <p className="text-gray-300">If you&apos;re not satisfied with the song quality, please contact us within 24 hours of receiving your song. We may offer a partial refund or regeneration.</p>
               </div>
             </div>
 
@@ -133,14 +133,14 @@ export default function RefundPage() {
               <p className="text-gray-300 mb-4">For refund requests or questions about this policy, please contact us:</p>
               <ul className="space-y-2 text-gray-300">
                 <li><strong className="text-white">Email:</strong> support@melodia.com</li>
-                <li><strong className="text-white">Subject Line:</strong> "Refund Request - [Your Order Number]"</li>
+                <li><strong className="text-white">Subject Line:</strong> &quot;Refund Request - [Your Order Number]&quot;</li>
                 <li><strong className="text-white">Response Time:</strong> Within 24 hours</li>
               </ul>
             </div>
 
             <h2 className="text-2xl font-semibold text-white mb-4">9. Policy Updates</h2>
             <p className="text-gray-300 mb-6">
-              We reserve the right to update this refund and cancellation policy at any time. Changes will be posted on this page with an updated "Last modified" date. Continued use of our service after changes constitutes acceptance of the new policy.
+              We reserve the right to update this refund and cancellation policy at any time. Changes will be posted on this page with an updated &quot;Last modified&quot; date. Continued use of our service after changes constitutes acceptance of the new policy.
             </p>
 
             <div className="mt-8 p-4 bg-yellow-900/20 border-l-4 border-yellow-400">

@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Music, User, LogOut, ArrowLeft, Play, Download, Share2, Heart, Star, Edit3, Save, X, Loader2 } from 'lucide-react'
+import { Music,  ArrowLeft, Play, Share2, Star, Edit3, Save, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import Header from '@/components/Header'
-import { saveSongToSession, createSongSessionData } from '@/lib/song-session-storage'
 import { useToast } from '@/components/ui/toast'
-import { fetchLyricsDisplayData, LyricsDisplayData } from '@/lib/lyrics-display-client'
+import { fetchLyricsDisplayData } from '@/lib/lyrics-display-client'
 
 interface LyricsData {
   title: string;
@@ -36,16 +34,14 @@ interface GeneratedSong {
   taskId?: string;
 }
 
-export default function NewLyricsDisplayPage() {
-  const { user, logout } = useAuth()
+function LyricsDisplayContent() {
+  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [lyricsData, setLyricsData] = useState<LyricsData | null>(null)
   const [formData, setFormData] = useState<FormData | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [isEditingStyle, setIsEditingStyle] = useState(false)
   const [editedStyle, setEditedStyle] = useState('')
-  const [isRegenerating, setIsRegenerating] = useState(false)
   const [modificationRequest, setModificationRequest] = useState('')
   const [isModifyingLyrics, setIsModifyingLyrics] = useState(false)
   const [generatedSongs, setGeneratedSongs] = useState<GeneratedSong[]>([])
@@ -117,19 +113,12 @@ export default function NewLyricsDisplayPage() {
     loadData()
   }, [searchParams, addToast, router])
 
-  const handleLogout = async () => {
-    const result = await logout()
-    if (result.success) {
-      router.push('/')
-    }
-  }
 
   // Check if user has reached the 5 song limit
   const checkSongLimit = (): boolean => {
     if (typeof window === 'undefined') return false
     
     try {
-      const savedSongs = JSON.parse(localStorage.getItem('melodia-saved-songs') || '[]')
       return false
     } catch (error) {
       console.error('Error checking song limit:', error)
@@ -175,7 +164,6 @@ export default function NewLyricsDisplayPage() {
 
       if (response.status === 402) {
         // Payment required
-        const errorResult = await response.json()
         addToast({
           type: 'error',
           title: 'Payment Required',
@@ -718,5 +706,13 @@ export default function NewLyricsDisplayPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function NewLyricsDisplayPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LyricsDisplayContent />
+    </Suspense>
   )
 }

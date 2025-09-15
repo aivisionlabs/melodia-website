@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
 
     // Create Razorpay order
     const razorpayOrder = await createRazorpayOrder(
-      pricingPlan[0].price,
-      pricingPlan[0].currency,
+      Number(pricingPlan[0].price),
+      pricingPlan[0].currency || 'USD',
       receiptId,
       {
         song_request_id: songRequestId,
