@@ -42,6 +42,8 @@ export const songsTable = pgTable('songs', {
   status_checked_at: timestamp('status_checked_at'),
   last_status_check: timestamp('last_status_check'),
   status_check_count: integer('status_check_count').default(0),
+  // Payment integration fields
+  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
 });
 
 // Users table for regular user accounts
@@ -78,6 +80,10 @@ export const songRequestsTable = pgTable('song_requests', {
   lyrics_status: text('lyrics_status').default('pending'),
   approved_lyrics_id: integer('approved_lyrics_id'),
   lyrics_locked_at: timestamp('lyrics_locked_at'),
+  // Payment integration fields
+  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
+  payment_status: text('payment_status').default('pending'),
+  payment_required: boolean('payment_required').default(true),
 });
 
 // Phase 6: Lyrics drafts table
@@ -121,3 +127,55 @@ export type SelectLyricsDraft = typeof lyricsDraftsTable.$inferSelect;
 
 export type InsertAdminUser = typeof adminUsersTable.$inferInsert;
 export type SelectAdminUser = typeof adminUsersTable.$inferSelect;
+
+// Payments table
+export const paymentsTable = pgTable('payments', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').references(() => usersTable.id, { onDelete: 'cascade' }),
+  song_request_id: integer('song_request_id').references(() => songRequestsTable.id, { onDelete: 'cascade' }),
+  razorpay_payment_id: text('razorpay_payment_id').unique(),
+  razorpay_order_id: text('razorpay_order_id'),
+  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: text('currency').default('INR'),
+  status: text('status').notNull().default('pending'),
+  payment_method: text('payment_method'),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+  metadata: jsonb('metadata'),
+});
+
+// Pricing plans table
+export const pricingPlansTable = pgTable('pricing_plans', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
+  currency: text('currency').default('INR'),
+  features: jsonb('features'),
+  is_active: boolean('is_active').default(true),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+});
+
+// Payment webhooks table
+export const paymentWebhooksTable = pgTable('payment_webhooks', {
+  id: serial('id').primaryKey(),
+  razorpay_event_id: text('razorpay_event_id').unique(),
+  event_type: text('event_type').notNull(),
+  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'cascade' }),
+  webhook_data: jsonb('webhook_data').notNull(),
+  processed: boolean('processed').default(false),
+  created_at: timestamp('created_at').defaultNow(),
+  processed_at: timestamp('processed_at'),
+});
+
+
+// Type exports for payments
+export type InsertPayment = typeof paymentsTable.$inferInsert;
+export type SelectPayment = typeof paymentsTable.$inferSelect;
+
+export type InsertPricingPlan = typeof pricingPlansTable.$inferInsert;
+export type SelectPricingPlan = typeof pricingPlansTable.$inferSelect;
+
+export type InsertPaymentWebhook = typeof paymentWebhooksTable.$inferInsert;
+export type SelectPaymentWebhook = typeof paymentWebhooksTable.$inferSelect;

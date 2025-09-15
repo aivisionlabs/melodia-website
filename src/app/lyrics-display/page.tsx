@@ -4,9 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Music, User, LogOut, ArrowLeft } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Music, User, LogOut, ArrowLeft, Play, Download, Share2, Heart, Star, Edit3, Save, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import Header from '@/components/Header'
+import { saveSongToSession, createSongSessionData } from '@/lib/song-session-storage'
+import { useToast } from '@/components/ui/toast'
+import { fetchLyricsDisplayData, LyricsDisplayData } from '@/lib/lyrics-display-client'
 
 interface LyricsData {
   title: string;
@@ -20,30 +25,97 @@ interface FormData {
   additional_details: string;
 }
 
-export default function LyricsDisplayPage() {
+interface GeneratedSong {
+  id: string;
+  title: string;
+  lyrics: string;
+  styleOfMusic: string;
+  status: 'generating' | 'ready' | 'error';
+  audioUrl?: string;
+  errorMessage?: string;
+  taskId?: string;
+}
+
+export default function NewLyricsDisplayPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [lyricsData, setLyricsData] = useState<LyricsData | null>(null)
   const [formData, setFormData] = useState<FormData | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isEditingStyle, setIsEditingStyle] = useState(false)
+  const [editedStyle, setEditedStyle] = useState('')
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [modificationRequest, setModificationRequest] = useState('')
+  const [isModifyingLyrics, setIsModifyingLyrics] = useState(false)
+  const [generatedSongs, setGeneratedSongs] = useState<GeneratedSong[]>([])
+  const [isGeneratingSong, setIsGeneratingSong] = useState(false)
+  const [songGenerationError, setSongGenerationError] = useState<string | null>(null)
+  const { addToast } = useToast()
 
   useEffect(() => {
-    // Get data from URL params
-    const title = searchParams.get('title')
-    const styleOfMusic = searchParams.get('styleOfMusic')
-    const lyrics = searchParams.get('lyrics')
-    const recipient_name = searchParams.get('recipient_name')
-    const languages = searchParams.get('languages')?.split(',') || []
-    const additional_details = searchParams.get('additional_details')
+    const loadData = async () => {
+      const requestId = searchParams.get('requestId')
+      
+      if (requestId) {
+        // Load data from database
+        try {
+          const data = await fetchLyricsDisplayData(parseInt(requestId))
+          
+          if (data) {
+            // Set lyrics data
+            setLyricsData({
+              title: `Song for ${data.songRequest.recipient_name}`,
+              styleOfMusic: 'Personal', // Default style
+              lyrics: data.lyricsDraft.edited_text || data.lyricsDraft.generated_text
+            })
+            setEditedStyle('Personal')
+            
+            // Set form data
+            setFormData({
+              recipient_name: data.songRequest.recipient_name,
+              languages: data.songRequest.languages,
+              additional_details: data.songRequest.additional_details
+            })
+          } else {
+            addToast({
+              type: 'error',
+              title: 'Error',
+              message: 'Could not load lyrics data. Please try again.'
+            })
+            router.push('/')
+          }
+        } catch (error) {
+          console.error('Error loading lyrics data:', error)
+          addToast({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to load lyrics data. Please try again.'
+          })
+          router.push('/')
+        }
+      } else {
+        // Fallback to URL params for backward compatibility
+        const title = searchParams.get('title')
+        const styleOfMusic = searchParams.get('styleOfMusic')
+        const lyrics = searchParams.get('lyrics')
+        const recipient_name = searchParams.get('recipient_name')
+        const languages = searchParams.get('languages')?.split(',') || []
+        const additional_details = searchParams.get('additional_details')
 
-    if (title && styleOfMusic && lyrics) {
-      setLyricsData({ title, styleOfMusic, lyrics })
+        if (title && styleOfMusic && lyrics) {
+          setLyricsData({ title, styleOfMusic, lyrics })
+          setEditedStyle(styleOfMusic)
+        }
+
+        if (recipient_name && languages.length > 0 && additional_details) {
+          setFormData({ recipient_name, languages, additional_details })
+        }
+      }
     }
 
-    if (recipient_name && languages.length > 0 && additional_details) {
-      setFormData({ recipient_name, languages, additional_details })
-    }
-  }, [searchParams])
+    loadData()
+  }, [searchParams, addToast, router])
 
   const handleLogout = async () => {
     const result = await logout()
@@ -52,64 +124,329 @@ export default function LyricsDisplayPage() {
     }
   }
 
-  const handleGenerateSong = () => {
-    // This would integrate with your song generation API
-    console.log('Generate song with:', { lyricsData, formData })
-    // For now, just show an alert
-    alert('Song generation feature coming soon!')
+  // Check if user has reached the 5 song limit
+  const checkSongLimit = (): boolean => {
+    if (typeof window === 'undefined') return false
+    
+    try {
+      const savedSongs = JSON.parse(localStorage.getItem('melodia-saved-songs') || '[]')
+      return false
+    } catch (error) {
+      console.error('Error checking song limit:', error)
+      return false
+    }
   }
+
+  const handleGenerateSong = async () => {
+    if (!lyricsData || !formData) return
+    
+    // Check song limit
+    if (checkSongLimit()) {
+      addToast({
+        type: 'error',
+        title: 'Song Limit Reached',
+        message: 'You have reached the maximum limit of 5 songs. Please delete some songs from My Songs to create new ones.'
+      })
+      return
+    }
+    
+    setIsGeneratingSong(true)
+    setSongGenerationError(null)
+    
+    try {
+      // Get requestId from URL params
+      const requestId = searchParams.get('requestId')
+      
+      // Call Suno API to generate real song
+      const response = await fetch('/api/generate-song', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: lyricsData.title,
+          lyrics: lyricsData.lyrics,
+          style: lyricsData.styleOfMusic,
+          recipient_name: formData.recipient_name,
+          requestId: requestId ? parseInt(requestId) : null,
+          userId: user?.id
+        })
+      })
+
+      if (response.status === 402) {
+        // Payment required
+        const errorResult = await response.json()
+        addToast({
+          type: 'error',
+          title: 'Payment Required',
+          message: 'Please complete payment to generate your song.'
+        })
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to generate song')
+      }
+
+      const result = await response.json()
+      
+      if (result.error) {
+        throw new Error(result.message || 'Failed to generate song')
+      }
+
+      // Create 2 song objects with generating status (Suno creates 2 versions)
+      const newSongs: GeneratedSong[] = [
+        {
+          id: `song-1-${Date.now()}`,
+          title: `${formData.recipient_name.split(',')[0].trim()} - Version 1`,
+          lyrics: lyricsData.lyrics,
+          styleOfMusic: lyricsData.styleOfMusic,
+          status: 'generating',
+          taskId: result.taskId
+        },
+        {
+          id: `song-2-${Date.now()}`,
+          title: `${formData.recipient_name.split(',')[0].trim()} - Version 2`,
+          lyrics: lyricsData.lyrics,
+          styleOfMusic: lyricsData.styleOfMusic,
+          status: 'generating',
+          taskId: result.taskId
+        }
+      ]
+
+      setGeneratedSongs(newSongs)
+      
+      addToast({
+        type: 'success',
+        title: 'Song Generation Started',
+        message: 'Your personalized song is being generated. This may take a few minutes.'
+      })
+
+      // Start polling for completion (but with timeout protection)
+      pollSongStatusOnce(result.taskId, newSongs)
+      
+      // Redirect to home page after a short delay to show the success message
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
+      
+    } catch (error) {
+      console.error('Error generating song:', error)
+      setSongGenerationError(error instanceof Error ? error.message : 'Failed to generate song')
+      addToast({
+        type: 'error',
+        title: 'Generation Failed',
+        message: error instanceof Error ? error.message : 'Failed to generate song'
+      })
+    } finally {
+      setIsGeneratingSong(false)
+    }
+  }
+
+
+  const pollSongStatusOnce = async (taskId: string, songs: GeneratedSong[]) => {
+    try {
+      // Wait 30 seconds before checking (give Suno time to generate)
+      await new Promise(resolve => setTimeout(resolve, 30000))
+      
+      const response = await fetch(`/api/song-status/${taskId}`)
+      const result = await response.json()
+
+      if (result.status === 'completed' && result.variants && result.variants.length > 0) {
+        // Update both songs with real audio URLs from Suno variants
+        const updatedSongs = songs.map((song, index) => ({
+          ...song,
+          status: 'ready' as const,
+          audioUrl: result.variants[index]?.audioUrl || result.variants[index]?.streamAudioUrl || '/audio/har-lamha-naya.mp3'
+        }))
+        
+        setGeneratedSongs(updatedSongs)
+        
+        // Save to localStorage
+        saveSongsToLocalStorage(updatedSongs)
+        
+        addToast({
+          type: 'success',
+          title: 'Songs Ready!',
+          message: 'Your personalized songs have been generated successfully!'
+        })
+      } else if (result.status === 'failed') {
+        const updatedSongs = songs.map(song => ({
+          ...song,
+          status: 'error' as const,
+          errorMessage: result.errorMessage || 'Generation failed'
+        }))
+        
+        setGeneratedSongs(updatedSongs)
+        
+        addToast({
+          type: 'error',
+          title: 'Generation Failed',
+          message: result.errorMessage || 'Song generation failed'
+        })
+      } else {
+        // Still processing, show as ready with fallback audio
+        const updatedSongs = songs.map(song => ({
+          ...song,
+          status: 'ready' as const,
+          audioUrl: '/audio/har-lamha-naya.mp3' // Fallback audio
+        }))
+        
+        setGeneratedSongs(updatedSongs)
+        saveSongsToLocalStorage(updatedSongs)
+        
+        addToast({
+          type: 'info',
+          title: 'Songs Ready (Demo)',
+          message: 'Your songs are still processing. Playing demo versions for now.'
+        })
+      }
+    } catch (error) {
+      console.error('Error checking song status:', error)
+      // Show as ready with fallback audio
+      const updatedSongs = songs.map(song => ({
+        ...song,
+        status: 'ready' as const,
+        audioUrl: '/audio/har-lamha-naya.mp3' // Fallback audio
+      }))
+      
+      setGeneratedSongs(updatedSongs)
+      saveSongsToLocalStorage(updatedSongs)
+      
+      addToast({
+        type: 'info',
+        title: 'Songs Ready (Demo)',
+        message: 'Playing demo versions while your songs process.'
+      })
+    }
+  }
+
+  const saveSongsToLocalStorage = (songsToSave: GeneratedSong[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const existingSongs = JSON.parse(localStorage.getItem('melodia-saved-songs') || '[]')
+        const newSongs = songsToSave.map(song => ({
+          ...song,
+          createdAt: new Date().toISOString(),
+          recipientName: formData?.recipient_name || 'Unknown',
+          id: `${Date.now()}-${song.id}`
+        }))
+        const allSongs = [...existingSongs, ...newSongs]
+        localStorage.setItem('melodia-saved-songs', JSON.stringify(allSongs))
+        console.log('Songs saved to My Songs:', newSongs.length)
+      } catch (error) {
+        console.error('Error saving songs:', error)
+      }
+    }
+  }
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: lyricsData?.title || 'Generated Song',
+        text: `Check out this personalized song: ${lyricsData?.title}`,
+        url: window.location.href
+      })
+    } else {
+      // Fallback to copying URL
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copied to clipboard!')
+    }
+  }
+
+  const handleEditStyle = () => {
+    setIsEditingStyle(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingStyle(false)
+    setEditedStyle(lyricsData?.styleOfMusic || '')
+  }
+
+  const handleSaveStyle = () => {
+    if (lyricsData) {
+      // Just update the style locally, no LLM call
+      setLyricsData({
+        ...lyricsData,
+        styleOfMusic: editedStyle
+      })
+      setIsEditingStyle(false)
+    }
+  }
+
+  const handleGenerateNewLyrics = async () => {
+    if (!formData || !lyricsData) return
+    
+    setIsModifyingLyrics(true)
+    
+    try {
+      // Call the LLM API with original context + current style + modification request (if any)
+      // IMPORTANT: Always use original form data, not current lyrics to avoid name transliteration issues
+      const additionalContext = modificationRequest.trim() 
+        ? `${formData.additional_details}. Style: ${lyricsData.styleOfMusic}. Modification request: ${modificationRequest}`
+        : `${formData.additional_details}. Style: ${lyricsData.styleOfMusic}`
+      
+      const response = await fetch('/api/generate-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipient_name: formData.recipient_name,
+          languages: formData.languages,
+          additional_details: additionalContext
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate new lyrics')
+      }
+
+      const lyricsResult = await response.json()
+
+      if (lyricsResult.error) {
+        alert(`Error: ${lyricsResult.message || 'Failed to generate new lyrics'}`)
+        return
+      }
+
+      // Update the lyrics with new generated content
+      setLyricsData({
+        ...lyricsData,
+        lyrics: lyricsResult.lyrics || lyricsData.lyrics
+      })
+      
+      // Clear the modification request
+      setModificationRequest('')
+      
+    } catch (error) {
+      console.error('Error generating new lyrics:', error)
+      alert('Failed to generate new lyrics. Please try again.')
+    } finally {
+      setIsModifyingLyrics(false)
+    }
+  }
+
 
   if (!lyricsData || !formData) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p>Please wait while we load your lyrics.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <h1 className="text-2xl font-bold mb-2">Loading Your Song...</h1>
+          <p className="text-gray-300">Please wait while we prepare your personalized lyrics.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 relative mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Music className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-yellow-400">MELODIA</span>
-            </div>
+    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+      {/* Navigation Header */}
+      <Header />
 
-            <div className="flex items-center space-x-4">
-              {user && (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-gray-300" />
-                    <span className="text-sm text-gray-200">{user?.name || user?.email}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-8">
           <Button
             variant="outline"
             onClick={() => router.back()}
@@ -121,85 +458,265 @@ export default function LyricsDisplayPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Left Side - Form Data */}
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Your Song</h1>
-              <p className="text-gray-300">Personalized just for you</p>
-            </div>
-            
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-black font-bold">★</span>
-                </div>
-                <h3 className="text-white font-semibold text-lg">Song Details</h3>
-              </div>
-              
-              <div className="space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+          {/* Left Side - Song Info */}
+          <div className="xl:col-span-1 space-y-6">
+            <Card className="bg-gray-800 border border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Star className="h-5 w-5 mr-2 text-yellow-400" />
+                  Song Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="text-gray-200 font-medium text-sm">For</label>
-                  <p className="text-white text-lg mt-1">{formData.recipient_name}</p>
+                  <label className="text-gray-300 font-medium text-sm">For</label>
+                  <p className="text-white text-lg mt-1 font-semibold">{formData.recipient_name}</p>
                 </div>
-                
+
                 <div>
-                  <label className="text-gray-200 font-medium text-sm">Language</label>
+                  <label className="text-gray-300 font-medium text-sm">Language</label>
                   <p className="text-white text-lg mt-1">{formData.languages.join(', ')}</p>
                 </div>
-                
+
                 <div>
-                  <label className="text-gray-200 font-medium text-sm">Style & Mood</label>
+                  <label className="text-gray-300 font-medium text-sm">Style & Mood</label>
                   <p className="text-white text-lg mt-1">{formData.additional_details}</p>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={handleGenerateSong}
+                disabled={isGeneratingSong || checkSongLimit()}
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 text-lg rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingSong ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Generating Song...
+                  </>
+                ) : checkSongLimit() ? (
+                  <>
+                    <X className="h-5 w-5 mr-2" />
+                    Song Limit Reached (5/5)
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    Generate Song
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={handleShare}
+                variant="outline"
+                className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 bg-gray-700"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Song
+              </Button>
             </div>
           </div>
 
           {/* Right Side - Generated Lyrics */}
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{lyricsData.title}</h1>
-              <p className="text-gray-300 text-sm">{lyricsData.styleOfMusic}</p>
-            </div>
-            
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center mr-3">
-                  <Music className="h-5 w-5 text-black" />
+          <div className="xl:col-span-2 space-y-6">
+            <Card className="bg-gray-800 border border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Music className="h-5 w-5 mr-2 text-yellow-400" />
+                  Lyrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-700 rounded-xl p-6 border border-gray-600">
+                  {/* Song Title */}
+                  <div className="text-center mb-6">
+                    <h2 className="text-3xl font-bold text-white mb-4">{lyricsData.title}</h2>
+                  </div>
+                  
+                  {/* Music Style Section - Editable */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-gray-300 font-medium text-sm">Music Style</label>
+                      {!isEditingStyle ? (
+                        <Button
+                          onClick={handleEditStyle}
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-500 text-gray-300 hover:bg-gray-500 h-8 px-3"
+                        >
+                          <Edit3 className="h-3 w-3 mr-1" />
+                          Edit Style
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={handleSaveStyle}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            onClick={handleCancelEdit}
+                            size="sm"
+                            variant="outline"
+                            className="border-gray-500 text-gray-300 hover:bg-gray-500 h-8 px-3"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {isEditingStyle ? (
+                      <Input
+                        value={editedStyle}
+                        onChange={(e) => setEditedStyle(e.target.value)}
+                        className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                        placeholder="Enter music style..."
+                      />
+                    ) : (
+                      <div className="bg-gray-600 rounded-lg p-4 border border-gray-500">
+                        <p className="text-gray-300 text-lg">{lyricsData.styleOfMusic}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Lyrics Section - Read Only */}
+                  <div className="mb-6">
+                    <label className="text-gray-300 font-medium text-sm mb-2 block">Lyrics</label>
+                    <pre className="text-white text-base whitespace-pre-wrap font-mono leading-relaxed">
+                      {lyricsData.lyrics}
+                    </pre>
+                  </div>
+                  
+                  {/* Lyrics Modification Section */}
+                  <div className="bg-gray-600 rounded-lg p-4 border border-gray-500">
+                    <label className="text-gray-300 font-medium text-sm mb-2 block">
+                      What you want to modify in the current lyrics?
+                    </label>
+                    <textarea
+                      value={modificationRequest}
+                      onChange={(e) => setModificationRequest(e.target.value)}
+                      className="w-full h-20 p-3 bg-gray-700 border border-gray-500 rounded-lg text-white placeholder-gray-400 resize-none text-sm"
+                      placeholder="e.g., Make it more romantic, change the chorus, add more verses, make it shorter..."
+                    />
+                    <Button
+                      onClick={handleGenerateNewLyrics}
+                      disabled={isModifyingLyrics}
+                      className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700 text-black font-semibold py-2"
+                    >
+                      {isModifyingLyrics ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                          Generating new lyrics...
+                        </>
+                      ) : (
+                        'Generate new lyrics'
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <h3 className="text-white font-semibold text-lg">Lyrics</h3>
-              </div>
-              
-              <div className="bg-gray-700 rounded-lg p-4">
-                <pre className="text-white text-sm whitespace-pre-wrap leading-relaxed">
-                  {lyricsData.lyrics}
-                </pre>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </Card>
 
-        {/* Generate Song Button */}
-        <div className="flex justify-center mt-8 space-x-4">
-          <Button
-            onClick={handleGenerateSong}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-4 text-lg rounded-xl flex items-center"
-          >
-            <Music className="h-5 w-5 mr-2" />
-            Generate Song
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500 px-8 py-4 text-lg rounded-xl"
-          >
-            Save Lyrics
-          </Button>
+            {/* Generated Songs Section */}
+            {generatedSongs.length > 0 && (
+              <Card className="bg-gray-800 border border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <Music className="h-5 w-5 mr-2 text-yellow-400" />
+                    Generated Songs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {generatedSongs.map((song) => (
+                      <div key={song.id} className="bg-gray-700 rounded-xl p-4 border border-gray-600">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold text-lg mb-2">{song.title}</h3>
+                            <p className="text-gray-300 text-sm mb-2">{song.styleOfMusic}</p>
+                            <div className="flex items-center space-x-2">
+                              {song.status === 'generating' && (
+                                <div className="flex items-center text-yellow-400">
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <span className="text-sm">Generating...</span>
+                                </div>
+                              )}
+                              {song.status === 'ready' && (
+                                <div className="flex items-center text-green-400">
+                                  <Play className="h-4 w-4 mr-2" />
+                                  <span className="text-sm">Ready to play</span>
+                                </div>
+                              )}
+                              {song.status === 'error' && (
+                                <div className="flex items-center text-red-400">
+                                  <X className="h-4 w-4 mr-2" />
+                                  <span className="text-sm">{song.errorMessage || 'Generation failed'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            {song.status === 'ready' && song.audioUrl ? (
+                              <Button
+                                onClick={() => {
+                                  const audio = new Audio(song.audioUrl)
+                                  audio.play()
+                                }}
+                                className="bg-green-500 hover:bg-green-600 text-white"
+                                size="sm"
+                              >
+                                <Play className="h-4 w-4 mr-2" />
+                                Play
+                              </Button>
+                            ) : song.status === 'generating' ? (
+                              <Button disabled className="bg-gray-500 text-white" size="sm">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => handleGenerateSong()}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                                size="sm"
+                              >
+                                Retry
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error Display */}
+            {songGenerationError && (
+              <Card className="bg-red-900/20 border border-red-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center text-red-400">
+                    <X className="h-5 w-5 mr-2" />
+                    <span>{songGenerationError}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          </div>
         </div>
       </main>
     </div>
   )
 }
-

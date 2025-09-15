@@ -43,6 +43,8 @@ export interface Song {
   status_checked_at?: string | null
   last_status_check?: string | null
   status_check_count?: number | null
+  // Payment integration fields
+  payment_id?: number | null
 }
 
 // Public song interface (without sensitive fields)
@@ -97,6 +99,10 @@ export interface SongRequest {
   lyrics_status: 'pending' | 'generating' | 'needs_review' | 'approved'
   approved_lyrics_id: number | null
   lyrics_locked_at: string | null
+  // Payment integration fields
+  payment_id: number | null
+  payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
+  payment_required: boolean
 }
 
 // Phase 6: Lyrics-related interfaces
@@ -167,3 +173,6 @@ export const AVAILABLE_EMOTIONS = [
 
 export type Language = typeof AVAILABLE_LANGUAGES[number]
 export type Emotion = typeof AVAILABLE_EMOTIONS[number]
+
+// Export payment types
+export * from './payment'

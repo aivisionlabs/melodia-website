@@ -16,7 +16,7 @@ export interface SongFormData {
 
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
   // Validate inputs first
-  if (!formData || !formData.recipient_name || !formData.languages || !formData.additional_details) {
+  if (!formData || !formData.recipient_name || !formData.languages || formData.additional_details === undefined) {
     return {
       error: true,
       missingField: 'System',
@@ -111,14 +111,14 @@ Create a song using ONLY these 3 inputs. Do not add extra words or descriptions.
     }
 
     const data = await response.json();
-    let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!generatedText) {
       throw new Error('No generated text found in Gemini response');
     }
     
     // Clean up markdown formatting if present
-    let cleanText = generatedText;
+    let cleanText = generatedText; 
     if (cleanText.includes('```json')) {
       cleanText = cleanText.replace(/```json\s*/, '').replace(/\s*```$/, '');
     }

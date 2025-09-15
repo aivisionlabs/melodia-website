@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@/types'
-import { loginUser, registerUser, logoutUser } from '@/lib/user-actions'
 
 interface AuthState {
   user: User | null
@@ -66,7 +65,15 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const result = await loginUser(email, password)
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      const result = await response.json()
 
       if (result.success && result.user) {
         // Store user data in localStorage (simplified session management)
@@ -104,7 +111,15 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const result = await registerUser(email, password, name)
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name })
+      })
+
+      const result = await response.json()
 
       if (result.success && result.user) {
         // Store user data in localStorage (simplified session management)
@@ -142,7 +157,11 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true }))
 
     try {
-      const result = await logoutUser()
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+
+      const result = await response.json()
 
       if (result.success) {
         // Clear session data

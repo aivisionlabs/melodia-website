@@ -10,11 +10,15 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
 import { SongRequestFormData, PublicSong, SongRequest } from '@/types'
 import { createSongRequest, getUserSongs, getUserSongRequests } from '@/lib/song-request-actions'
+import { fetchUserContent, UserContentItem, getButtonForContent } from '@/lib/user-content-client'
 // import { generateLyrics } from '@/lib/llm-integration' // No longer needed - using API directly
 import { Music, User, LogOut, Play, ChevronRight, Menu, X, Clock, CheckCircle, XCircle, Heart, Globe, MessageCircle } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/toast'
 import { MediaPlayer } from '@/components/MediaPlayer'
+import PaymentModal from '@/components/PaymentModal'
+import PaymentRequired from '@/components/PaymentRequired'
+import { isPaymentEnabled } from '@/lib/payment-config'
 
 export default function HomePage() {
   const { user, loading, logout, isAuthenticated } = useAuth()
@@ -48,7 +52,14 @@ export default function HomePage() {
   // Dashboard state for authenticated users
   const [userSongs, setUserSongs] = useState<PublicSong[]>([])
   const [songRequests, setSongRequests] = useState<SongRequest[]>([])
+  const [userContent, setUserContent] = useState<UserContentItem[]>([])
   const [isLoadingSongs, setIsLoadingSongs] = useState(false)
+
+  // Payment state
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPaymentRequired, setShowPaymentRequired] = useState(false)
+  const [pendingSongRequest, setPendingSongRequest] = useState<any>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<number>(1) // Default to Basic Plan
 
   // Real songs data for display
   const staticSongs = [
@@ -212,7 +223,11 @@ export default function HomePage() {
     try {
       setIsLoadingSongs(true)
 
-      // Load user's songs and requests in parallel
+      // Load user's content (lyrics drafts + songs + requests) via API
+      const content = await fetchUserContent(user.id)
+      setUserContent(content)
+
+      // Also load the old data for backward compatibility
       const [songsResult, requestsResult] = await Promise.all([
         getUserSongs(user.id),
         getUserSongRequests(user.id)
@@ -220,22 +235,10 @@ export default function HomePage() {
 
       if (songsResult.success) {
         setUserSongs(songsResult.songs || [])
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Failed to load songs',
-          message: songsResult.error || 'Please try again later'
-        })
       }
 
       if (requestsResult.success) {
         setSongRequests(requestsResult.requests || [])
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Failed to load requests',
-          message: requestsResult.error || 'Please try again later'
-        })
       }
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -327,6 +330,87 @@ export default function HomePage() {
   }
 
 
+  // Payment handlers
+  const handlePaymentRequired = () => {
+    setShowPaymentRequired(false)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentSuccess = async (paymentId: number) => {
+    setShowPaymentModal(false)
+    
+    if (pendingSongRequest) {
+      // Now try to generate lyrics again with payment completed
+      try {
+        const lyricsResponse = await fetch('/api/generate-lyrics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipient_name: pendingSongRequest.formData.recipient_name,
+            languages: pendingSongRequest.formData.languages,
+            additional_details: pendingSongRequest.formData.additional_details || '',
+            requestId: pendingSongRequest.requestId,
+            userId: user?.id
+          })
+        })
+
+        if (lyricsResponse.ok) {
+          const lyricsResult = await lyricsResponse.json()
+          
+          // Store the generated lyrics
+          const storeResponse = await fetch('/api/store-lyrics', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              requestId: pendingSongRequest.requestId,
+              lyrics: lyricsResult.lyrics,
+              recipient_name: pendingSongRequest.formData.recipient_name,
+              languages: pendingSongRequest.formData.languages,
+              additional_details: pendingSongRequest.formData.additional_details || ''
+            })
+          })
+
+          addToast({
+            type: 'success',
+            title: 'Payment Successful!',
+            message: 'Your personalized lyrics have been created successfully!'
+          })
+
+          // Redirect to lyrics display page
+          router.push(`/lyrics-display?requestId=${pendingSongRequest.requestId}`)
+        } else {
+          throw new Error('Failed to generate lyrics after payment')
+        }
+      } catch (error) {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Payment successful but failed to generate lyrics. Please try again.'
+        })
+      }
+    }
+    
+    setPendingSongRequest(null)
+  }
+
+  const handlePaymentError = (error: string) => {
+    addToast({
+      type: 'error',
+      title: 'Payment Failed',
+      message: error
+    })
+  }
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false)
+    setShowPaymentRequired(false)
+    setPendingSongRequest(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -345,6 +429,15 @@ export default function HomePage() {
 
       router.push('/auth/login')
       return
+    }
+
+    // Check if payment is enabled
+    if (!isPaymentEnabled()) {
+      addToast({
+        type: 'info',
+        title: 'Payment Disabled',
+        message: 'Payment is currently disabled. You can create songs for free!'
+      })
     }
 
     if (!validateForm()) {
@@ -368,8 +461,38 @@ export default function HomePage() {
         additional_details: formData.additional_details
       });
 
-      // Generate lyrics using API
-      const response = await fetch('/api/generate-lyrics', {
+      // Step 1: Create song request first (without payment)
+      const songRequestResponse = await fetch('/api/create-song-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requester_name: user?.name || 'Anonymous',
+          email: user?.email || null,
+          recipient_name: formData.recipient_name,
+          recipient_relationship: 'friend', // Default value
+          languages: formData.languages,
+          additional_details: formData.additional_details || '',
+          delivery_preference: 'email',
+          user_id: user?.id || null
+        })
+      })
+
+      if (!songRequestResponse.ok) {
+        throw new Error('Failed to create song request')
+      }
+
+      const songRequestResult = await songRequestResponse.json()
+
+      if (songRequestResult.error) {
+        throw new Error(songRequestResult.error)
+      }
+
+      const requestId = songRequestResult.requestId
+
+      // Step 2: Try to generate lyrics (this will check payment status)
+      const lyricsResponse = await fetch('/api/generate-lyrics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -377,15 +500,34 @@ export default function HomePage() {
         body: JSON.stringify({
           recipient_name: formData.recipient_name,
           languages: formData.languages,
-          additional_details: formData.additional_details || ''
+          additional_details: formData.additional_details || '',
+          requestId: requestId,
+          userId: user?.id
         })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate lyrics')
+      if (lyricsResponse.status === 402) {
+        // Payment required
+        const errorResult = await lyricsResponse.json()
+        setPendingSongRequest({ requestId, formData })
+        setShowPaymentRequired(true)
+        return
       }
 
-      const lyricsResult = await response.json()
+      if (!lyricsResponse.ok) {
+        const errorResult = await lyricsResponse.json()
+        const errorMessage = errorResult.message || 'Failed to generate lyrics. Please try again.'
+        
+        setError(errorMessage)
+        addToast({
+          type: 'error',
+          title: 'Lyrics Generation Failed',
+          message: errorMessage
+        })
+        return
+      }
+
+      const lyricsResult = await lyricsResponse.json()
 
       if (lyricsResult.error) {
         // Show specific error message in the form
@@ -401,15 +543,26 @@ export default function HomePage() {
         return
       }
 
-      // If lyrics generation successful, redirect to new lyrics display page
-      const params = new URLSearchParams({
-        title: lyricsResult.title || '',
-        styleOfMusic: lyricsResult.styleOfMusic || '',
-        lyrics: lyricsResult.lyrics || '',
-        recipient_name: formData.recipient_name,
-        languages: formData.languages.join(','),
-        additional_details: formData.additional_details || ''
+      // Step 3: Store the generated lyrics in the database
+      const storeResponse = await fetch('/api/store-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: requestId,
+          lyrics: lyricsResult.lyrics,
+          recipient_name: formData.recipient_name,
+          languages: formData.languages,
+          additional_details: formData.additional_details || ''
+        })
       })
+
+      if (!storeResponse.ok) {
+        // If storing fails, we still have the song request, but no lyrics
+        // This is better than having no song request at all
+        console.error('Failed to store lyrics, but song request was created')
+      }
 
       addToast({
         type: 'success',
@@ -417,8 +570,8 @@ export default function HomePage() {
         message: 'Your personalized lyrics have been created successfully!'
       })
 
-      // Redirect to new lyrics display page
-      router.push(`/lyrics-display-new?${params.toString()}`)
+      // Redirect to lyrics display page using requestId instead of query params
+      router.push(`/lyrics-display?requestId=${requestId}`)
 
     } catch (error) {
       const errorMessage = 'Failed to generate lyrics. Please try again.'
@@ -747,7 +900,7 @@ export default function HomePage() {
                 </div>
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="bg-white bg-opacity-90 rounded-lg p-3">
-                    <p className="text-sm font-semibold text-gray-800">Couple's Love Story</p>
+                    <p className="text-sm font-semibold text-gray-800">Couple&apos;s Love Story</p>
                     <p className="text-xs text-gray-600">Wedding Anniversary Song</p>
                   </div>
                 </div>
@@ -808,48 +961,98 @@ export default function HomePage() {
               <div className="flex justify-center py-8">
                 <LoadingSpinner size="lg" text="Loading your songs..." />
               </div>
-            ) : songRequests.length > 0 ? (
+            ) : userContent.length > 0 ? (
               <div className="space-y-4 max-w-4xl mx-auto">
-                {songRequests.slice(0, 5).map((request) => (
-                  <div
-                    key={request.id}
-                    className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 hover:bg-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg md:text-xl mb-2">
-                          Song for {request.recipient_name}
-                        </h3>
-                        <p className="text-gray-300 text-sm md:text-base mb-1">
-                          {request.recipient_relationship} • {request.languages?.join(', ')}
-                        </p>
-                        <p className="text-gray-400 text-xs md:text-sm">
-                          {new Date(request.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-medium">
-                          {request.status}
-                        </span>
-                        <Button
-                          size="sm"
-                          className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-                          onClick={() => router.push(`/my-songs`)}
-                        >
-                          View Details
-                        </Button>
+                {userContent.slice(0, 5).map((item) => {
+                  const buttonInfo = getButtonForContent(item)
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 hover:bg-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="text-white font-semibold text-lg md:text-xl">
+                              {item.title}
+                            </h3>
+                            <span className="px-2 py-1 bg-slate-600 text-gray-300 rounded text-xs font-medium">
+                              {item.type.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-gray-300 text-sm md:text-base mb-1">
+                            For {item.recipient_name}
+                          </p>
+                          <p className="text-gray-400 text-xs md:text-sm">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            item.status === 'ready' || item.status === 'completed' 
+                              ? 'bg-green-500/20 text-green-400'
+                              : item.status === 'generating' || item.status === 'processing'
+                              ? 'bg-yellow-500/20 text-yellow-400'
+                              : item.status === 'failed'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {item.status}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant={buttonInfo.variant}
+                            className={`${
+                              buttonInfo.variant === 'default' 
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-black'
+                                : buttonInfo.variant === 'destructive'
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'bg-slate-600 hover:bg-slate-500 text-white'
+                            } font-medium`}
+                            onClick={() => {
+                              switch (buttonInfo.action) {
+                                case 'generate':
+                                  router.push(`/lyrics-display?requestId=${item.request_id}`)
+                                  break
+                                case 'review':
+                                  router.push(`/lyrics-display?requestId=${item.request_id}`)
+                                  break
+                                case 'view':
+                                  router.push(`/lyrics-display?requestId=${item.request_id}`)
+                                  break
+                                case 'listen':
+                                  // TODO: Implement audio player
+                                  console.log('Play audio:', item.audio_url)
+                                  break
+                                case 'progress':
+                                  router.push(`/my-songs`)
+                                  break
+                                case 'retry':
+                                  router.push(`/lyrics-display?requestId=${item.request_id}`)
+                                  break
+                                case 'create_lyrics':
+                                  router.push(`/create-lyrics/${item.request_id}`)
+                                  break
+                                default:
+                                  router.push(`/my-songs`)
+                              }
+                            }}
+                          >
+                            {buttonInfo.text}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
 
-                {songRequests.length > 5 && (
+                {userContent.length > 5 && (
                   <div className="text-center mt-6">
                     <Button
                       onClick={() => router.push('/my-songs')}
                       className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-xl"
                     >
-                      View All Songs ({songRequests.length})
+                      View All Content ({userContent.length})
                     </Button>
                   </div>
                 )}
@@ -877,6 +1080,31 @@ export default function HomePage() {
             lyrics: songLyrics
           }}
           onClose={() => setSelectedSong(null)}
+        />
+      )}
+
+      {/* Payment Required Modal */}
+      {showPaymentRequired && pendingSongRequest && (
+        <PaymentRequired
+          onProceedToPayment={handlePaymentRequired}
+          onCancel={handlePaymentCancel}
+          planName="Basic Plan"
+          amount={99}
+          currency="INR"
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && pendingSongRequest && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentCancel}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+          songRequestId={pendingSongRequest.requestId}
+          planId={selectedPlanId}
+          amount={99}
+          currency="INR"
         />
       )}
     </div>

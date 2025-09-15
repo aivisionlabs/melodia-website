@@ -6,6 +6,7 @@ import { songRequestsTable, songsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { isValidEmail, isValidPhone, sanitizeInput } from './utils/validation'
+import { shouldRequirePayment } from './payment-config'
 
 // Input validation functions
 function validateSongRequestForm(formData: SongRequestFormData): { isValid: boolean; errors: Record<string, string> } {
@@ -120,7 +121,8 @@ export async function createSongRequest(
       .values({
         user_id: userId || null,
         ...sanitizedData,
-        status: 'pending'
+        status: 'pending',
+        payment_required: shouldRequirePayment()
       })
       .returning({
         id: songRequestsTable.id

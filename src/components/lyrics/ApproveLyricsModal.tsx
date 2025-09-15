@@ -100,7 +100,7 @@ export function ApproveLyricsModal({
                 <ul className="mt-1 space-y-1">
                   <li>• Once approved, lyrics cannot be edited</li>
                   <li>• The song will be generated using these exact lyrics</li>
-                  <li>• Make sure you're satisfied with the content</li>
+                  <li>• Make sure you&apos;re satisfied with the content</li>
                 </ul>
               </div>
             </div>

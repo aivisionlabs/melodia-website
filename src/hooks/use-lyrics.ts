@@ -172,8 +172,6 @@ export function useSunoJobStatus(taskId: string | null) {
       return;
     }
 
-    let pollInterval: NodeJS.Timeout;
-
     const pollJobStatus = async () => {
       if (!taskId) return;
 
@@ -215,7 +213,7 @@ export function useSunoJobStatus(taskId: string | null) {
     pollJobStatus();
     
     // Set up polling interval (check every 10 seconds)
-    pollInterval = setInterval(pollJobStatus, 10000);
+    const pollInterval: NodeJS.Timeout = setInterval(pollJobStatus, 10000);
     setIsPolling(true);
 
     // Cleanup on unmount or when taskId changes

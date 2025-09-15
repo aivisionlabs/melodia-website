@@ -55,13 +55,30 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
       
       // Convert Date objects to strings for SongRequest type
       const songRequest: SongRequest = {
-        ...request,
+        id: request.id,
+        user_id: request.user_id,
+        requester_name: request.requester_name,
+        phone_number: request.phone_number,
+        email: request.email,
         delivery_preference: request.delivery_preference as 'email' | 'whatsapp' | 'both' | null,
+        recipient_name: request.recipient_name,
+        recipient_relationship: request.recipient_relationship,
+        languages: request.languages,
+        person_description: request.person_description,
+        song_type: request.song_type,
+        emotions: request.emotions,
+        additional_details: request.additional_details,
         status: request.status as 'pending' | 'processing' | 'completed' | 'failed',
-        lyrics_status: request.lyrics_status as 'pending' | 'generating' | 'needs_review' | 'approved',
+        suno_task_id: request.suno_task_id,
+        generated_song_id: request.generated_song_id,
         created_at: request.created_at.toISOString(),
         updated_at: request.updated_at.toISOString(),
-        lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null
+        lyrics_status: request.lyrics_status as 'pending' | 'generating' | 'needs_review' | 'approved',
+        approved_lyrics_id: request.approved_lyrics_id,
+        lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null,
+        payment_id: request.payment_id,
+        payment_status: (request.payment_status as 'pending' | 'paid' | 'failed' | 'refunded' | null) || 'pending',
+        payment_required: request.payment_required || false
       };
       setRequest(songRequest);
     } catch (err) {
@@ -353,7 +370,7 @@ export default function CreateSongFromLyricsPage({ params }: { params: Promise<{
                       <ul className="space-y-1">
                         <li>• Your song will be generated using AI</li>
                         <li>• This may take 5-10 minutes</li>
-                        <li>• You'll receive a notification when ready</li>
+                        <li>• You&apos;ll receive a notification when ready</li>
                         <li>• You can track progress in your dashboard</li>
                       </ul>
                     </div>

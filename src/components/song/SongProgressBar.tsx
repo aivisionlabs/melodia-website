@@ -84,7 +84,7 @@ export function SongProgressBar({
           Your song is being generated with AI. This process typically takes 5-10 minutes.
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          You can leave this page and come back later - we'll notify you when it's ready!
+          You can leave this page and come back later - we&apos;ll notify you when it&apos;s ready!
         </p>
       </div>
     </div>

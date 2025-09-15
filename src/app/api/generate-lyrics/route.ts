@@ -1,145 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { config } from '@/lib/config';
 import { generateLyrics } from '@/lib/llm-integration';
-
-const GEMINI_API_URL = config.GEMINI_API_URL;
-const GEMINI_API_TOKEN = config.GEMINI_API_TOKEN;
-
-// Fallback lyrics generation functions
-function generateHindiLyrics(name: string, relation: string, details: string): string {
-  const templates = [
-    `Verse 1:
-${name}, तेरे लिए ये गीत लिखा है
-दिल से निकल कर जो भी कहना था
-तेरे बिना जीना मुश्किल है
-तेरे साथ जीना आसान है
-
-Chorus:
-${name}, ${name}
-मैं जीता हूं, मैं मरता हूं
-${name}, ${name}
-दिल से मैंने ये गीत गाया
-
-Verse 2:
-तेरी आंखों में मैंने देखा है
-अपना चेहरा जो छुपा था
-तेरे साथ चलना चाहता हूं
-हर पल, हर लम्हा
-
-Chorus:
-${name}, ${name}
-मैं जीता हूं, मैं मरता हूं
-${name}, ${name}
-दिल से मैंने ये गीत गाया`,
-
-    `Verse 1:
-${name} मेरे ${relation}, तू है मेरी जान
-हर दिन तेरे साथ बिताना है
-तेरी मुस्कान मेरी खुशी
-तेरा दुख मेरा दुख है
-
-Chorus:
-${name} मेरे ${relation}
-तू है मेरी दुनिया
-${name} मेरे ${relation}
-तू है मेरी हर खुशी
-
-Verse 2:
-जब भी तू मुस्कुराता है
-मेरा दिल खुश हो जाता है
-तेरे साथ हर पल अच्छा लगता है
-ये रिश्ता निभाना है
-
-Chorus:
-${name} मेरे ${relation}
-तू है मेरी दुनिया
-${name} मेरे ${relation}
-तू है मेरी हर खुशी`
-  ];
-  
-  return templates[Math.floor(Math.random() * templates.length)];
-}
-
-function generateEnglishLyrics(name: string, relation: string, details: string): string {
-  const templates = [
-    `Verse 1:
-${name}, this song is for you
-From my heart, everything that's true
-Without you, life is hard to bear
-With you, everything's so fair
-
-Chorus:
-${name}, ${name}
-You're my joy, you're my pain
-${name}, ${name}
-I'll sing this song again
-
-Verse 2:
-In your eyes, I see my reflection
-Your love gives me direction
-Walking with you every day
-Is the only way
-
-Chorus:
-${name}, ${name}
-You're my joy, you're my pain
-${name}, ${name}
-I'll sing this song again`,
-
-    `Verse 1:
-${name} my ${relation}, you light up my world
-Your smile makes my heart unfurled
-Every moment with you is pure gold
-Your story will always be told
-
-Chorus:
-${name} my ${relation}
-You're my shining star
-${name} my ${relation}
-No matter where you are
-
-Verse 2:
-Through the laughter and the tears
-You've been with me all these years
-Your love is my greatest treasure
-Beyond any measure
-
-Chorus:
-${name} my ${relation}
-You're my shining star
-${name} my ${relation}
-No matter where you are`
-  ];
-  
-  return templates[Math.floor(Math.random() * templates.length)];
-}
+import { db } from '@/lib/db';
+import { songRequestsTable, paymentsTable } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getCurrentUser } from '@/lib/user-actions';
+import { shouldRequirePayment } from '@/lib/payment-config';
 
 export async function POST(request: NextRequest) {
   try {
-    const { recipient_name, languages, additional_details } = await request.json();
+    const body = await request.json();
+    const { recipient_name, languages, additional_details, requestId, userId } = body;
 
-    // Use the generateLyrics function from llm-integration
-    console.log('Using generateLyrics function with inputs:', { recipient_name, languages, additional_details });
-    
-    const generatedResponse = await generateLyrics({
+    // Validate required fields
+    if (!recipient_name || !languages || languages.length === 0) {
+      return NextResponse.json(
+        { error: true, message: 'Recipient name and languages are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check payment status if requestId is provided
+    if (requestId) {
+      // Get user ID from request body or try authentication
+      let currentUser = null;
+      
+      if (userId) {
+        // Use provided userId
+        currentUser = { id: userId } as any;
+      } else {
+        // Try to get from authentication
+        currentUser = await getCurrentUser();
+        if (!currentUser) {
+          return NextResponse.json(
+            { error: true, message: 'User ID or authentication required' },
+            { status: 401 }
+          );
+        }
+      }
+
+      // Get song request
+      const songRequest = await db
+        .select()
+        .from(songRequestsTable)
+        .where(eq(songRequestsTable.id, requestId))
+        .limit(1);
+
+      if (songRequest.length === 0) {
+        return NextResponse.json(
+          { error: true, message: 'Song request not found' },
+          { status: 404 }
+        );
+      }
+
+      if (songRequest[0].user_id !== currentUser.id) {
+        return NextResponse.json(
+          { error: true, message: 'Unauthorized access' },
+          { status: 403 }
+        );
+      }
+
+      // Check payment status only if payment is required
+      if (songRequest[0].payment_required) {
+        if (songRequest[0].payment_id) {
+          const payment = await db
+            .select()
+            .from(paymentsTable)
+            .where(eq(paymentsTable.id, songRequest[0].payment_id))
+            .limit(1);
+
+          if (payment.length === 0 || payment[0].status !== 'completed') {
+            return NextResponse.json(
+              { 
+                error: true, 
+                message: 'Payment required',
+                requiresPayment: true,
+                paymentStatus: payment[0]?.status || 'pending'
+              },
+              { status: 402 }
+            );
+          }
+        } else {
+          return NextResponse.json(
+            { 
+              error: true, 
+              message: 'Payment required',
+              requiresPayment: true
+            },
+            { status: 402 }
+          );
+        }
+      }
+    }
+
+    // Generate lyrics using Gemini API
+    const result = await generateLyrics({
       recipient_name,
       languages,
-      additional_details
+      additional_details: additional_details || ''
     });
-    
-    console.log('Generated response:', generatedResponse);
-    
-    return NextResponse.json(generatedResponse);
+
+    if (result.error) {
+      return NextResponse.json(
+        { 
+          error: true, 
+          message: result.message || 'Failed to generate lyrics',
+          example: result.example 
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      lyrics: result.lyrics
+    });
+
   } catch (error) {
-    console.error('Error in generate-lyrics API:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error generating lyrics:', error);
     return NextResponse.json(
-      {
-        error: true,
-        missingField: 'System',
-        message: 'Failed to generate lyrics. Please try again.',
-        example: 'Please check your connection and try again.'
-      },
+      { error: true, message: 'Failed to generate lyrics. Please try again.' },
       { status: 500 }
     );
   }
