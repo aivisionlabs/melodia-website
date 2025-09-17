@@ -12,14 +12,16 @@ import { useAuth } from '@/hooks/use-auth'
 import { SongRequestFormData } from '@/types'
 // Removed unused imports: getUserSongs, getUserSongRequests
 import { fetchUserContent, UserContentItem, getButtonForContent } from '@/lib/user-content-client'
+import { fetchLyricsDisplayData } from '@/lib/lyrics-display-client'
 // import { generateLyrics } from '@/lib/llm-integration' // No longer needed - using API directly
-import { Music, User, LogOut, Play, ChevronRight, Menu, X } from 'lucide-react'
+import { Music, User, LogOut, Play, ChevronRight, Menu, X, Edit3, Save, Loader2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/toast'
 import { MediaPlayer } from '@/components/MediaPlayer'
 import PaymentModal from '@/components/PaymentModal'
 import PaymentRequired from '@/components/PaymentRequired'
 import { isPaymentEnabled } from '@/lib/payment-config'
+import Footer from '@/components/Footer'
 
 export default function HomePage() {
   const { user, loading, logout, isAuthenticated } = useAuth()
@@ -53,6 +55,16 @@ export default function HomePage() {
   // Dashboard state for authenticated users
   const [userContent, setUserContent] = useState<UserContentItem[]>([])
   const [isLoadingSongs, setIsLoadingSongs] = useState(false)
+
+  // Lyrics display state for same-page display
+  const [showLyrics, setShowLyrics] = useState(false)
+  const [generatedLyrics, setGeneratedLyrics] = useState<any>(null)
+  const [lyricsRequestId, setLyricsRequestId] = useState<number | null>(null)
+  const [isEditingStyle, setIsEditingStyle] = useState(false)
+  const [editedStyle, setEditedStyle] = useState('')
+  const [modificationRequest, setModificationRequest] = useState('')
+  const [isModifyingLyrics, setIsModifyingLyrics] = useState(false)
+  const [isGeneratingSong, setIsGeneratingSong] = useState(false)
 
   // Payment state
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -540,8 +552,32 @@ export default function HomePage() {
         message: 'Your personalized lyrics have been created successfully!'
       })
 
-      // Redirect to lyrics display page using requestId instead of query params
-      router.push(`/lyrics-display?requestId=${requestId}`)
+      // Load lyrics data and show on same page instead of redirecting
+      try {
+        const lyricsData = await fetchLyricsDisplayData(requestId)
+        if (lyricsData) {
+          setGeneratedLyrics({
+            title: `Song for ${formData.recipient_name}`,
+            styleOfMusic: 'Personal',
+            lyrics: lyricsData.lyricsDraft.edited_text || lyricsData.lyricsDraft.generated_text
+          })
+          setEditedStyle('Personal')
+          setLyricsRequestId(requestId)
+          setShowLyrics(true)
+          
+          // Scroll to lyrics section
+          setTimeout(() => {
+            const lyricsSection = document.getElementById('lyrics-section')
+            if (lyricsSection) {
+              lyricsSection.scrollIntoView({ behavior: 'smooth' })
+            }
+          }, 100)
+        }
+      } catch (error) {
+        console.error('Error loading lyrics data:', error)
+        // Fallback to redirect if loading fails
+        router.push(`/lyrics-display?requestId=${requestId}`)
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate lyrics. Please try again.'
@@ -556,10 +592,149 @@ export default function HomePage() {
     }
   }
 
-  const handleLogout = async () => {
-    const result = await logout()
-    if (result.success) {
-      router.push('/')
+
+  // Lyrics editing functions
+  const handleEditStyle = () => {
+    setIsEditingStyle(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingStyle(false)
+    setEditedStyle(generatedLyrics?.styleOfMusic || '')
+  }
+
+  const handleSaveStyle = () => {
+    if (generatedLyrics) {
+      setGeneratedLyrics({
+        ...generatedLyrics,
+        styleOfMusic: editedStyle
+      })
+      setIsEditingStyle(false)
+    }
+  }
+
+  const handleGenerateNewLyrics = async () => {
+    if (!formData || !generatedLyrics) return
+    
+    setIsModifyingLyrics(true)
+    
+    try {
+      const additionalContext = modificationRequest.trim() 
+        ? `${formData.additional_details}. Style: ${generatedLyrics.styleOfMusic}. Modification request: ${modificationRequest}`
+        : `${formData.additional_details}. Style: ${generatedLyrics.styleOfMusic}`
+      
+      const response = await fetch('/api/generate-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipient_name: formData.recipient_name,
+          languages: formData.languages,
+          additional_details: additionalContext
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate new lyrics')
+      }
+
+      const lyricsResult = await response.json()
+
+      if (lyricsResult.error) {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: lyricsResult.message || 'Failed to generate new lyrics'
+        })
+        return
+      }
+
+      setGeneratedLyrics({
+        ...generatedLyrics,
+        lyrics: lyricsResult.lyrics || generatedLyrics.lyrics
+      })
+      
+      setModificationRequest('')
+      
+      addToast({
+        type: 'success',
+        title: 'New Lyrics Generated!',
+        message: 'Your lyrics have been updated successfully!'
+      })
+      
+    } catch (error) {
+      console.error('Error generating new lyrics:', error)
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to generate new lyrics. Please try again.'
+      })
+    } finally {
+      setIsModifyingLyrics(false)
+    }
+  }
+
+  const handleGenerateSong = async () => {
+    if (!generatedLyrics || !formData) return
+    
+    setIsGeneratingSong(true)
+    
+    try {
+      const response = await fetch('/api/generate-song', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: generatedLyrics.title,
+          lyrics: generatedLyrics.lyrics,
+          style: generatedLyrics.styleOfMusic,
+          recipient_name: formData.recipient_name,
+          requestId: lyricsRequestId,
+          userId: user?.id
+        })
+      })
+
+      if (response.status === 402) {
+        addToast({
+          type: 'error',
+          title: 'Payment Required',
+          message: 'Please complete payment to generate your song.'
+        })
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to generate song')
+      }
+
+      const result = await response.json()
+      
+      if (result.error) {
+        throw new Error(result.message || 'Failed to generate song')
+      }
+
+      addToast({
+        type: 'success',
+        title: 'Song Generation Started',
+        message: 'Your personalized song is being generated. This may take a few minutes.'
+      })
+
+      // Refresh user content to show the new song
+      if (user?.id) {
+        loadUserData()
+      }
+      
+    } catch (error) {
+      console.error('Error generating song:', error)
+      addToast({
+        type: 'error',
+        title: 'Generation Failed',
+        message: error instanceof Error ? error.message : 'Failed to generate song'
+      })
+    } finally {
+      setIsGeneratingSong(false)
     }
   }
 
@@ -568,188 +743,187 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-melodia-teal via-background to-melodia-teal relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-40 left-1/2 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
+      </div>
 
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Music className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-yellow-400">MELODIA</span>
+      <header className="w-full bg-gradient-to-r from-melodia-teal-light via-secondary to-melodia-teal-light flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative border-b-2 border-accent/20 shadow-elegant">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
+              <Music className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
+            <span className="text-lg sm:text-xl font-bold font-heading text-foreground">Melodia</span>
+          </Link>
+        </div>
 
-            <div className="flex items-center space-x-4">
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link
-                  href="/contact"
-                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                >
-                  Contact
-                </Link>
-                <Link
-                  href="/terms"
-                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                >
-                  Terms
-                </Link>
-                <Link
-                  href="/privacy"
-                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                >
-                  Privacy
-                </Link>
-                <Link
-                  href="/refund"
-                  className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                >
-                  Refund
-                </Link>
-                {isAuthenticated && (
-                  <Link
-                    href="/my-songs"
-                    className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
-                  >
-                    My Songs
-                  </Link>
-                )}
-            
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-4">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4">
+              <Link href="/my-songs">
+                <Button variant="outline" size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                  <User className="h-4 w-4 mr-2" />
+                  My Songs
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2 text-foreground">
+                <User className="h-4 w-4" />
+                <span className="text-sm font-medium">{user?.name || 'User'}</span>
               </div>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden text-gray-300 hover:text-yellow-400 p-2"
-                aria-label="Toggle menu"
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-foreground hover:bg-accent/10"
               >
-                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
-
-              {isAuthenticated ? (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-gray-300" />
-                    <span className="text-sm text-gray-200">{user?.name || user?.email}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="border-slate-600 text-gray-200 hover:bg-slate-700 hover:border-slate-500"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <div className="flex items-center space-x-4">
-                  <Link href="/auth/login">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-slate-600 text-gray-200 hover:bg-slate-700 hover:border-slate-500"
-                    >
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button
-                      size="sm"
-                      className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-700 text-white"
-                    >
-                      Get Started
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <Link href="/auth/login">
+                <Button size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm" className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground">
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Navigation - Hamburger Menu */}
+        <div className="flex items-center gap-2 sm:gap-4 md:hidden">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-foreground hover:text-foreground p-2"
+              >
+                <LogOut className="h-6 w-6" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/auth/login">
+                <Button size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm" className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground">
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
+          )}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="text-foreground hover:text-accent p-2"
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
       </header>
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="md:hidden bg-slate-800 border-b border-slate-700 shadow-lg">
-          <nav className="flex flex-col py-2" aria-label="Mobile navigation">
-            <Link
-              href="/contact"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contact
-            </Link>
-            <Link
-              href="/terms"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Terms
-            </Link>
-            <Link
-              href="/privacy"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/refund"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Refund
-            </Link>
-            <Link
-              href="/library"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Library
-            </Link>
-            {isAuthenticated && (
-              <Link
-                href="/my-songs"
-                className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                My Songs
-              </Link>
+        <div className="md:hidden bg-card border-b border-melodia-teal-medium shadow-elegant">
+          <div className="px-4 py-3 space-y-3">
+            {isAuthenticated ? (
+              <>
+                <Link href="/my-songs" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                    <User className="h-4 w-4 mr-2" />
+                    My Songs
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-2 text-foreground px-3 py-2">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm font-medium">{user?.name || 'User'}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    logout()
+                    setIsMenuOpen(false)
+                  }}
+                  className="w-full justify-start text-foreground hover:bg-accent/10"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="w-full justify-start bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
             )}
-            <Link
-              href="/#testimonials-title"
-              className="px-4 py-3 text-gray-300 hover:text-yellow-400 hover:bg-slate-700 font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Testimonials
-            </Link>
-          </nav>
+          </div>
         </div>
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Main Song Creation Form */}
-        <div className="text-center mb-8 md:mb-12 px-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
+        <div className="text-center mb-8 md:mb-12 px-4 relative z-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-full mb-6 shadow-glow animate-pulse">
+            <Music className="h-10 w-10 text-primary-foreground" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-heading text-foreground mb-4">
             Create Songs In Under 60-Seconds
           </h1>
-          <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto">
-            <span className="text-yellow-400 font-semibold">HOLD YOUR BREATH:</span> Describe your song and prepare to be surprised.
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto font-body">
+            <span className="text-primary font-semibold bg-primary/10 px-2 py-1 rounded-lg">HOLD YOUR BREATH:</span> Describe your song and prepare to be surprised.
           </p>
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <div className="w-3 h-3 bg-primary rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-accent rounded-full animate-bounce delay-100"></div>
+            <div className="w-3 h-3 bg-primary rounded-full animate-bounce delay-200"></div>
+          </div>
         </div>
 
         {/* Song Creation Form */}
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto mb-8 md:mb-16 px-4">
-          <Card className="bg-slate-800 border border-slate-700">
+          <Card className="bg-gradient-to-br from-card via-melodia-teal-light to-card border-2 border-accent/30 shadow-coral hover:shadow-glow transition-all duration-300 transform hover:scale-105">
             <CardContent className="p-4 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
+                  <Music className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <h2 className="text-xl font-semibold font-heading text-foreground">Create Your Song</h2>
+                <div className="ml-auto flex gap-1">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  <div className="w-2 h-2 bg-accent rounded-full"></div>
+                </div>
+              </div>
 
               {/* Form Fields */}
               <div className="space-y-4 md:space-y-6">
                 {/* Who is this song for? */}
                 <div className="space-y-2">
-                  <Label htmlFor="recipient_name" className="text-gray-200 font-medium text-sm md:text-base">
+                  <Label htmlFor="recipient_name" className="text-foreground font-medium font-body text-sm md:text-base flex items-center gap-2">
+                    <div className="w-2 h-2 bg-accent rounded-full"></div>
                     Who is this song for?
                   </Label>
                   <Input
@@ -757,7 +931,7 @@ export default function HomePage() {
                     value={formData.recipient_name}
                     onChange={(e) => handleInputChange('recipient_name', e.target.value)}
                     placeholder="e.g., Sonu, my friend"
-                    className="h-12 md:h-14 bg-slate-700 border border-slate-600 text-white placeholder-gray-400 focus:border-yellow-500 text-sm md:text-base"
+                    className="h-12 md:h-14 bg-gradient-to-r from-input to-muted border-2 border-accent/20 text-foreground placeholder-muted-foreground focus:border-accent focus:shadow-coral text-sm md:text-base transition-all duration-200"
                   />
                   {validationErrors.recipient_name && (
                     <p className="text-red-500 text-xs md:text-sm">{validationErrors.recipient_name}</p>
@@ -766,7 +940,8 @@ export default function HomePage() {
 
                 {/* Language Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="languages" className="text-gray-200 font-medium text-sm md:text-base">
+                  <Label htmlFor="languages" className="text-foreground font-medium font-body text-sm md:text-base flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
                     Language
                   </Label>
                   <Input
@@ -774,9 +949,9 @@ export default function HomePage() {
                     value={formData.languages?.join(', ') || ''}
                     onChange={(e) => handleInputChange('languages', e.target.value.split(',').map(l => l.trim()).filter(l => l))}
                     placeholder="Hindi, English, Punjabi, etc."
-                    className="h-12 md:h-14 bg-slate-700 border border-slate-600 text-white placeholder-gray-400 focus:border-yellow-500 text-sm md:text-base"
+                    className="h-12 md:h-14 bg-gradient-to-r from-input to-muted border-2 border-accent/20 text-foreground placeholder-muted-foreground focus:border-accent focus:shadow-coral text-sm md:text-base transition-all duration-200"
                   />
-                  <p className="text-gray-400 text-xs md:text-sm">Type a valid language (Hindi, English, Punjabi, etc.)</p>
+                  <p className="text-muted-foreground text-xs md:text-sm font-body">Type a valid language (Hindi, English, Punjabi, etc.)</p>
                   {validationErrors.languages && (
                     <p className="text-red-500 text-xs md:text-sm">{validationErrors.languages}</p>
                   )}
@@ -784,7 +959,8 @@ export default function HomePage() {
 
                 {/* Tell us more about the song */}
                 <div className="space-y-2">
-                  <Label htmlFor="additional_details" className="text-gray-200 font-medium text-sm md:text-base">
+                  <Label htmlFor="additional_details" className="text-foreground font-medium font-body text-sm md:text-base flex items-center gap-2">
+                    <div className="w-2 h-2 bg-accent rounded-full"></div>
                     Tell us more about the song
                   </Label>
                   <textarea
@@ -792,12 +968,12 @@ export default function HomePage() {
                     value={formData.additional_details}
                     onChange={(e) => handleInputChange('additional_details', e.target.value)}
                     placeholder="Basic details about who the song is for, their story, genre, style preferences..."
-                    className="w-full h-24 md:h-32 p-3 md:p-4 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-500 resize-none text-sm md:text-base"
+                    className="w-full h-24 md:h-32 p-3 md:p-4 bg-gradient-to-br from-input to-muted border-2 border-accent/20 rounded-xl text-foreground placeholder-muted-foreground focus:border-accent focus:shadow-coral resize-none text-sm md:text-base font-body transition-all duration-200"
                     maxLength={1000}
                   />
                   <div className="flex justify-between items-center">
-                    <p className="text-gray-400 text-xs md:text-sm">Share the story, genre, and style you want</p>
-                    <p className="text-gray-400 text-xs md:text-sm">{(formData.additional_details || '').length}/1000</p>
+                    <p className="text-muted-foreground text-xs md:text-sm font-body">Share the story, genre, and style you want</p>
+                    <p className="text-muted-foreground text-xs md:text-sm font-body">{(formData.additional_details || '').length}/<span className="text-accent font-semibold">1000</span></p>
                   </div>
                   {validationErrors.additional_details && (
                     <p className="text-red-500 text-xs md:text-sm">{validationErrors.additional_details}</p>
@@ -830,28 +1006,170 @@ export default function HomePage() {
 
                 {/* Submit Button */}
                 <div className="flex justify-center pt-4">
-                  <Button
-                    type="submit"
-                    disabled={!isFormValid() || isSubmitting}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 md:px-12 py-3 md:py-4 text-base md:text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-black mr-2 md:mr-3"></div>
-                        Generating Lyrics...
-                      </div>
-                    ) : !isAuthenticated ? (
-                      'Login to Create Lyrics'
-                    ) : (
-                      'Create Lyrics'
-                    )}
-                  </Button>
+                  <div className="flex flex-col items-center gap-4">
+                    <Button
+                      type="submit"
+                      disabled={!isFormValid() || isSubmitting}
+                      className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold font-body px-8 md:px-12 py-3 md:py-4 text-base md:text-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
+                    >
+                      {isSubmitting ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-primary-foreground mr-2 md:mr-3"></div>
+                          Generating Lyrics...
+                        </div>
+                      ) : !isAuthenticated ? (
+                        'Login to Create Lyrics'
+                      ) : (
+                        'Create Lyrics'
+                      )}
+                    </Button>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="w-1 h-1 bg-primary rounded-full"></div>
+                      <span>Powered by AI</span>
+                      <div className="w-1 h-1 bg-accent rounded-full"></div>
+                    </div>
+                  </div>
                 </div>
 
               </div>
             </CardContent>
           </Card>
         </form>
+
+        {/* Lyrics Display Section - Shows after lyrics are generated */}
+        {showLyrics && generatedLyrics && (
+          <div className="max-w-4xl mx-auto mb-8 md:mb-16 px-4" id="lyrics-section">
+            <Card className="bg-gradient-to-br from-card via-melodia-teal-light to-card border-2 border-accent/30 shadow-coral hover:shadow-glow transition-all duration-300">
+              <CardContent className="p-4 md:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-accent rounded-lg flex items-center justify-center shadow-coral">
+                    <Music className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <h2 className="text-xl font-semibold font-heading text-foreground">Generated Lyrics</h2>
+                  <div className="ml-auto flex gap-1">
+                    <div className="w-2 h-2 bg-accent rounded-full"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  </div>
+                </div>
+
+                {/* Lyrics Content */}
+                <div className="space-y-6">
+                  {/* Song Title */}
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-foreground mb-2">{generatedLyrics.title}</h3>
+                  </div>
+                  
+                  {/* Music Style Section - Editable */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-muted-foreground font-medium text-sm">Music Style</label>
+                      {!isEditingStyle ? (
+                        <Button
+                          onClick={handleEditStyle}
+                          size="sm"
+                          variant="outline"
+                          className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
+                        >
+                          <Edit3 className="h-3 w-3 mr-1" />
+                          Edit Style
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={handleSaveStyle}
+                            size="sm"
+                            className="bg-accent hover:bg-accent/90 text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            onClick={handleCancelEdit}
+                            size="sm"
+                            variant="outline"
+                            className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {isEditingStyle ? (
+                      <Input
+                        value={editedStyle}
+                        onChange={(e) => setEditedStyle(e.target.value)}
+                        className="bg-input border-melodia-teal-medium text-foreground placeholder-muted-foreground"
+                        placeholder="Enter music style..."
+                      />
+                    ) : (
+                      <div className="bg-input rounded-lg p-4 border border-melodia-teal-medium">
+                        <p className="text-muted-foreground text-lg">{generatedLyrics.styleOfMusic}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Lyrics Section - Scrollable */}
+                  <div>
+                    <label className="text-muted-foreground font-medium text-sm mb-2 block">Lyrics</label>
+                    <div className="bg-secondary rounded-xl p-4 border border-melodia-teal-medium max-h-64 overflow-y-auto">
+                      <pre className="text-foreground text-sm whitespace-pre-wrap font-mono leading-relaxed">
+                        {generatedLyrics.lyrics}
+                      </pre>
+                    </div>
+                  </div>
+                  
+                  {/* Lyrics Modification Section */}
+                  <div className="bg-input rounded-lg p-4 border border-melodia-teal-medium">
+                    <label className="text-muted-foreground font-medium text-sm mb-2 block">
+                      What you want to modify in the current lyrics?
+                    </label>
+                    <textarea
+                      value={modificationRequest}
+                      onChange={(e) => setModificationRequest(e.target.value)}
+                      className="w-full h-20 p-3 bg-secondary border border-melodia-teal-medium rounded-lg text-foreground placeholder-muted-foreground resize-none text-sm"
+                      placeholder="e.g., Make it more romantic, change the chorus, add more verses, make it shorter..."
+                    />
+                    <Button
+                      onClick={handleGenerateNewLyrics}
+                      disabled={isModifyingLyrics}
+                      className="w-full mt-3 bg-accent hover:bg-accent/90 text-accent-foreground font-bold py-3 text-base rounded-lg shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200 border-2 border-accent/20 hover:border-accent/40"
+                    >
+                      {isModifyingLyrics ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent-foreground mr-2"></div>
+                          Generating new lyrics...
+                        </>
+                      ) : (
+                        'Generate new lyrics'
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Generate Song Button */}
+                  <Button
+                    onClick={handleGenerateSong}
+                    disabled={isGeneratingSong}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 text-lg rounded-xl shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-yellow-400/20 hover:border-yellow-400/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isGeneratingSong ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Generating Song...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-5 w-5 mr-2" />
+                        Generate Song
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Static Songs Section */}
         <div className="mb-8 md:mb-16 px-4">
@@ -864,7 +1182,7 @@ export default function HomePage() {
               {staticSongs.map((song) => (
                 <div
                   key={song.id}
-                  className="flex-shrink-0 w-48 md:w-64 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:scale-105 transition-transform duration-200 cursor-pointer group"
+                  className="flex-shrink-0 w-48 md:w-64 bg-card border border-melodia-teal-medium rounded-xl overflow-hidden hover:scale-105 transition-transform duration-200 cursor-pointer group"
                 >
                   <div className="relative">
                     <Image
@@ -885,8 +1203,8 @@ export default function HomePage() {
                   </div>
                   <div className="p-3 md:p-4">
                     <h3 className="text-white font-semibold text-base md:text-lg mb-1">{song.title}</h3>
-                    <p className="text-gray-300 text-xs md:text-sm mb-1">{song.genre}</p>
-                    <p className="text-gray-400 text-xs">{song.duration}</p>
+                    <p className="text-foreground text-xs md:text-sm mb-1">{song.genre}</p>
+                    <p className="text-muted-foreground text-xs">{song.duration}</p>
                   </div>
                 </div>
               ))}
@@ -894,9 +1212,9 @@ export default function HomePage() {
             <div className="absolute right-0 top-1/2 transform -translate-y-1/2 hidden md:block">
               <button
                 onClick={scrollToLast}
-                className="w-8 h-16 bg-slate-700 hover:bg-slate-600 rounded-l-lg flex items-center justify-center transition-colors duration-200"
+                className="w-8 h-16 bg-muted hover:bg-melodia-teal-light rounded-l-lg flex items-center justify-center transition-colors duration-200"
               >
-                <ChevronRight className="h-6 w-6 text-yellow-400" />
+                <ChevronRight className="h-6 w-6 text-primary" />
               </button>
             </div>
           </div>
@@ -905,16 +1223,21 @@ export default function HomePage() {
         {/* Testimonials Section */}
         <div className="mb-8 md:mb-16 px-4">
           <div className="text-center mb-6 md:mb-8">
-            <div className="flex items-center justify-center mb-2">
-              <Music className="h-6 w-6 text-yellow-400 mr-2" />
-              <h2 className="text-2xl md:text-3xl font-bold text-white">Over 8,000 Stories Turned Into Songs</h2>
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-full mb-4 shadow-glow animate-pulse">
+              <Music className="h-10 w-10 text-primary-foreground" />
             </div>
-            <p className="text-gray-300 text-sm md:text-base">watch real reactions, see how our songs touch hearts</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Over 8,000 Stories Turned Into Songs</h2>
+            <p className="text-muted-foreground text-sm md:text-base">watch real reactions, see how our songs touch hearts</p>
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <div className="w-3 h-3 bg-primary rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-accent rounded-full animate-bounce delay-100"></div>
+              <div className="w-3 h-3 bg-primary rounded-full animate-bounce delay-200"></div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
             {/* Testimonial 1 */}
-            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-coral transition-shadow duration-300 border-2 border-transparent hover:border-accent/20">
               <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
@@ -931,7 +1254,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 2 */}
-            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-coral transition-shadow duration-300 border-2 border-transparent hover:border-accent/20">
               <div className="aspect-video bg-gradient-to-br from-yellow-100 to-orange-100 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
@@ -948,7 +1271,7 @@ export default function HomePage() {
             </div>
 
             {/* Testimonial 3 */}
-            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="relative bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-coral transition-shadow duration-300 border-2 border-transparent hover:border-accent/20">
               <div className="aspect-video bg-gradient-to-br from-green-100 to-blue-100 relative">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
@@ -979,7 +1302,18 @@ export default function HomePage() {
         {/* My Songs Section - Only show for authenticated users */}
         {isAuthenticated && (
           <div className="mb-8 md:mb-16 px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 text-center">My Songs</h2>
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-accent rounded-full mb-4 shadow-coral animate-pulse">
+                <Music className="h-8 w-8 text-accent-foreground" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">My Songs</h2>
+              <p className="text-muted-foreground text-sm">Your personalized creations</p>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-accent rounded-full animate-bounce delay-100"></div>
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-200"></div>
+              </div>
+            </div>
             {isLoadingSongs ? (
               <div className="flex justify-center py-8">
                 <LoadingSpinner size="lg" text="Loading your songs..." />
@@ -991,22 +1325,22 @@ export default function HomePage() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 hover:bg-slate-700 transition-colors"
+                      className="bg-gradient-to-br from-card via-melodia-teal-light to-card border-2 border-accent/20 rounded-xl p-4 md:p-6 hover:border-accent/40 hover:shadow-coral transition-all duration-300 transform hover:scale-105"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="text-white font-semibold text-lg md:text-xl">
+                            <h3 className="text-foreground font-semibold text-lg md:text-xl">
                               {item.title}
                             </h3>
-                            <span className="px-2 py-1 bg-slate-600 text-gray-300 rounded text-xs font-medium">
+                            <span className="px-3 py-2 bg-accent/30 text-accent rounded-lg text-xs font-bold border border-accent/50 shadow-coral">
                               {item.type.replace('_', ' ')}
                             </span>
                           </div>
-                          <p className="text-gray-300 text-sm md:text-base mb-1">
+                          <p className="text-foreground text-sm md:text-base mb-1">
                             For {item.recipient_name}
                           </p>
-                          <p className="text-gray-400 text-xs md:text-sm">
+                          <p className="text-muted-foreground text-xs md:text-sm">
                             {new Date(item.created_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -1018,6 +1352,8 @@ export default function HomePage() {
                               ? 'bg-yellow-500/20 text-yellow-400'
                               : item.status === 'failed'
                               ? 'bg-red-500/20 text-red-400'
+                              : item.status === 'draft' || item.status === 'needs_review'
+                              ? 'bg-accent/30 text-accent border border-accent/50 shadow-coral'
                               : 'bg-blue-500/20 text-blue-400'
                           }`}>
                             {item.status}
@@ -1073,7 +1409,7 @@ export default function HomePage() {
                   <div className="text-center mt-6">
                     <Button
                       onClick={() => router.push('/my-songs')}
-                      className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-xl"
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 py-3 rounded-xl shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200 border-2 border-accent/20 hover:border-accent/40"
                     >
                       View All Content ({userContent.length})
                     </Button>
@@ -1082,9 +1418,9 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <Music className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-300 text-lg mb-4">No songs created yet</p>
-                <p className="text-gray-400 text-sm">Create your first personalized song above!</p>
+                <Music className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-foreground text-lg mb-4">No songs created yet</p>
+                <p className="text-muted-foreground text-sm">Create your first <span className="text-accent font-semibold bg-accent/20 px-3 py-2 rounded-lg border-2 border-accent/30 shadow-coral">personalized song</span> above!</p>
               </div>
             )}
           </div>
@@ -1130,6 +1466,9 @@ export default function HomePage() {
           currency="INR"
         />
       )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }

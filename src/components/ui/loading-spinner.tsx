@@ -28,9 +28,9 @@ export function LoadingSpinner({
 
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
-      <div className={`animate-spin rounded-full border-b-2 border-yellow-500 ${sizeClasses[size]}`} />
+      <div className={`animate-spin rounded-full border-b-2 border-primary ${sizeClasses[size]}`} />
       {text && (
-        <span className={`text-gray-600 mt-2 ${textSizeClasses[size]}`}>
+        <span className={`text-muted-foreground mt-2 font-body ${textSizeClasses[size]}`}>
           {text}
         </span>
       )}
@@ -40,7 +40,7 @@ export function LoadingSpinner({
 
 export function LoadingPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <LoadingSpinner size="xl" text="Loading..." />
     </div>
   )
@@ -57,8 +57,8 @@ export function LoadingCard() {
 export function LoadingButton({ text = 'Loading...' }: { text?: string }) {
   return (
     <div className="flex items-center justify-center">
-      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-      <span>{text}</span>
+      <Loader2 className="h-4 w-4 animate-spin mr-2 text-current" />
+      <span className="font-body">{text}</span>
     </div>
   )
 }

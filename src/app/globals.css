@@ -1,38 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #eab308;
-  --primary-foreground: #ffffff;
-  --secondary: #fef3c7;
-  --secondary-foreground: #171717;
-  --muted: #fef3c7;
-  --muted-foreground: #737373;
-  --accent: #fef3c7;
-  --accent-foreground: #171717;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e5e5e5;
-  --input: #ffffff;
-  --ring: #eab308;
-  --radius: 0.5rem;
+  /* Melodia Design System Colors - Dark Theme with Coral Accents */
+  --background: #073B4C; /* Dark Teal - Main background */
+  --foreground: #FDFDFD; /* Light Cream - Primary text */
+  --card: #0F4A5C; /* Slightly lighter teal - Card backgrounds */
+  --card-foreground: #FDFDFD; /* Light Cream - Card text */
+  --popover: #0F4A5C; /* Slightly lighter teal - Popover backgrounds */
+  --popover-foreground: #FDFDFD; /* Light Cream - Popover text */
+  --primary: #EF476F; /* Vibrant Coral - Primary buttons (changed from yellow) */
+  --primary-foreground: #FFFFFF; /* White - Text on coral */
+  --secondary: #1A5A6B; /* Muted teal - Secondary backgrounds */
+  --secondary-foreground: #FDFDFD; /* Light Cream - Secondary text */
+  --muted: #1A5A6B; /* Muted teal - Muted backgrounds */
+  --muted-foreground: #B0BEC5; /* Light gray - Muted text */
+  --accent: #EF476F; /* Vibrant Coral - Accent elements */
+  --accent-foreground: #FFFFFF; /* White - Text on coral */
+  --destructive: #EF4444; /* Red - Error states */
+  --destructive-foreground: #FFFFFF; /* White - Text on red */
+  --border: rgba(239, 71, 111, 0.3); /* Coral 30% opacity - Coral borders */
+  --input: #1A5A6B; /* Muted teal - Input backgrounds */
+  --ring: #EF476F; /* Vibrant Coral - Focus rings */
+  --radius: 0.75rem; /* 12px border radius */
   
-  /* Yellow theme gradients */
-  --gradient-primary: linear-gradient(135deg, #facc15 0%, #fbbf24 50%, #f59e0b 100%);
-  --gradient-secondary: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #facc15 100%);
-  --gradient-accent: linear-gradient(135deg, #fef08a 0%, #fde047 50%, #facc15 100%);
+  /* Melodia Design System Gradients - Dark Theme with Coral Focus */
+  --gradient-primary: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%); /* Coral gradient */
+  --gradient-secondary: linear-gradient(135deg, #073B4C 0%, #0F4A5C 50%, #1A5A6B 100%);
+  --gradient-accent: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%);
+  --gradient-warm: linear-gradient(135deg, #EF476F 0%, #FFD166 50%, #073B4C 100%); /* Coral to yellow */
+  --gradient-coral: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%); /* Pure coral */
   
-  /* Yellow theme shadows */
-  --shadow-glow: 0 0 20px rgba(251, 191, 36, 0.3);
-  --shadow-elegant: 0 4px 6px -1px rgba(251, 191, 36, 0.1), 0 2px 4px -1px rgba(251, 191, 36, 0.06);
+  /* Melodia Design System Shadows - Dark Theme with Coral Glow */
+  --shadow-glow: 0 0 20px rgba(239, 71, 111, 0.4); /* Coral glow instead of yellow */
+  --shadow-elegant: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-coral: 0 4px 6px -1px rgba(239, 71, 111, 0.3), 0 2px 4px -1px rgba(239, 71, 111, 0.2);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-coral-glow: 0 0 30px rgba(239, 71, 111, 0.5); /* Strong coral glow */
   
-  /* Yellow theme transitions */
+  /* Melodia Design System Transitions */
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Typography Scale */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+  --font-size-5xl: 3rem; /* 48px */
+  
+  /* Spacing Scale */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 1rem; /* 16px */
+  --spacing-lg: 1.5rem; /* 24px */
+  --spacing-xl: 2rem; /* 32px */
+  --spacing-2xl: 3rem; /* 48px */
+  --spacing-3xl: 4rem; /* 64px */
 }
 
 @theme inline {
@@ -45,7 +72,84 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Utilities */
+.font-heading {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.font-body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Heading Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+h1 {
+  font-size: var(--font-size-5xl); /* 48px */
+  font-weight: 700;
+}
+
+h2 {
+  font-size: var(--font-size-4xl); /* 36px */
+  font-weight: 600;
+}
+
+h3 {
+  font-size: var(--font-size-3xl); /* 30px */
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--font-size-2xl); /* 24px */
+  font-weight: 600;
+}
+
+h5 {
+  font-size: var(--font-size-xl); /* 20px */
+  font-weight: 600;
+}
+
+h6 {
+  font-size: var(--font-size-lg); /* 18px */
+  font-weight: 600;
+}
+
+/* Body Text Styles */
+.text-large {
+  font-size: var(--font-size-lg); /* 18px */
+  line-height: 1.7;
+}
+
+.text-base {
+  font-size: var(--font-size-base); /* 16px */
+  line-height: 1.6;
+}
+
+.text-small {
+  font-size: var(--font-size-sm); /* 14px */
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: var(--font-size-xs); /* 12px */
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 /* Scrollbar hide utility */

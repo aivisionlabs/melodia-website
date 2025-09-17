@@ -72,11 +72,19 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        {/* Google Fonts - Melodia Design System */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#fbbf24" />
-        <meta name="msapplication-TileColor" content="#fbbf24" />
+        <meta name="theme-color" content="#FFD166" />
+        <meta name="msapplication-TileColor" content="#FFD166" />
         <meta name="apple-mobile-web-app-title" content="Melodia" />
 
         {/* Google tag (gtag.js) - Production only */}

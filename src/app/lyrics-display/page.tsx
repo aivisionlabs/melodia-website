@@ -417,18 +417,18 @@ function LyricsDisplayContent() {
 
   if (!lyricsData || !formData) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <h1 className="text-2xl font-bold mb-2">Loading Your Song...</h1>
-          <p className="text-gray-300">Please wait while we prepare your personalized lyrics.</p>
+          <p className="text-muted-foreground">Please wait while we prepare your personalized lyrics.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Navigation Header */}
       <Header />
 
@@ -438,7 +438,7 @@ function LyricsDisplayContent() {
           <Button
             variant="outline"
             onClick={() => router.back()}
-            className="border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-gray-500"
+            className="border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -450,27 +450,27 @@ function LyricsDisplayContent() {
 
           {/* Left Side - Song Info */}
           <div className="xl:col-span-1 space-y-6">
-            <Card className="bg-gray-800 border border-gray-700">
+            <Card className="bg-card border border-melodia-teal-medium">
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Star className="h-5 w-5 mr-2 text-yellow-400" />
+                <CardTitle className="text-card-foreground flex items-center">
+                  <Star className="h-5 w-5 mr-2 text-primary" />
                   Song Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-gray-300 font-medium text-sm">For</label>
-                  <p className="text-white text-lg mt-1 font-semibold">{formData.recipient_name}</p>
+                  <label className="text-muted-foreground font-medium text-sm">For</label>
+                  <p className="text-card-foreground text-lg mt-1 font-semibold">{formData.recipient_name}</p>
                 </div>
 
                 <div>
-                  <label className="text-gray-300 font-medium text-sm">Language</label>
-                  <p className="text-white text-lg mt-1">{formData.languages.join(', ')}</p>
+                  <label className="text-muted-foreground font-medium text-sm">Language</label>
+                  <p className="text-card-foreground text-lg mt-1">{formData.languages.join(', ')}</p>
                 </div>
 
                 <div>
-                  <label className="text-gray-300 font-medium text-sm">Style & Mood</label>
-                  <p className="text-white text-lg mt-1">{formData.additional_details}</p>
+                  <label className="text-muted-foreground font-medium text-sm">Style & Mood</label>
+                  <p className="text-card-foreground text-lg mt-1">{formData.additional_details}</p>
                 </div>
               </CardContent>
             </Card>
@@ -480,7 +480,7 @@ function LyricsDisplayContent() {
               <Button
                 onClick={handleGenerateSong}
                 disabled={isGeneratingSong || checkSongLimit()}
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-3 text-lg rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold py-4 text-lg rounded-xl shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isGeneratingSong ? (
                   <>
@@ -503,7 +503,7 @@ function LyricsDisplayContent() {
               <Button
                 onClick={handleShare}
                 variant="outline"
-                className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 bg-gray-700"
+                className="w-full border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground font-semibold py-3 rounded-lg shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Song
@@ -513,30 +513,30 @@ function LyricsDisplayContent() {
 
           {/* Right Side - Generated Lyrics */}
           <div className="xl:col-span-2 space-y-6">
-            <Card className="bg-gray-800 border border-gray-700">
+            <Card className="bg-card border border-melodia-teal-medium">
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Music className="h-5 w-5 mr-2 text-yellow-400" />
+                <CardTitle className="text-card-foreground flex items-center">
+                  <Music className="h-5 w-5 mr-2 text-primary" />
                   Lyrics
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-700 rounded-xl p-6 border border-gray-600">
+                <div className="bg-secondary rounded-xl p-6 border border-melodia-teal-medium">
                   {/* Song Title */}
                   <div className="text-center mb-6">
-                    <h2 className="text-3xl font-bold text-white mb-4">{lyricsData.title}</h2>
+                    <h2 className="text-3xl font-bold text-foreground mb-4">{lyricsData.title}</h2>
                   </div>
                   
                   {/* Music Style Section - Editable */}
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-gray-300 font-medium text-sm">Music Style</label>
+                      <label className="text-muted-foreground font-medium text-sm">Music Style</label>
                       {!isEditingStyle ? (
                         <Button
                           onClick={handleEditStyle}
                           size="sm"
                           variant="outline"
-                          className="border-gray-500 text-gray-300 hover:bg-gray-500 h-8 px-3"
+                          className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                         >
                           <Edit3 className="h-3 w-3 mr-1" />
                           Edit Style
@@ -546,7 +546,7 @@ function LyricsDisplayContent() {
                           <Button
                             onClick={handleSaveStyle}
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                            className="bg-accent hover:bg-accent/90 text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                           >
                             <Save className="h-3 w-3 mr-1" />
                             Save
@@ -555,7 +555,7 @@ function LyricsDisplayContent() {
                             onClick={handleCancelEdit}
                             size="sm"
                             variant="outline"
-                            className="border-gray-500 text-gray-300 hover:bg-gray-500 h-8 px-3"
+                            className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground h-8 px-3 font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                           >
                             <X className="h-3 w-3 mr-1" />
                             Cancel
@@ -568,43 +568,43 @@ function LyricsDisplayContent() {
                       <Input
                         value={editedStyle}
                         onChange={(e) => setEditedStyle(e.target.value)}
-                        className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                        className="bg-input border-melodia-teal-medium text-foreground placeholder-muted-foreground"
                         placeholder="Enter music style..."
                       />
                     ) : (
-                      <div className="bg-gray-600 rounded-lg p-4 border border-gray-500">
-                        <p className="text-gray-300 text-lg">{lyricsData.styleOfMusic}</p>
+                      <div className="bg-input rounded-lg p-4 border border-melodia-teal-medium">
+                        <p className="text-muted-foreground text-lg">{lyricsData.styleOfMusic}</p>
                       </div>
                     )}
                   </div>
                   
                   {/* Lyrics Section - Read Only */}
                   <div className="mb-6">
-                    <label className="text-gray-300 font-medium text-sm mb-2 block">Lyrics</label>
-                    <pre className="text-white text-base whitespace-pre-wrap font-mono leading-relaxed">
+                    <label className="text-muted-foreground font-medium text-sm mb-2 block">Lyrics</label>
+                    <pre className="text-foreground text-base whitespace-pre-wrap font-mono leading-relaxed">
                       {lyricsData.lyrics}
                     </pre>
                   </div>
                   
                   {/* Lyrics Modification Section */}
-                  <div className="bg-gray-600 rounded-lg p-4 border border-gray-500">
-                    <label className="text-gray-300 font-medium text-sm mb-2 block">
+                  <div className="bg-input rounded-lg p-4 border border-melodia-teal-medium">
+                    <label className="text-muted-foreground font-medium text-sm mb-2 block">
                       What you want to modify in the current lyrics?
                     </label>
                     <textarea
                       value={modificationRequest}
                       onChange={(e) => setModificationRequest(e.target.value)}
-                      className="w-full h-20 p-3 bg-gray-700 border border-gray-500 rounded-lg text-white placeholder-gray-400 resize-none text-sm"
+                      className="w-full h-20 p-3 bg-secondary border border-melodia-teal-medium rounded-lg text-foreground placeholder-muted-foreground resize-none text-sm"
                       placeholder="e.g., Make it more romantic, change the chorus, add more verses, make it shorter..."
                     />
                     <Button
                       onClick={handleGenerateNewLyrics}
                       disabled={isModifyingLyrics}
-                      className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700 text-black font-semibold py-2"
+                      className="w-full mt-3 bg-accent hover:bg-accent/90 text-accent-foreground font-bold py-3 text-base rounded-lg shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200 border-2 border-accent/20 hover:border-accent/40"
                     >
                       {isModifyingLyrics ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent-foreground mr-2"></div>
                           Generating new lyrics...
                         </>
                       ) : (
@@ -618,36 +618,36 @@ function LyricsDisplayContent() {
 
             {/* Generated Songs Section */}
             {generatedSongs.length > 0 && (
-              <Card className="bg-gray-800 border border-gray-700">
+              <Card className="bg-card border border-melodia-teal-medium">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Music className="h-5 w-5 mr-2 text-yellow-400" />
+                  <CardTitle className="text-card-foreground flex items-center">
+                    <Music className="h-5 w-5 mr-2 text-primary" />
                     Generated Songs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {generatedSongs.map((song) => (
-                      <div key={song.id} className="bg-gray-700 rounded-xl p-4 border border-gray-600">
+                      <div key={song.id} className="bg-secondary rounded-xl p-4 border border-melodia-teal-medium">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h3 className="text-white font-semibold text-lg mb-2">{song.title}</h3>
-                            <p className="text-gray-300 text-sm mb-2">{song.styleOfMusic}</p>
+                            <h3 className="text-foreground font-semibold text-lg mb-2">{song.title}</h3>
+                            <p className="text-muted-foreground text-sm mb-2">{song.styleOfMusic}</p>
                             <div className="flex items-center space-x-2">
                               {song.status === 'generating' && (
-                                <div className="flex items-center text-yellow-400">
+                                <div className="flex items-center text-primary">
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                   <span className="text-sm">Generating...</span>
                                 </div>
                               )}
                               {song.status === 'ready' && (
-                                <div className="flex items-center text-green-400">
+                                <div className="flex items-center text-accent">
                                   <Play className="h-4 w-4 mr-2" />
                                   <span className="text-sm">Ready to play</span>
                                 </div>
                               )}
                               {song.status === 'error' && (
-                                <div className="flex items-center text-red-400">
+                                <div className="flex items-center text-destructive">
                                   <X className="h-4 w-4 mr-2" />
                                   <span className="text-sm">{song.errorMessage || 'Generation failed'}</span>
                                 </div>
@@ -661,21 +661,21 @@ function LyricsDisplayContent() {
                                   const audio = new Audio(song.audioUrl)
                                   audio.play()
                                 }}
-                                className="bg-green-500 hover:bg-green-600 text-white"
+                                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                                 size="sm"
                               >
                                 <Play className="h-4 w-4 mr-2" />
                                 Play
                               </Button>
                             ) : song.status === 'generating' ? (
-                              <Button disabled className="bg-gray-500 text-white" size="sm">
+                              <Button disabled className="bg-muted text-muted-foreground" size="sm">
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Generating
                               </Button>
                             ) : (
                               <Button
                                 onClick={() => handleGenerateSong()}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200"
                                 size="sm"
                               >
                                 Retry
@@ -692,9 +692,9 @@ function LyricsDisplayContent() {
 
             {/* Error Display */}
             {songGenerationError && (
-              <Card className="bg-red-900/20 border border-red-500">
+              <Card className="bg-destructive/20 border border-destructive">
                 <CardContent className="p-4">
-                  <div className="flex items-center text-red-400">
+                  <div className="flex items-center text-destructive">
                     <X className="h-5 w-5 mr-2" />
                     <span>{songGenerationError}</span>
                   </div>

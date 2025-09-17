@@ -482,42 +482,42 @@ export default function MySongsPage() {
   // Show loading state
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-yellow-400" />
-          <p className="text-white">Loading your songs...</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-foreground">Loading your songs...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background">
       {/* Navigation Header */}
       <Header />
       
       {/* Page Header */}
-      <div className="bg-black/20 backdrop-blur-sm border-b border-white/10">
+      <div className="bg-secondary/20 backdrop-blur-sm border-b border-accent/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-accent/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white">My Songs</h1>
-              <p className="text-gray-300">All your generated songs in one place</p>
+              <h1 className="text-2xl font-bold text-foreground">My Songs</h1>
+              <p className="text-muted-foreground">All your generated songs in one place</p>
             </div>
             
             <Button
               onClick={handleRefresh}
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-accent/10"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
@@ -532,20 +532,20 @@ export default function MySongsPage() {
           <div className="mb-6 space-y-4">
               {/* Search Bar */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   type="text"
                   placeholder="Search by title or recipient name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-yellow-500"
+                  className="pl-10 bg-input border-melodia-teal-medium text-foreground placeholder-muted-foreground focus:border-accent"
                 />
                 {searchQuery && (
                   <Button
                     onClick={() => setSearchQuery('')}
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -555,13 +555,13 @@ export default function MySongsPage() {
               {/* Filter Chips */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-300 text-sm">Filters:</span>
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground text-sm">Filters:</span>
                 </div>
 
                 {/* Filter Chips Container */}
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs text-gray-400 font-medium self-center mr-2">Status:</span>
+                  <span className="text-xs text-muted-foreground font-medium self-center mr-2">Status:</span>
                   {[
                     { value: 'all', label: 'All Status', icon: '🔍' },
                     { value: 'ready', label: 'Ready to Play', icon: '▶️' },
@@ -574,8 +574,8 @@ export default function MySongsPage() {
                       onClick={() => setStatusFilter(status.value)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                         statusFilter === status.value
-                          ? 'bg-yellow-500 text-black hover:bg-yellow-600'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'bg-secondary text-secondary-foreground hover:bg-accent/10 border border-melodia-teal-medium'
                       }`}
                     >
                       <span className="mr-1">{status.icon}</span>
@@ -587,7 +587,7 @@ export default function MySongsPage() {
                   {(searchQuery || statusFilter !== 'all') && (
                     <button
                       onClick={clearFilters}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all duration-200 border border-red-500"
+                      className="px-3 py-1.5 rounded-full text-sm font-bold bg-accent text-accent-foreground hover:bg-accent/90 transition-all duration-200 border-2 border-accent shadow-coral hover:shadow-glow transform hover:scale-105"
                     >
                       <X className="w-4 h-4 mr-1 inline" />
                       Clear All
@@ -599,12 +599,12 @@ export default function MySongsPage() {
               {/* Results Count */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <p className="text-gray-300">
+                  <p className="text-muted-foreground">
                     Showing {filteredContent.length} of {userContent.length} item{userContent.length !== 1 ? 's' : ''}
                   </p>
                   {(searchQuery || statusFilter !== 'all') && (
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                         {[searchQuery, statusFilter !== 'all'].filter(Boolean).length} filter{([searchQuery, statusFilter !== 'all'].filter(Boolean).length !== 1) ? 's' : ''} active
                       </span>
                     </div>
@@ -616,40 +616,40 @@ export default function MySongsPage() {
 
         {/* Content Display */}
         {userContent.length === 0 ? (
-          <Card className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
             <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-              <h3 className="text-xl font-bold text-white mb-2">No Content Yet</h3>
-              <p className="text-gray-300 mb-4">
+              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <h3 className="text-xl font-bold text-card-foreground mb-2">No Content Yet</h3>
+              <p className="text-muted-foreground mb-4">
                 Generate your first personalized song to see it here!
               </p>
               <Button
                 onClick={() => router.push('/')}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
               >
                 Create Your First Song
               </Button>
             </CardContent>
           </Card>
         ) : filteredContent.length === 0 ? (
-          <Card className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
             <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-              <h3 className="text-xl font-bold text-white mb-2">No Results Found</h3>
-              <p className="text-gray-300 mb-4">
+              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <h3 className="text-xl font-bold text-card-foreground mb-2">No Results Found</h3>
+              <p className="text-muted-foreground mb-4">
                 Try adjusting your search or filters to find what you&apos;re looking for.
               </p>
               {(searchQuery || statusFilter !== 'all') && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-400 mb-2">Current filters:</p>
+                  <p className="text-sm text-muted-foreground mb-2">Current filters:</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {searchQuery && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                         Search: &quot;{searchQuery}&quot;
                       </span>
                     )}
                     {statusFilter !== 'all' && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                         Status: {statusFilter}
                       </span>
                     )}
@@ -658,7 +658,7 @@ export default function MySongsPage() {
               )}
               <Button
                 onClick={clearFilters}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
               >
                 Clear All Filters
               </Button>
@@ -671,31 +671,31 @@ export default function MySongsPage() {
                 return (
                   <Card 
                     key={`${item.type}-${item.id}`} 
-                    className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30 hover:bg-yellow-500/10 transition-all duration-300 cursor-pointer group"
+                    className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-accent/10 transition-all duration-300 cursor-pointer group"
                     onClick={() => handlePlaySong(item)}
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-white text-lg font-bold line-clamp-1 group-hover:text-yellow-300 transition-colors">
+                        <CardTitle className="text-card-foreground text-lg font-bold line-clamp-1 group-hover:text-accent transition-colors">
                           {item.title}
                         </CardTitle>
                         {getStatusBadge(item)}
                       </div>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         Created: {formatDate(item.created_at)}
                       </p>
-                      <p className="text-gray-500 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         For: {item.recipient_name}
                       </p>
                     </CardHeader>
                     
                     <CardContent className="space-y-4">
-                      <div className="bg-yellow-500/10 rounded-lg p-3">
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-primary/10 rounded-lg p-3">
+                        <p className="text-card-foreground text-sm">
                           Type: {item.type.replace('_', ' ').toUpperCase()}
                         </p>
                         {item.audio_url && (
-                          <p className="text-green-400 text-xs mt-1">
+                          <p className="text-accent text-xs mt-1">
                             🎵 Audio available
                           </p>
                         )}
@@ -712,7 +712,7 @@ export default function MySongsPage() {
                                 handlePlaySong(item)
                               }
                             }}
-                            className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                            className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200"
                           >
                             <Play className="w-4 h-4 mr-2" />
                             {button.text}
@@ -725,7 +725,7 @@ export default function MySongsPage() {
                             }}
                             variant="outline"
                             size="icon"
-                            className="border-red-300 text-red-300 hover:bg-red-500/20"
+                            className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -743,32 +743,32 @@ export default function MySongsPage() {
       {/* Progress Modal */}
       {showProgressModal && progressItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="bg-gray-800/95 backdrop-blur-sm border-yellow-500/30 max-w-md w-full mx-4">
+          <Card className="bg-card/95 backdrop-blur-sm border-primary/30 max-w-md w-full mx-4">
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
+              <CardTitle className="text-card-foreground flex items-center">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Song Generation in Progress
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-card-foreground mb-2">
                   {progressItem.title}
                 </h3>
-                <p className="text-gray-300 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Your personalized song is being generated. This usually takes 2-3 minutes.
                 </p>
                 
-                <div className="bg-yellow-500/10 rounded-lg p-4 mb-4">
+                <div className="bg-primary/10 rounded-lg p-4 mb-4">
                   <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
-                    <span className="text-yellow-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-primary text-sm">
                       Processing your song...
                     </span>
                   </div>
                 </div>
                 
-                <p className="text-gray-400 text-sm">
+                <p className="text-muted-foreground text-sm">
                   We&apos;ll automatically update this page when your song is ready!
                 </p>
               </div>
@@ -777,7 +777,7 @@ export default function MySongsPage() {
                 <Button
                   onClick={() => setShowProgressModal(false)}
                   variant="outline"
-                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="flex-1 border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                 >
                   Close
                 </Button>
@@ -786,7 +786,7 @@ export default function MySongsPage() {
                     setShowProgressModal(false);
                     loadUserContent(); // Refresh the data
                   }}
-                  className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                  className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
                 >
                   Refresh Status
                 </Button>
