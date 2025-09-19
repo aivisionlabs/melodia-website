@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
-import { PaymentStatusProps } from '@/types/payment';
-import { formatAmount, getPaymentStatusDisplayName, getPaymentStatusColor, getPaymentStatusBgColor, getPaymentMethodDisplayName } from '@/lib/razorpay-client';
+import React from "react";
+import { CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
+import { PaymentStatusProps } from "@/types/payment";
+import {
+  formatAmount,
+  getPaymentStatusDisplayName,
+  getPaymentStatusColor,
+  getPaymentStatusBgColor,
+  getPaymentMethodDisplayName,
+} from "@/lib/razorpay-client";
 
 export const PaymentStatus: React.FC<PaymentStatusProps> = ({
   paymentId,
@@ -15,11 +21,11 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
 }) => {
   const getStatusIcon = () => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="h-5 w-5 text-red-500" />;
-      case 'refunded':
+      case "refunded":
         return <RefreshCw className="h-5 w-5 text-blue-500" />;
       default:
         return <Clock className="h-5 w-5 text-yellow-500" />;
@@ -39,17 +45,17 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-card rounded-lg border border-melodia-teal-medium p-4 shadow-elegant">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           {getStatusIcon()}
@@ -78,13 +84,15 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
         )}
         <div className="flex justify-between">
           <span>Status:</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBgColorClass()} ${getStatusColor()}`}>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBgColorClass()} ${getStatusColor()}`}
+          >
             {getStatusText()}
           </span>
         </div>
       </div>
 
-      {status === 'pending' && (
+      {status === "pending" && (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
             Your payment is being processed. This may take a few minutes.
@@ -92,18 +100,20 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
         </div>
       )}
 
-      {status === 'failed' && (
+      {status === "failed" && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-800">
-            Payment failed. Please try again or contact support if the issue persists.
+            Payment failed. Please try again or contact support if the issue
+            persists.
           </p>
         </div>
       )}
 
-      {status === 'refunded' && (
+      {status === "refunded" && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            This payment has been refunded. The amount will be credited to your original payment method.
+            This payment has been refunded. The amount will be credited to your
+            original payment method.
           </p>
         </div>
       )}

@@ -26,7 +26,14 @@ const Header = () => {
       </Link>
 
       {/* Desktop Navigation and CTA */}
-        <div className="hidden md:flex items-center gap-6">
+      <div className="hidden md:flex items-center gap-6">
+        <Link
+          href="/best-songs"
+          className="text-foreground hover:text-accent font-medium transition-colors focus:underline"
+          aria-label="Go to Best Songs"
+        >
+          Best Songs
+        </Link>
         {/* <Link
           href="/library"
           className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
@@ -48,20 +55,27 @@ const Header = () => {
         >
           Testimonials
         </Link> */}
-        
+
         {isAuthenticated ? (
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="outline" size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
+              >
                 <User className="h-4 w-4 mr-2" />
                 Dashboard
               </Button>
             </Link>
-            {/* <Link href="/create-song">
-              <Button size="sm" className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white">
+            <Link href="/create-song-v2">
+              <Button
+                size="sm"
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
+              >
                 Create Song
               </Button>
-            </Link> */}
+            </Link>
             <Button
               variant="ghost"
               size="sm"
@@ -73,19 +87,25 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <Link href="/auth/login">
-              <Button size="sm" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+            <Link href="/sign-in">
+              <Button
+                size="sm"
+                className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
+              >
                 Sign In
               </Button>
             </Link>
-            <Link href="/auth/signup">
-              <Button size="sm" className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground">
+            <Link href="/sign-up">
+              <Button
+                size="sm"
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
+              >
                 Sign Up
               </Button>
             </Link>
           </div>
         )}
-        
+
         {/* <ShareRequirementsCTA size="md" /> */}
       </div>
 
@@ -109,14 +129,17 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Link href="/auth/login">
-              <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background text-xs">
+            <Link href="/sign-in">
+              <Button
+                size="sm"
+                className="bg-foreground hover:bg-foreground/90 text-background text-xs"
+              >
                 Sign In
               </Button>
             </Link>
           </div>
         )}
-        
+
         <ShareRequirementsCTA size="sm" />
 
         {/* Hamburger Button */}
@@ -139,12 +162,12 @@ const Header = () => {
         <div className="absolute top-full left-0 right-0 bg-white border-b border-melodia-teal-medium shadow-elegant md:hidden z-50">
           <nav className="flex flex-col py-2" aria-label="Mobile navigation">
             <Link
-              href="/library"
+              href="/best-songs"
               className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
               onClick={() => setIsMenuOpen(false)}
-              aria-label="Go to Songs Library"
+              aria-label="Go to Best Songs"
             >
-              Library
+              Best Songs
             </Link>
             {/* <Link
               href="/my-songs"
@@ -184,7 +207,7 @@ const Header = () => {
             ) : (
               <>
                 <Link
-                  href="/auth/login"
+                  href="/sign-in"
                   className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign In"
@@ -192,7 +215,7 @@ const Header = () => {
                   Sign In
                 </Link>
                 <Link
-                  href="/auth/signup"
+                  href="/sign-up"
                   className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign Up"

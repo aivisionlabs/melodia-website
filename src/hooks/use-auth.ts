@@ -23,7 +23,7 @@ export const useAuth = () => {
         // For now, we'll check localStorage for a simple session
         // In a real implementation, you'd verify the session with the server
         const sessionData = localStorage.getItem('user-session')
-        
+
         if (sessionData) {
           try {
             const user = JSON.parse(sessionData) as User
@@ -70,7 +70,7 @@ export const useAuth = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
       })
 
       const result = await response.json()
@@ -78,13 +78,15 @@ export const useAuth = () => {
       if (result.success && result.user) {
         // Store user data in localStorage (simplified session management)
         localStorage.setItem('user-session', JSON.stringify(result.user))
-        
+        // Clear anonymous id after merge
+        localStorage.removeItem('anonymous_user_id')
+
         setAuthState({
           user: result.user,
           loading: false,
           error: null
         })
-        
+
         return { success: true }
       } else {
         setAuthState(prev => ({
@@ -92,7 +94,7 @@ export const useAuth = () => {
           loading: false,
           error: result.error || 'Login failed'
         }))
-        
+
         return { success: false, error: result.error }
       }
     } catch (error) {
@@ -102,7 +104,7 @@ export const useAuth = () => {
         loading: false,
         error: 'An unexpected error occurred'
       }))
-      
+
       return { success: false, error: 'An unexpected error occurred' }
     }
   }, [])
@@ -116,7 +118,7 @@ export const useAuth = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify({ email, password, name, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
       })
 
       const result = await response.json()
@@ -124,13 +126,15 @@ export const useAuth = () => {
       if (result.success && result.user) {
         // Store user data in localStorage (simplified session management)
         localStorage.setItem('user-session', JSON.stringify(result.user))
-        
+        // Clear anonymous id after signup
+        localStorage.removeItem('anonymous_user_id')
+
         setAuthState({
           user: result.user,
           loading: false,
           error: null
         })
-        
+
         return { success: true }
       } else {
         setAuthState(prev => ({
@@ -138,7 +142,7 @@ export const useAuth = () => {
           loading: false,
           error: result.error || 'Registration failed'
         }))
-        
+
         return { success: false, error: result.error }
       }
     } catch (error) {
@@ -148,7 +152,7 @@ export const useAuth = () => {
         loading: false,
         error: 'An unexpected error occurred'
       }))
-      
+
       return { success: false, error: 'An unexpected error occurred' }
     }
   }, [])
@@ -166,13 +170,13 @@ export const useAuth = () => {
       if (result.success) {
         // Clear session data
         localStorage.removeItem('user-session')
-        
+
         setAuthState({
           user: null,
           loading: false,
           error: null
         })
-        
+
         return { success: true }
       } else {
         setAuthState(prev => ({
@@ -180,21 +184,21 @@ export const useAuth = () => {
           loading: false,
           error: result.error || 'Logout failed'
         }))
-        
+
         return { success: false, error: result.error }
       }
     } catch (error) {
       console.error('Logout error:', error)
-      
+
       // Even if logout fails, clear local session
       localStorage.removeItem('user-session')
-      
+
       setAuthState({
         user: null,
         loading: false,
         error: null
       })
-      
+
       return { success: true }
     }
   }, [])

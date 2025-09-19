@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - My Songs</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FFD166",
+            "secondary": "#FDFDFD",
+            "accent": "#EF476F",
+            "text-color": "#073B4C",
+          },
+          fontFamily: {
+            "heading": ["Poppins", "sans-serif"],
+            "body": ["Montserrat", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "1.5rem",
+            "lg": "1.5rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary font-body text-text-color">
+<div class="relative flex h-screen min-h-screen w-full flex-col justify-between group/design-root overflow-hidden">
+<div class="flex-grow flex flex-col">
+<header class="bg-secondary p-4 pb-2">
+<div class="flex items-center justify-between">
+<div class="w-12"></div>
+<h1 class="text-text-color text-xl font-heading font-bold text-center flex-1">My Songs</h1>
+<div class="w-12 flex justify-end">
+<button class="text-text-color">
+<span class="material-symbols-outlined text-3xl">
+                settings
+              </span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-center text-center px-6">
+<div class="flex flex-col items-center gap-8">
+<div class="bg-primary/20 p-6 rounded-full">
+<span class="material-symbols-outlined text-primary text-6xl">
+              lock
+            </span>
+</div>
+<h2 class="text-text-color font-heading text-3xl font-bold max-w-xs">Login to see your songs</h2>
+<p class="text-text-color/80 max-w-sm">Once you log in, all the amazing songs you create with Melodia will be saved right here for you to enjoy and share.</p>
+<button class="bg-primary text-text-color font-heading font-bold py-4 px-12 rounded-full w-full max-w-xs shadow-lg transform hover:scale-105 transition-transform duration-300">
+            Login
+          </button>
+</div>
+</main>
+</div>
+<footer class="bg-secondary border-t border-text-color/10 px-4 pb-5 pt-2">
+<nav class="flex justify-around">
+<a class="flex flex-col items-center gap-1 text-text-color/60" href="#">
+<span class="material-symbols-outlined">
+            home
+          </span>
+<span class="text-xs font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-color/60" href="#">
+<span class="material-symbols-outlined">
+            celebration
+          </span>
+<span class="text-xs font-medium">Best Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-accent" href="#">
+<span class="material-symbols-outlined">
+            music_note
+          </span>
+<span class="text-xs font-medium">My Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-color/60" href="#">
+<span class="material-symbols-outlined">
+            person
+          </span>
+<span class="text-xs font-medium">Profile</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>

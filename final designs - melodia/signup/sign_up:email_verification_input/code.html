@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - Email Confirmation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FFD166",
+            "secondary": "#FDFDFD",
+            "accent": "#EF476F",
+            "text": "#073B4C",
+          },
+          fontFamily: {
+            "display": ["Poppins", "sans-serif"],
+            "body": ["Montserrat", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "1.5rem",
+            "xl": "2rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .code-input {
+      width: 2.75rem;height: 3.5rem;text-align: center;
+      font-size: 1.5rem;font-weight: 600;
+      border-radius: 0.5rem;border: 1px solid theme('colors.text/20');
+      background-color: white;
+      caret-color: theme('colors.accent');
+    }
+    .code-input:focus {
+      outline: none;
+      border-color: theme('colors.primary');
+      box-shadow: 0 0 0 2px theme('colors.primary');
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary text-text">
+<div class="flex flex-col min-h-screen">
+<header class="flex items-center justify-between p-4">
+<button class="text-text hover:text-accent">
+<svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg"><path d="M165.66,202.34a8,8,0,0,1-11.32,0L128,175.94l-26.34,26.4a8,8,0,0,1-11.32-11.32L116.69,164.69,90.34,138.34a8,8,0,0,1,11.32-11.32L128,153.37l26.34-26.35a8,8,0,0,1,11.32,11.32L139.31,164.69Z" opacity="0.2"></path><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,150.34a8,8,0,0,1-11.32,11.32L128,151.31l-34.34,34.35a8,8,0,0,1-11.32-11.32L116.69,140,82.34,105.66a8,8,0,0,1,11.32-11.32L128,128.69l34.34-34.35a8,8,0,0,1,11.32,11.32L139.31,140Z" display="none"></path><path d="M168.49,157.16,133.17,121.84a8,8,0,0,0-11.32,0L86.51,157.16a8,8,0,0,0,11.32,11.31L128,138.2l30.18,30.27a8,8,0,0,0,11.31-11.31Z" opacity="0.2"></path><path d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></path><path d="M165.66,105.66,140,131.31,114.34,105.66a8,8,0,0,0-11.32,11.32L128.69,142.69,103.03,168.34a8,8,0,0,0,11.32,11.32L140,154l25.66,25.66a8,8,0,0,0,11.32-11.32L151.31,142.69,177,117a8,8,0,0,0-11.32-11.32Z" display="none"></path><path d="M108,128,97.66,117.66a8,8,0,0,1,11.32-11.32L120,117.37l11.09-11.09a8,8,0,0,1,11.31,11.32L131.31,128l11.09,11.09a8,8,0,0,1-11.31,11.31L120,139.31l-11.09,11.09a8,8,0,0,1-11.32-11.31Z" opacity="0.2"></path><path d="m160,104-32,32-32-32a8,8,0,0,0-11.31,11.31L108.69,128,97.37,139.31a8,8,0,0,0,11.31,11.32L120,139.31l11.31,11.32a8,8,0,0,0,11.32-11.32L131.31,128l11.32-11.31a8,8,0,0,0,0-11.32A8,8,0,0,0,160,104Z" display="none"></path><path d="M92.69,81.37a8,8,0,0,1,11.31-11.32L128,94.06l24-24.05a8,8,0,0,1,11.32,11.32L139.31,105.37l24.05,24.06a8,8,0,1,1-11.32,11.32L128,116.69l-24,24.05a8,8,0,0,1-11.32-11.32L116.69,105.37Z" opacity="0.2"></path><path d="M128,72l-40,40-1.66-1.66a8,8,0,0,0-11.31,11.32L86.34,133a8,8,0,0,0,11.32,0L128,102.69l30.34,30.35a8,8,0,0,0,11.32-11.32L139.31,91.34,169.66,61a8,8,0,0,0-11.32-11.31Z" opacity="0.2"></path><path d="M165.66,90.34a8,8,0,0,1,0,11.32L101.66,165.66a8,8,0,0,1-11.32-11.32L154.34,90.34a8,8,0,0,1,11.32,0Z"></path><path d="M101.66,90.34,90.34,101.66a8,8,0,0,0,11.32,11.32L165.66,49a8,8,0,0,0-11.32-11.31Z" opacity="0.2"></path><path d="m154.34,165.66-52.68-52.68a8,8,0,0,0-11.32,11.32L143,177a8,8,0,0,0,11.32-11.32Z"></path><path d="M101.66,165.66,90.34,154.34a8,8,0,0,0-11.32,11.32L143,229.66a8,8,0,1,0,11.32-11.32Z" opacity="0.2"></path><path d="M165.66,90.34,90.34,165.66a8,8,0,0,0,11.32,11.32L177,101.66a8,8,0,0,0-11.32-11.32Z"></path></svg></button></header>
+<main class="flex-grow flex flex-col items-center justify-center px-6 text-center">
+<div class="w-full max-w-sm">
+<h1 class="font-display text-4xl font-bold text-text mb-4">Check your email</h1>
+<p class="text-text/80 mb-8">We sent a 6-digit confirmation code to your email. Please enter it below.</p>
+<form class="space-y-8" id="code-form">
+<div class="flex justify-center space-x-2">
+<input class="code-input" id="code-1" maxlength="1" required="" type="text"/>
+<input class="code-input" id="code-2" maxlength="1" required="" type="text"/>
+<input class="code-input" id="code-3" maxlength="1" required="" type="text"/>
+<input class="code-input" id="code-4" maxlength="1" required="" type="text"/>
+<input class="code-input" id="code-5" maxlength="1" required="" type="text"/>
+<input class="code-input" id="code-6" maxlength="1" required="" type="text"/>
+</div>
+<button class="w-full h-14 bg-primary text-text font-display font-bold text-lg rounded-full shadow-md hover:bg-yellow-400 transition-colors duration-300" type="submit">
+            Verify
+          </button>
+</form>
+<div class="mt-6 text-center">
+<p class="text-sm text-text/60">Didn't receive the code?</p>
+<button class="font-semibold text-accent hover:underline">Resend Code</button>
+</div>
+</div>
+</main>
+<footer class="p-6 text-center">
+<p class="text-xs text-text/60">© 2024 Melodia. All rights reserved.</p>
+</footer>
+</div>
+<script>
+    const form = document.getElementById('code-form');
+    const inputs = [...form.querySelectorAll('.code-input')];
+    inputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        if (e.target.value && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          inputs[index - 1].focus();
+        }
+      });
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').slice(0, 6);
+        pasteData.split('').forEach((char, i) => {
+          if (inputs[i]) {
+            inputs[i].value = char;
+          }
+        });
+        if (pasteData.length === 6) {
+          inputs[5].focus();
+        }
+      });
+    });
+  </script>
+
+</body></html>

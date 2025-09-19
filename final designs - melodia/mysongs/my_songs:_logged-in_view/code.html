@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - My Songs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#FFD166',
+            secondary: '#FDFDFD',
+            accent: '#EF476F',
+            'text-dark': '#073B4C',
+          },
+          fontFamily: {
+            heading: ['Poppins', 'sans-serif'],
+            body: ['Montserrat', 'sans-serif'],
+          },
+          borderRadius: {
+            'DEFAULT': '0.75rem',
+            'lg': '1rem',
+            'full': '9999px',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings:
+        'FILL' 1,
+        'wght' 700,
+        'GRAD' 0,
+        'opsz' 24
+    }
+    .view-more-content {
+      display: none;
+    }
+    .view-more-toggle:checked+.view-more-content {
+      display: block;
+    }
+    .view-more-toggle:checked~.line-clamp-2 {
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
+    .view-more-toggle:checked~label span.more {
+      display: none;
+    }
+    .view-more-toggle:checked~label span.less {
+      display: inline;
+    }
+    .view-more-toggle~label span.less {
+      display: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary font-body text-text-dark">
+<div class="flex flex-col min-h-screen">
+<header class="bg-secondary sticky top-0 z-10 px-4 py-3 shadow-md">
+<div class="flex items-center justify-between">
+<button>
+<span class="material-symbols-outlined text-text-dark text-3xl">arrow_back_ios_new</span>
+</button>
+<h1 class="font-heading text-xl font-bold text-text-dark">My Songs</h1>
+<div class="w-8"></div>
+</div>
+</header>
+<main class="flex-grow p-4 space-y-4 overflow-y-auto">
+<div class="bg-white rounded-lg shadow-sm p-4">
+<div class="flex items-start space-x-4">
+<img alt="Album art for Eternal Echoes" class="w-20 h-20 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFh5PzJnhfsjGWAF6n9SLMwxUKjC9A-rZjWqdUdm6-jkmL_CKJaU__SKeD2cWqav-HyE6hzUlbyKovIDLSTJavH53MQEESIUjjyFsFDCkU9U4lWP89f5Y26Tsajv8JVVm7DOvvYR3vDCe5qzFxqsN3lEsBgZzzZkVRnFeSXL82rdhQpqxPzn5ZZ8RcTlxT0xqaYBz0weOTtdIr_QzfeZZL9oFj6kuR3jPiRUw83AVkLOKQSQ2F0x0daDbFF8AZR8e9BSQdbMBWcq7Q"/>
+<div class="flex-1">
+<h2 class="font-heading text-lg font-bold text-text-dark">Eternal Echoes</h2>
+<input class="hidden view-more-toggle" id="song1" type="checkbox"/>
+<p class="text-sm text-text-dark/80 mt-1 line-clamp-2">A heartfelt ballad about a couple's journey through life, celebrating their enduring love and shared dreams. It speaks of moments big and small, from their first dance to quiet evenings together, painting a picture of a love that withstands the test of time.</p>
+<p class="text-xs text-text-dark/60 mt-2">Created on 2024-01-15</p>
+<label class="cursor-pointer text-accent text-sm font-medium mt-2 inline-block" for="song1">
+<span class="more">View More</span>
+<span class="less">View Less</span>
+</label>
+</div>
+<button>
+<span class="material-symbols-outlined text-accent text-3xl">play_circle</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-4">
+<div class="flex items-start space-x-4">
+<img alt="Album art for Unbreakable Bond" class="w-20 h-20 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB679SCjs9kIs30PQb8VEX8xQXvjCv6Tcw8i1ImSB72gYnLlv6ogtVN0lLo_isLv1_wPyFwiCkqvikV4rbbuLfEQ7G3Ha18tLm9sU4k_-fs8cvZ53zbfvMRs--bYl3KLdBmrzc3RRT8-fcu2j71Up2JqQwTIpXx-nA7uwKdaobgMySSjwfRTMDjTCpkaHwBydP9Dcpf3gfuNsP8xliz5UHoStQydC9zdgB7bGgM4Rh40m3zIwgqTAVNmfORcEyJMr85iCC2Lnn0QTI1"/>
+<div class="flex-1">
+<h2 class="font-heading text-lg font-bold text-text-dark">Unbreakable Bond</h2>
+<input class="hidden view-more-toggle" id="song2" type="checkbox"/>
+<p class="text-sm text-text-dark/80 mt-1 line-clamp-2">An upbeat pop anthem dedicated to a friend's unwavering support and the joy of shared adventures. The lyrics reminisce about spontaneous road trips, late-night talks, and the comfort of knowing someone always has your back.</p>
+<p class="text-xs text-text-dark/60 mt-2">Created on 2024-01-10</p>
+<label class="cursor-pointer text-accent text-sm font-medium mt-2 inline-block" for="song2">
+<span class="more">View More</span>
+<span class="less">View Less</span>
+</label>
+</div>
+<button>
+<span class="material-symbols-outlined text-accent text-3xl">play_circle</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-4">
+<div class="flex items-start space-x-4">
+<img alt="Album art for Guiding Star" class="w-20 h-20 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiFgVHFIAH42wz2rW9AntI35hoFYhP0Zu7bL5HWYZYjMr0CmI-RgdD44VAs8xLnh853bePzyMKpDpj275zTtk4NRhq8bOJlar2NSog0Jn3t5ctAnj-lRt7AdZmYsG9At2hf1Uvua6Jn9RJwPVYTBYqQnzjrPCGuGJWRGq1ZBqeF96N-CWgE4Df5A_-lD0tHp2BPugcyq-DnEiX36W1xAUpXkKdJJUrdXWprhv0biNY6XX_mvAJ5vrXGq9HfXJENOsjS5nzr4UJgy9_"/>
+<div class="flex-1">
+<h2 class="font-heading text-lg font-bold text-text-dark">Guiding Star</h2>
+<input class="hidden view-more-toggle" id="song3" type="checkbox"/>
+<p class="text-sm text-text-dark/80 mt-1 line-clamp-2">A soulful R&amp;B track expressing deep gratitude for a mentor's guidance and transformative impact. It highlights the mentor's wisdom, encouragement, and belief in one's potential, which helped navigate challenges and achieve personal growth.</p>
+<p class="text-xs text-text-dark/60 mt-2">Created on 2024-01-05</p>
+<label class="cursor-pointer text-accent text-sm font-medium mt-2 inline-block" for="song3">
+<span class="more">View More</span>
+<span class="less">View Less</span>
+</label>
+</div>
+<button>
+<span class="material-symbols-outlined text-accent text-3xl">play_circle</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-sm p-4">
+<div class="flex items-start space-x-4">
+<img alt="Album art for Winter's Embrace" class="w-20 h-20 rounded object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBshxPdxOQkMDfOCsZipGO2B4nRD_4hmFQngPbQnQQjKGVY-vteozy-AOMYmXiYgMPGlApXo55oFkiIAXM-2rO42o9RXyKeDMd9E4XslPz0CDjzcLNeg_NU3V9Y2YgGTyUUx2U8_8QY0HVJqiX0p_S3u9tMyXLYJWlwX-o-m6rA0Xb1zSHgz62PH44uUTf5EMc30p4xs4Q6V4P9Xd1x6Zg7h5--L_MhBMtbpgjQZPATvMO2ohflCGFeLhhHLxiblznsJmCHI93SKhQS"/>
+<div class="flex-1">
+<h2 class="font-heading text-lg font-bold text-text-dark">Winter's Embrace</h2>
+<input class="hidden view-more-toggle" id="song4" type="checkbox"/>
+<p class="text-sm text-text-dark/80 mt-1 line-clamp-2">A festive holiday song capturing the warmth of family gatherings and the magic of the season. It paints a cozy picture of snowy landscapes, crackling fireplaces, and the joy of being surrounded by loved ones.</p>
+<p class="text-xs text-text-dark/60 mt-2">Created on 2023-12-20</p>
+<label class="cursor-pointer text-accent text-sm font-medium mt-2 inline-block" for="song4">
+<span class="more">View More</span>
+<span class="less">View Less</span>
+</label>
+</div>
+<button>
+<span class="material-symbols-outlined text-accent text-3xl">play_circle</span>
+</button>
+</div>
+</div>
+</main>
+<nav class="bg-secondary sticky bottom-0 z-10 border-t border-t-text-dark/10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center justify-center gap-1 text-text-dark/60 w-1/4" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-xs font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-text-dark/60 w-1/4" href="#">
+<span class="material-symbols-outlined">star</span>
+<span class="text-xs font-medium">Best Songs</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-accent w-1/4" href="#">
+<span class="material-symbols-outlined filled">music_note</span>
+<span class="text-xs font-bold">My Songs</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-text-dark/60 w-1/4" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-xs font-medium">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+
+</body></html>

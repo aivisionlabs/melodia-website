@@ -44,6 +44,8 @@ export const songsTable = pgTable('songs', {
   status_check_count: integer('status_check_count').default(0),
   // Payment integration fields
   payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
+  // Curation
+  is_featured: boolean('is_featured').default(false),
 });
 
 // Users table for regular user accounts
@@ -60,6 +62,7 @@ export const usersTable = pgTable('users', {
 export const songRequestsTable: any = pgTable('song_requests', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id'), // Reference to user who made this request (nullable for guest requests)
+  anonymous_user_id: text('anonymous_user_id'), // For onboarding anonymous flow
   requester_name: text('requester_name').notNull(),
   phone_number: text('phone_number'),
   email: text('email'),

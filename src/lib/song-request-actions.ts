@@ -76,7 +76,8 @@ function validateSongRequestForm(formData: SongRequestFormData): { isValid: bool
 export async function createSongRequest(
   formData: SongRequestFormData,
   userId?: number,
-  ip: string = 'unknown'
+  ip: string = 'unknown',
+  anonymousUserId?: string
 ): Promise<{
   success: boolean
   requestId?: number
@@ -120,6 +121,7 @@ export async function createSongRequest(
       .insert(songRequestsTable)
       .values({
         user_id: userId || null,
+        anonymous_user_id: anonymousUserId || null,
         ...sanitizedData,
         status: 'pending',
         payment_required: shouldRequirePayment()

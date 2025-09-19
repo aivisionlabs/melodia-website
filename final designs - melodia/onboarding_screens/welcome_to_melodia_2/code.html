@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - AI Songwriter</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+    :root {
+      --primary-bright-yellow: #FFD166;
+      --secondary-light-cream: #FDFDFD;
+      --accent-vibrant-coral: #EF476F;
+      --text-dark-teal: #073B4C;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Poppins', sans-serif;
+    }
+    .carousel-container {
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .carousel-container::-webkit-scrollbar {
+      display: none;
+    }
+    .carousel-item {
+      scroll-snap-align: center;
+    }.carousel-item-center {
+      transform: scale(1.15);
+      transition: transform 0.3s ease-in-out;
+    }
+    .carousel-item:not(.carousel-item-center) {
+        transform: scale(0.9);
+        transition: transform 0.3s ease-in-out;
+        opacity: 0.7;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--secondary-light-cream)] text-[var(--text-dark-teal)]">
+<div class="relative flex h-screen w-full flex-col items-center justify-between group/design-root overflow-hidden p-6">
+<div class="absolute -top-20 -left-20 w-40 h-40 bg-[var(--primary-bright-yellow)] rounded-full opacity-50"></div>
+<div class="absolute -bottom-20 -right-20 w-40 h-40 bg-[var(--accent-vibrant-coral)] rounded-full opacity-50"></div>
+<div class="absolute top-1/4 right-10 w-24 h-24 bg-[var(--primary-bright-yellow)] rounded-full opacity-30 animate-pulse"></div>
+<div class="absolute bottom-1/3 left-10 w-20 h-20 bg-[var(--accent-vibrant-coral)] rounded-full opacity-40 animate-pulse delay-75"></div>
+<header class="z-10 flex flex-col items-center space-y-2 pt-8 text-center">
+<svg class="w-16 h-16 text-[var(--text-dark-teal)]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<h1 class="text-4xl font-bold leading-tight drop-shadow-sm">Melodia</h1>
+<p class="text-lg font-medium text-[var(--text-dark-teal)] opacity-90">
+      Turn Your Stories Into Studio-Quality Songs
+    </p>
+</header>
+<main class="z-10 w-full max-w-md flex-grow flex flex-col justify-center items-center">
+<div class="carousel-container flex w-full space-x-2 pb-4 overflow-x-auto items-center" id="carousel">
+<div class="carousel-item flex-shrink-0 w-64 md:w-72 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-white/30">
+<div class="w-16 h-16 bg-[var(--primary-bright-yellow)] rounded-full flex items-center justify-center mb-4">
+<svg class="h-8 w-8 text-[var(--text-dark-teal)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-xl font-bold mb-2">Anniversary Serenade</h3>
+<p class="text-sm font-medium opacity-80">Listen to a heartwarming song created for a 10-year anniversary.</p>
+</div>
+<div class="carousel-item flex-shrink-0 w-72 md:w-80 flex flex-col items-center justify-center text-center bg-white/60 backdrop-blur-md p-8 rounded-3xl shadow-xl border border-white/40 carousel-item-center">
+<div class="w-20 h-20 bg-[var(--accent-vibrant-coral)] rounded-full flex items-center justify-center mb-6 relative">
+<svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<svg class="h-6 w-6 text-white absolute -right-2 -bottom-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+<h3 class="text-2xl font-bold mb-3">A Hit Song in Minutes</h3>
+<p class="text-base font-medium opacity-80">Go from a simple idea to a finished, shareable song in under 10 minutes. The perfect, high-impact gift for when you're short on time.</p>
+</div>
+<div class="carousel-item flex-shrink-0 w-64 md:w-72 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-white/30">
+<div class="w-16 h-16 bg-[var(--primary-bright-yellow)] rounded-full flex items-center justify-center mb-4">
+<svg class="h-8 w-8 text-[var(--text-dark-teal)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-xl font-bold mb-2">The Most Personal Gift</h3>
+<p class="text-sm font-medium opacity-80">Turn your unique stories and inside jokes into an unforgettable, studio-quality song.</p>
+</div>
+<div class="carousel-item flex-shrink-0 w-64 md:w-72 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-white/30">
+<div class="w-16 h-16 bg-[var(--primary-bright-yellow)] rounded-full flex items-center justify-center mb-4">
+<svg class="h-8 w-8 text-[var(--text-dark-teal)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-xl font-bold mb-2">Pro Production</h3>
+<p class="text-sm font-medium opacity-80">We turn your song into a studio-quality track with professional vocals.</p>
+</div>
+<div class="carousel-item flex-shrink-0 w-64 md:w-72 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-white/30">
+<div class="w-16 h-16 bg-[var(--accent-vibrant-coral)] rounded-full flex items-center justify-center mb-4">
+<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.186 2.25 2.25 0 00-3.933 2.186z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-xl font-bold mb-2">Easy Sharing</h3>
+<p class="text-sm font-medium opacity-80">Share your creation with loved ones through a private, shareable link.</p>
+</div>
+</div>
+<div class="flex justify-center space-x-2 mt-6" id="carousel-dots">
+<div class="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
+<div class="w-2.5 h-2.5 bg-[var(--accent-vibrant-coral)] rounded-full"></div>
+<div class="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
+<div class="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
+<div class="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
+</div>
+</main>
+<footer class="z-10 w-full max-w-xs pb-4 text-center">
+<button class="w-full transform cursor-pointer rounded-full bg-[var(--accent-vibrant-coral)] py-4 px-8 text-xl font-bold text-[var(--secondary-light-cream)] shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+      Start Creating Your Song
+    </button>
+<p class="mt-4 text-xs text-[var(--text-dark-teal)] opacity-70">Your privacy is our priority.</p>
+</footer>
+</div>
+<script>
+    // This is a simplified script for demonstration. 
+    // A real implementation would use a more robust carousel library.
+    const carousel = document.getElementById('carousel');
+    const dotsContainer = document.getElementById('carousel-dots');
+    const items = carousel.querySelectorAll('.carousel-item');
+    // Set initial state for the second item to be centered
+    items[1].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const index = Array.from(items).indexOf(entry.target);
+            const dot = dotsContainer.children[index];
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.75) {
+                entry.target.classList.add('carousel-item-center');
+                dot.classList.remove('bg-gray-300');
+                dot.classList.add('bg-[var(--accent-vibrant-coral)]');
+            } else {
+                entry.target.classList.remove('carousel-item-center');
+                dot.classList.add('bg-gray-300');
+                dot.classList.remove('bg-[var(--accent-vibrant-coral)]');
+            }
+        });
+    }, {
+        root: carousel,
+        threshold: 0.75
+    });
+    items.forEach(item => {
+        observer.observe(item);
+    });
+  </script>
+
+</body></html>

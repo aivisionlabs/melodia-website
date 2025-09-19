@@ -1,47 +1,57 @@
 @import "tailwindcss";
 
-:root {
-  /* Melodia Design System Colors - Dark Theme with Coral Accents */
-  --background: #073B4C; /* Dark Teal - Main background */
-  --foreground: #FDFDFD; /* Light Cream - Primary text */
-  --card: #0F4A5C; /* Slightly lighter teal - Card backgrounds */
-  --card-foreground: #FDFDFD; /* Light Cream - Card text */
-  --popover: #0F4A5C; /* Slightly lighter teal - Popover backgrounds */
-  --popover-foreground: #FDFDFD; /* Light Cream - Popover text */
-  --primary: #EF476F; /* Vibrant Coral - Primary buttons (changed from yellow) */
-  --primary-foreground: #FFFFFF; /* White - Text on coral */
-  --secondary: #1A5A6B; /* Muted teal - Secondary backgrounds */
-  --secondary-foreground: #FDFDFD; /* Light Cream - Secondary text */
-  --muted: #1A5A6B; /* Muted teal - Muted backgrounds */
-  --muted-foreground: #B0BEC5; /* Light gray - Muted text */
-  --accent: #EF476F; /* Vibrant Coral - Accent elements */
-  --accent-foreground: #FFFFFF; /* White - Text on coral */
-  --destructive: #EF4444; /* Red - Error states */
-  --destructive-foreground: #FFFFFF; /* White - Text on red */
-  --border: rgba(239, 71, 111, 0.3); /* Coral 30% opacity - Coral borders */
-  --input: #1A5A6B; /* Muted teal - Input backgrounds */
-  --ring: #EF476F; /* Vibrant Coral - Focus rings */
+@theme {
+  /* Joyful Jam Session Design System Colors - Light Theme */
+  --color-background: #FDFDFD; /* Light Cream - Main background */
+  --color-foreground: #073B4C; /* Dark Teal - Primary text */
+  --color-card: #FFFFFF; /* White - Card backgrounds */
+  --color-card-foreground: #073B4C; /* Dark Teal - Card text */
+  --color-popover: #FFFFFF; /* White - Popover backgrounds */
+  --color-popover-foreground: #073B4C; /* Dark Teal - Popover text */
+  --color-primary: #FFD166; /* Bright Yellow - Primary buttons and highlights */
+  --color-primary-foreground: #073B4C; /* Dark Teal - Text on yellow */
+  --color-secondary: #F9FAFB; /* Light gray - Secondary backgrounds */
+  --color-secondary-foreground: #073B4C; /* Dark Teal - Secondary text */
+  --color-muted: #F3F4F6; /* Light gray - Muted backgrounds */
+  --color-muted-foreground: #6B7280; /* Medium gray - Muted text */
+  --color-accent: #EF476F; /* Vibrant Coral - Accent elements */
+  --color-accent-foreground: #FFFFFF; /* White - Text on coral */
+  --color-destructive: #EF4444; /* Red - Error states */
+  --color-destructive-foreground: #FFFFFF; /* White - Text on red */
+  --color-border: rgba(7, 59, 76, 0.2); /* Dark Teal 20% opacity - Subtle borders */
+  --color-input: #FFFFFF; /* White - Input backgrounds */
+  --color-ring: #FFD166; /* Bright Yellow - Focus rings */
+
+  /* Melodia Brand Colors */
+  --color-melodia-yellow: #FFD166; /* Bright Yellow - Primary CTAs */
+  --color-melodia-cream: #FDFDFD; /* Light Cream - Backgrounds */
+  --color-melodia-coral: #EF476F; /* Vibrant Coral - Accents */
+  --color-melodia-teal: #073B4C; /* Dark Teal - Text */
+  --color-melodia-teal-light: #F9FAFB; /* Light gray - Secondary backgrounds */
+  --color-melodia-teal-medium: rgba(7, 59, 76, 0.2); /* Dark teal 20% opacity */
+  --color-melodia-teal-dark: rgba(7, 59, 76, 0.8); /* Dark teal 80% opacity */
+
+  /* Melodia Brand Colors with Opacity */
+  --color-melodia-yellow-20: rgba(255, 209, 102, 0.2); /* Yellow 20% opacity */
+  --color-melodia-yellow-15: rgba(255, 209, 102, 0.15); /* Yellow 15% opacity */
+  --color-melodia-coral-20: rgba(239, 71, 111, 0.2); /* Coral 20% opacity */
+  --color-melodia-coral-15: rgba(239, 71, 111, 0.15); /* Coral 15% opacity */
+
+  /* Border Radius */
   --radius: 0.75rem; /* 12px border radius */
-  
-  /* Melodia Design System Gradients - Dark Theme with Coral Focus */
-  --gradient-primary: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%); /* Coral gradient */
-  --gradient-secondary: linear-gradient(135deg, #073B4C 0%, #0F4A5C 50%, #1A5A6B 100%);
-  --gradient-accent: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%);
-  --gradient-warm: linear-gradient(135deg, #EF476F 0%, #FFD166 50%, #073B4C 100%); /* Coral to yellow */
-  --gradient-coral: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%); /* Pure coral */
-  
-  /* Melodia Design System Shadows - Dark Theme with Coral Glow */
-  --shadow-glow: 0 0 20px rgba(239, 71, 111, 0.4); /* Coral glow instead of yellow */
-  --shadow-elegant: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-coral: 0 4px 6px -1px rgba(239, 71, 111, 0.3), 0 2px 4px -1px rgba(239, 71, 111, 0.2);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-  --shadow-coral-glow: 0 0 30px rgba(239, 71, 111, 0.5); /* Strong coral glow */
-  
-  /* Melodia Design System Transitions */
-  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  
-  /* Typography Scale */
+
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(255, 209, 102, 0.4); /* Yellow glow */
+  --shadow-elegant: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-coral: 0 4px 6px -1px rgba(239, 71, 111, 0.2), 0 2px 4px -1px rgba(239, 71, 111, 0.1);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-coral-glow: 0 0 30px rgba(239, 71, 111, 0.3); /* Coral glow */
+
+  /* Typography - Updated to match design system */
+  --font-family-heading: 'Poppins', sans-serif;
+  --font-family-body: 'Montserrat', sans-serif;
+
+  /* Font sizes matching the design */
   --font-size-xs: 0.75rem; /* 12px */
   --font-size-sm: 0.875rem; /* 14px */
   --font-size-base: 1rem; /* 16px */
@@ -51,58 +61,43 @@
   --font-size-3xl: 1.875rem; /* 30px */
   --font-size-4xl: 2.25rem; /* 36px */
   --font-size-5xl: 3rem; /* 48px */
-  
-  /* Spacing Scale */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem; /* 8px */
-  --spacing-md: 1rem; /* 16px */
-  --spacing-lg: 1.5rem; /* 24px */
-  --spacing-xl: 2rem; /* 32px */
-  --spacing-2xl: 3rem; /* 48px */
-  --spacing-3xl: 4rem; /* 64px */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: var(--font-size-base);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: max(884px, 100dvh);
 }
 
 /* Typography Utilities */
 .font-heading {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-weight: 600;
+  font-family: var(--font-family-heading), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .font-body {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-weight: 400;
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
   line-height: 1.6;
 }
 
 /* Heading Styles */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-weight: 600;
+  font-family: var(--font-family-heading), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
   line-height: 1.2;
-  color: var(--foreground);
+  color: var(--color-foreground);
 }
 
 h1 {
   font-size: var(--font-size-5xl); /* 48px */
-  font-weight: 700;
+  font-weight: 800;
 }
 
 h2 {
@@ -157,6 +152,140 @@ h6 {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar { 
+.scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* Carousel snap utilities */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-center {
+  scroll-snap-align: center;
+}
+
+/* Background decorative circles */
+.bg-circle-yellow {
+  background-color: #FFD166 !important;
+  opacity: 0.3 !important;
+  filter: blur(40px) !important;
+}
+
+.bg-circle-coral {
+  background-color: #EF476F !important;
+  opacity: 0.3 !important;
+  filter: blur(40px) !important;
+}
+
+.bg-circle-yellow-small {
+  background-color: #FFD166 !important;
+  opacity: 0.2 !important;
+  filter: blur(30px) !important;
+}
+
+/* Form Input Styles - Matching Design System */
+.form-input {
+  background-color: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--color-foreground);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+}
+
+.form-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.5);
+}
+
+.form-input::placeholder {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}
+
+/* Chip Styles - Matching Design System */
+.chip {
+  cursor: pointer;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  background-color: white;
+  border: 1px solid #E0E0E0;
+  color: var(--color-foreground);
+  font-weight: 500;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  transition: all 0.2s ease-in-out;
+}
+
+.chip.active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.chip:hover {
+  background-color: #FFF9EB;
+}
+
+.chip.active:hover {
+  background-color: #FDDF88;
+}
+
+/* Bottom Navigation Styles */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-background);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-muted-foreground);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-accent);
+}
+
+.bottom-nav-item.active .nav-text {
+  font-weight: 600;
+}
+
+.bottom-nav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Material Icons Support */
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings:
+  'FILL' 1,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
 }

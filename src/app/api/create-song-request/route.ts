@@ -5,23 +5,16 @@ import { getCurrentUser } from '@/lib/user-actions';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requester_name, email, recipient_name, recipient_relationship, languages, additional_details, delivery_preference, user_id } = body;
+    const { requester_name, email, recipient_name, recipient_relationship, languages, additional_details, delivery_preference, user_id, anonymous_user_id } = body;
 
     // Get user IP for rate limiting
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 
-               'unknown';
+    const ip = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
 
     // Get current user from session or request body
     const currentUser = await getCurrentUser();
     const currentUserId = currentUser?.id || user_id;
-
-    if (!currentUserId) {
-      return NextResponse.json(
-        { error: true, message: 'Authentication required to create song requests' },
-        { status: 401 }
-      );
-    }
 
     // Create song request
     const result = await createSongRequest({
@@ -36,7 +29,7 @@ export async function POST(request: NextRequest) {
       song_type: undefined,
       emotions: undefined,
       additional_details: additional_details || undefined
-    }, currentUserId, ip);
+    }, currentUserId, ip, anonymous_user_id);
 
     if (!result.success) {
       return NextResponse.json(

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - Create Account</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FFD166",
+            "secondary": "#FDFDFD",
+            "accent": "#EF476F",
+            "text": "#073B4C",
+          },
+          fontFamily: {
+            "display": ["Poppins", "sans-serif"],
+            "body": ["Montserrat", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "1.5rem",
+            "xl": "2rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100 dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary text-text">
+<div class="flex flex-col min-h-screen">
+<header class="flex items-center justify-between p-4">
+<div></div>
+<button class="text-text hover:text-accent">
+<svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg">
+<path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
+</svg>
+</button>
+</header>
+<main class="flex-grow flex flex-col items-center justify-center px-6 text-center">
+<div class="w-full max-w-sm">
+<h1 class="font-display text-4xl font-bold text-text mb-4">Tell us about you</h1>
+<p class="text-text/80 mb-10">We need a little more info to set up your account.</p>
+<form class="space-y-6">
+<div>
+<label class="sr-only" for="full-name">Full name</label>
+<input class="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body" id="full-name" placeholder="Full name" type="text"/>
+</div>
+<div>
+<label class="sr-only" for="dob">Date of birth</label>
+<input class="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body" id="dob" onblur="(this.type='text')" onfocus="(this.type='date')" placeholder="Date of birth (DD/MM/YYYY)" type="text"/>
+</div>
+<div>
+<label class="sr-only" for="email">Email address</label>
+<input class="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body" id="email" placeholder="Email address (required)" required="" type="email"/>
+</div>
+<div>
+<label class="sr-only" for="phone">Phone number</label>
+<input class="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body" id="phone" placeholder="Phone number (optional)" type="tel"/>
+</div>
+<button class="w-full h-14 bg-primary text-text font-display font-bold text-lg rounded-full shadow-md hover:bg-yellow-400 transition-colors duration-300" type="submit">
+            Continue
+          </button>
+</form>
+</div>
+</main>
+<footer class="p-6 text-center">
+<p class="text-xs text-text/60">By continuing, you agree to Melodia's <a class="underline text-accent" href="#">Terms of Service</a> and <a class="underline text-accent" href="#">Privacy Policy</a>.</p>
+</footer>
+</div>
+
+</body></html>

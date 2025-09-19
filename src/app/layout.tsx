@@ -5,7 +5,20 @@ import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
+import ConditionalBottomNav from "@/components/ConditionalBottomNav";
+import { Poppins, Montserrat } from "next/font/google";
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-montserrat",
+});
 
 export const metadata: Metadata = {
   title: "Melodia - Create Personalized Songs for loved ones",
@@ -70,16 +83,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html
+      lang="en"
+      className={`scroll-smooth ${poppins.variable} ${montserrat.variable}`}
+    >
       <head>
-        {/* Google Fonts - Melodia Design System */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Material Symbols for icons */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=optional"
           rel="stylesheet"
         />
-        
+
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
@@ -112,6 +126,7 @@ export default function RootLayout({
             <StructuredData type="organization" />
             <PageTracking />
             {children}
+            <ConditionalBottomNav />
           </ToastProvider>
         </ErrorBoundary>
       </body>

@@ -221,17 +221,22 @@ export async function loginUser(
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('user-session')?.value
+    const session = cookieStore.get('user-session')?.value
 
-    if (!sessionToken) {
+    if (!session) {
       return null
     }
 
-    // In a real implementation, you'd verify the session token
-    // For now, we'll decode it (assuming it's a simple JWT or similar)
-    // This is a simplified version - you should implement proper session validation
+    try {
+      const parsed = JSON.parse(session)
+      // Minimal shape validation
+      if (parsed && typeof parsed.id === 'number' && typeof parsed.email === 'string') {
+        return parsed as User
+      }
+    } catch (e) {
+      return null
+    }
 
-    // For now, return null - implement proper session validation
     return null
   } catch (error) {
     console.error('Error getting current user:', error)
