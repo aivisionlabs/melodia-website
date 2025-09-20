@@ -6,6 +6,7 @@ import { PageTracking } from "@/components/PageTracking";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
 import ConditionalBottomNav from "@/components/ConditionalBottomNav";
+import ConditionalHeader from "@/components/ConditionalHeader";
 import { Poppins, Montserrat } from "next/font/google";
 
 const poppins = Poppins({
@@ -88,12 +89,6 @@ export default function RootLayout({
       className={`scroll-smooth ${poppins.variable} ${montserrat.variable}`}
     >
       <head>
-        {/* Material Symbols for icons */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=optional"
-          rel="stylesheet"
-        />
-
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
@@ -125,7 +120,8 @@ export default function RootLayout({
             <StructuredData type="website" />
             <StructuredData type="organization" />
             <PageTracking />
-            {children}
+            <ConditionalHeader />
+            <main className="min-h-screen">{children}</main>
             <ConditionalBottomNav />
           </ToastProvider>
         </ErrorBoundary>

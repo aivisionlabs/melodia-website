@@ -41,7 +41,7 @@ export default function BestSongsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground pt-16 pb-20">
       <div className="max-w-6xl mx-auto p-6">
         <h1 className="text-3xl font-heading mb-6">Best Songs</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

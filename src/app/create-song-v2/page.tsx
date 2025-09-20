@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 type Step = 1 | 2;
 
 export default function CreateSongV2Page() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
 
   const [step, setStep] = useState<Step>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,6 +19,7 @@ export default function CreateSongV2Page() {
   const [languages, setLanguages] = useState<string>("English");
   const [story, setStory] = useState("");
   const [moods, setMoods] = useState<string[]>(["Sentimental"]);
+  const [customMood, setCustomMood] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -30,9 +29,29 @@ export default function CreateSongV2Page() {
   }, [router]);
 
   const toggleMood = (m: string) => {
-    setMoods((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
-    );
+    if (m === "Other") {
+      // If "Other" is already selected, deselect it and clear custom mood
+      if (moods.includes("Other")) {
+        setMoods((prev) => prev.filter((x) => x !== "Other"));
+        setCustomMood("");
+      } else {
+        // Select "Other" and clear other moods
+        setMoods(["Other"]);
+        setCustomMood("");
+      }
+    } else {
+      // For regular moods, remove "Other" if it's selected and toggle the mood
+      setMoods((prev) => {
+        const withoutOther = prev.filter((x) => x !== "Other");
+        return withoutOther.includes(m)
+          ? withoutOther.filter((x) => x !== m)
+          : [...withoutOther, m];
+      });
+      // Clear custom mood when selecting regular moods
+      if (!moods.includes(m)) {
+        setCustomMood("");
+      }
+    }
   };
 
   const handleNext = () => {
@@ -46,11 +65,6 @@ export default function CreateSongV2Page() {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!isAuthenticated) {
-      router.push("/sign-in");
-      return;
-    }
-
     if (!recipientName.trim() || !languages.trim()) {
       setError("Please fill in the required fields.");
       return;
@@ -77,7 +91,10 @@ export default function CreateSongV2Page() {
             .split(",")
             .map((l) => l.trim())
             .filter(Boolean),
-          additional_details: story,
+          additional_details:
+            moods.includes("Other") && customMood.trim()
+              ? `${story}${story ? " | " : ""}Mood: ${customMood}`
+              : story,
           delivery_preference: "email",
           user_id: user?.id || null,
           anonymous_user_id: anonymousId,
@@ -97,7 +114,10 @@ export default function CreateSongV2Page() {
             .split(",")
             .map((l) => l.trim())
             .filter(Boolean),
-          additional_details: story,
+          additional_details:
+            moods.includes("Other") && customMood.trim()
+              ? `${story}${story ? " | " : ""}Mood: ${customMood}`
+              : story,
           requestId,
           userId: user?.id,
         }),
@@ -119,7 +139,7 @@ export default function CreateSongV2Page() {
   };
 
   return (
-    <div className="min-h-screen bg-melodia-cream text-melodia-teal flex flex-col font-body pb-20">
+    <div className="min-h-screen bg-melodia-cream text-melodia-teal flex flex-col font-body pt-16 pb-20">
       <div className="p-6 space-y-8 flex-grow">
         {step === 1 && (
           <div className="space-y-8">
@@ -234,7 +254,13 @@ export default function CreateSongV2Page() {
               <h3 className="font-semibold text-lg mb-3 text-gray-600">Mood</h3>
               <div className="flex flex-wrap gap-3">
                 {(
-                  ["Joyful", "Sentimental", "Upbeat & Fun", "Romantic"] as const
+                  [
+                    "Joyful",
+                    "Sentimental",
+                    "Upbeat & Fun",
+                    "Romantic",
+                    "Other",
+                  ] as const
                 ).map((m) => (
                   <button
                     key={m}
@@ -250,6 +276,16 @@ export default function CreateSongV2Page() {
                   </button>
                 ))}
               </div>
+              {moods.includes("Other") && (
+                <div className="mt-4">
+                  <input
+                    placeholder="e.g., Melancholic, Energetic, Peaceful..."
+                    value={customMood}
+                    onChange={(e) => setCustomMood(e.target.value)}
+                    className="form-input w-full"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

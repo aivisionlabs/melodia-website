@@ -195,7 +195,7 @@ export default function CreateSongPage() {
   }
 
   return (
-    <div className="min-h-screen bg-melodia-cream text-melodia-teal flex flex-col font-body pb-20">
+    <div className="min-h-screen bg-melodia-cream text-melodia-teal flex flex-col font-body pt-16 pb-20">
       <div className="p-6 space-y-8 flex-grow">
         {/* Header */}
         <div className="mb-4">

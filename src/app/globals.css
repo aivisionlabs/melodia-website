@@ -289,3 +289,13 @@ h6 {
   'GRAD' 0,
   'opsz' 24;
 }
+
+/* Header spacing */
+.header-spacing {
+  padding-top: 4rem; /* Account for fixed header */
+}
+
+/* Main content spacing */
+main {
+  padding-bottom: 5rem; /* Account for bottom navigation */
+}

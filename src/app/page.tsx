@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +13,12 @@ import { fetchLyricsDisplayData } from "@/lib/lyrics-display-client";
 // import { generateLyrics } from '@/lib/llm-integration' // No longer needed - using API directly
 import {
   Music,
-  User,
-  LogOut,
   Play,
-  Menu,
-  X,
   Edit3,
   Save,
   Loader2,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/toast";
@@ -33,10 +29,9 @@ import { isPaymentEnabled } from "@/lib/payment-config";
 import Footer from "@/components/Footer";
 
 export default function HomePage() {
-  const { user, loading, logout, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const { addToast } = useToast();
 
@@ -761,189 +756,7 @@ export default function HomePage() {
         <div className="absolute top-40 left-1/2 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
       </div>
 
-      {/* Header */}
-      <header className="w-full bg-gradient-to-r from-melodia-cream via-card to-melodia-cream flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative border-b-2 border-melodia-teal-medium shadow-elegant">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
-              <Music className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg sm:text-xl font-bold font-heading text-foreground">
-              Melodia
-            </span>
-          </Link>
-        </div>
-
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
-          <Link href="/best-songs">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-            >
-              Best Songs
-            </Button>
-          </Link>
-          {isAuthenticated ? (
-            <div className="flex items-center gap-4">
-              <Link href="/my-songs">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  My Songs
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2 text-foreground">
-                <User className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {user?.name || "User"}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-foreground hover:bg-accent/10"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4">
-              <Link href="/sign-in">
-                <Button
-                  size="sm"
-                  className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                >
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/sign-up">
-                <Button
-                  size="sm"
-                  className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Navigation - Hamburger Menu */}
-        <div className="flex items-center gap-2 sm:gap-4 md:hidden">
-          {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-foreground hover:text-foreground p-2"
-              >
-                <LogOut className="h-6 w-6" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/sign-in">
-                <Button
-                  size="sm"
-                  className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                >
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/sign-up">
-                <Button
-                  size="sm"
-                  className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
-          )}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-foreground hover:text-accent p-2"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Menu Dropdown */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-card border-b border-melodia-teal-medium shadow-elegant">
-          <div className="px-4 py-3 space-y-3">
-            {isAuthenticated ? (
-              <>
-                <Link href="/my-songs" onClick={() => setIsMenuOpen(false)}>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    My Songs
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2 text-foreground px-3 py-2">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    {user?.name || "User"}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    logout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full justify-start text-foreground hover:bg-accent/10"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/best-songs" onClick={() => setIsMenuOpen(false)}>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                  >
-                    Best Songs
-                  </Button>
-                </Link>
-                <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/sign-up" onClick={() => setIsMenuOpen(false)}>
-                  <Button className="w-full justify-start bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground">
-                    Sign Up
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
         {/* Hero Section */}
         <div className="text-center mb-8 md:mb-12 px-4 relative z-10">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-full mb-6 shadow-glow animate-pulse">
