@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate anonymous_user_id format if provided
+    if (anonymous_user_id && typeof anonymous_user_id !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid anonymous user ID format' },
+        { status: 400 }
+      )
+    }
+
     // Get client IP for rate limiting
     const ip = request.headers.get('x-forwarded-for') ||
       request.headers.get('x-real-ip') ||
@@ -25,16 +33,23 @@ export async function POST(request: NextRequest) {
     const result = await loginUser(email, password, ip)
 
     if (result.success && result.user) {
-      // Optional anonymous merge
-      try {
-        if (anonymous_user_id) {
-          await db
+      // Handle anonymous user data merge
+      if (anonymous_user_id) {
+        try {
+          const updateResult = await db
             .update(songRequestsTable)
-            .set({ user_id: result.user.id, anonymous_user_id: null })
+            .set({
+              user_id: result.user.id,
+              anonymous_user_id: null
+            })
             .where(eq(songRequestsTable.anonymous_user_id, anonymous_user_id))
+            .returning({ id: songRequestsTable.id })
+
+          console.log(`Merged ${updateResult.length} anonymous requests for user ${result.user.id}`)
+        } catch (mergeError) {
+          console.error('Failed to merge anonymous user data:', mergeError)
+          // Don't fail login if merge fails, just log the error
         }
-      } catch (mergeError) {
-        console.warn('Anonymous merge skipped:', mergeError)
       }
 
       // Create response with user data

@@ -7,21 +7,32 @@ import { eq } from 'drizzle-orm';
 import { verifyPaymentSignature, getPaymentDetails, mapRazorpayStatusToPaymentStatus } from '@/lib/razorpay';
 import { getCurrentUser } from '@/lib/user-actions';
 import { VerifyPaymentRequest, VerifyPaymentResponse } from '@/types/payment';
+import { validateUserOwnership, sanitizeAnonymousUserId } from '@/lib/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current user
+    // Get current user (optional for anonymous users)
     const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
 
     // Parse request body
     const body: VerifyPaymentRequest = await request.json();
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = body;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, anonymous_user_id } = body;
+
+    // Sanitize anonymous user ID
+    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymous_user_id);
+
+    // Validate user ownership
+    const ownershipValidation = validateUserOwnership(
+      currentUser?.id || null,
+      sanitizedAnonymousUserId
+    );
+
+    if (!ownershipValidation.isValid) {
+      return NextResponse.json(
+        { success: false, message: ownershipValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
       return NextResponse.json(
@@ -61,8 +72,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify payment belongs to current user
-    if (payment[0].user_id !== currentUser.id) {
+    // Verify payment belongs to current user or anonymous user
+    if (currentUser && payment[0].user_id !== currentUser.id) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized access' },
+        { status: 403 }
+      );
+    }
+
+    if (sanitizedAnonymousUserId && payment[0].anonymous_user_id !== sanitizedAnonymousUserId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized access' },
         { status: 403 }

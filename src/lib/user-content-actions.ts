@@ -32,15 +32,27 @@ export interface UserContentItem {
   timestamp_lyrics?: any[];
 }
 
-export async function getUserContent(userId: number): Promise<UserContentItem[]> {
+export async function getUserContent(
+  userId?: number | null,
+  anonymousUserId?: string | null
+): Promise<UserContentItem[]> {
   try {
     const content: UserContentItem[] = [];
+
+    // Validate that either userId or anonymousUserId is provided
+    if (!userId && !anonymousUserId) {
+      throw new Error('Either userId or anonymousUserId must be provided');
+    }
 
     // Get song requests with their latest lyrics drafts
     const songRequests = await db
       .select()
       .from(songRequestsTable)
-      .where(eq(songRequestsTable.user_id, userId))
+      .where(
+        userId
+          ? eq(songRequestsTable.user_id, userId)
+          : eq(songRequestsTable.anonymous_user_id, anonymousUserId)
+      )
       .orderBy(desc(songRequestsTable.created_at));
 
     for (const request of songRequests) {
@@ -142,7 +154,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Lyrics', action: 'view', variant: 'outline' as const };
       }
-    
+
     case 'song_request':
       switch (item.status) {
         case 'pending':
@@ -152,7 +164,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Details', action: 'view', variant: 'outline' as const };
       }
-    
+
     case 'song':
       switch (item.status) {
         case 'ready':
@@ -166,7 +178,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Song', action: 'view', variant: 'outline' as const };
       }
-    
+
     default:
       return { text: 'View', action: 'view', variant: 'outline' as const };
   }
