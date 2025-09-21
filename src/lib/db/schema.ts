@@ -62,7 +62,7 @@ export const usersTable = pgTable('users', {
 export const songRequestsTable: any = pgTable('song_requests', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id'), // Reference to user who made this request (nullable for guest requests)
-  anonymous_user_id: text('anonymous_user_id'), // For onboarding anonymous flow
+  // anonymous_user_id: text('anonymous_user_id'), // For onboarding anonymous flow - REMOVED (column doesn't exist in DB)
   requester_name: text('requester_name').notNull(),
   phone_number: text('phone_number'),
   email: text('email'),
@@ -82,11 +82,11 @@ export const songRequestsTable: any = pgTable('song_requests', {
   // Phase 6: Lyrics workflow fields
   lyrics_status: text('lyrics_status').default('pending'),
   approved_lyrics_id: integer('approved_lyrics_id'),
-  lyrics_locked_at: timestamp('lyrics_locked_at'),
-  // Payment integration fields
-  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
-  payment_status: text('payment_status').default('pending'),
-  payment_required: boolean('payment_required').default(true),
+  lyrics_locked_at: timestamp('lyrics_locked_at')
+  // Payment integration fields - REMOVED (columns don't exist in DB)
+  // payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
+  // payment_status: text('payment_status').default('pending'),
+  // payment_required: boolean('payment_required').default(true),
 });
 
 // Phase 6: Lyrics drafts table

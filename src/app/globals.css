@@ -299,3 +299,24 @@ h6 {
 main {
   padding-bottom: 5rem; /* Account for bottom navigation */
 }
+
+/* Melodia Brand Color Classes */
+.bg-melodia-cream {
+  background-color: var(--color-melodia-cream);
+}
+
+.bg-melodia-yellow {
+  background-color: var(--color-melodia-yellow);
+}
+
+.bg-melodia-coral {
+  background-color: var(--color-melodia-coral);
+}
+
+.text-melodia-teal {
+  color: var(--color-melodia-teal);
+}
+
+.text-melodia-coral {
+  color: var(--color-melodia-coral);
+}

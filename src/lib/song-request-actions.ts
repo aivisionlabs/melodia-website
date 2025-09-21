@@ -116,16 +116,27 @@ export async function createSongRequest(
       additional_details: formData.additional_details ? sanitizeInput(formData.additional_details) : null
     }
 
-    // Insert song request
+    // Insert song request - minimal fields only
+    const insertData: any = {
+      user_id: userId || null,
+      requester_name: sanitizedData.requester_name,
+      phone_number: sanitizedData.phone_number || null,
+      email: sanitizedData.email || null,
+      delivery_preference: sanitizedData.delivery_preference || null,
+      recipient_name: sanitizedData.recipient_name,
+      recipient_relationship: sanitizedData.recipient_relationship,
+      languages: sanitizedData.languages,
+      person_description: sanitizedData.person_description || null,
+      song_type: sanitizedData.song_type || null,
+      emotions: sanitizedData.emotions || null,
+      additional_details: sanitizedData.additional_details,
+      status: 'pending',
+      lyrics_status: 'pending'
+    };
+
     const [newRequest] = await db
       .insert(songRequestsTable)
-      .values({
-        user_id: userId || null,
-        anonymous_user_id: anonymousUserId || null,
-        ...sanitizedData,
-        status: 'pending',
-        payment_required: shouldRequirePayment()
-      })
+      .values(insertData)
       .returning({
         id: songRequestsTable.id
       })

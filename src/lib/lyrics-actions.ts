@@ -477,8 +477,10 @@ export async function createSongFromLyricsAction(requestId: number) {
       .returning()
 
     // Start Suno job
+    console.log('🎵 Starting Suno job for song creation...');
     const { SunoAPIFactory } = await import('./suno-api')
     const sunoAPI = SunoAPIFactory.getAPI()
+    console.log('🎵 SunoAPI instance:', sunoAPI.constructor.name);
 
     const sunoResponse = await sunoAPI.generateSong({
       prompt: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
