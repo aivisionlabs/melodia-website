@@ -1,70 +1,164 @@
-# Melodia Scripts Directory
+# 🗄️ Melodia Database Scripts
 
-This directory contains all the scripts needed for setting up, developing, testing, and deploying the Melodia application.
+This directory contains scripts for managing the Melodia database schema and data.
+
+## 📁 Files
+
+### **Database Schema Scripts**
+- `database-schema-updates.sql` - Complete schema update script
+- `update-database-schema.sh` - Shell script to run schema updates
+- `docker-compose.override.yml` - Docker Compose override for database management
+
+### **Existing Scripts**
+- `essential/` - Database setup scripts
+- `maintenance/` - Database maintenance scripts
+- `production/` - Production deployment scripts
+- `testing/` - Testing and validation scripts
 
 ## 🚀 Quick Start
 
-For new users, start here:
-
+### **1. Start Database**
 ```bash
-# Essential setup (required)
-chmod +x scripts/essential/setup-complete.sh
-./scripts/essential/setup-complete.sh
+# Start PostgreSQL with Docker Compose
+docker-compose up -d postgres
 ```
 
-## 📁 Directory Structure
+### **2. Update Database Schema**
+```bash
+# Run the schema update script
+./scripts/update-database-schema.sh
 
-### 🎯 [Essential Scripts](essential/) - **Start Here**
-Required for basic setup and operation
-- `setup-complete.sh` - One-command setup from scratch
-- `setup-complete-database.sql` - Complete database schema
-- `SETUP_README.md` - Detailed setup documentation
+# Or run manually
+docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/database-schema-updates.sql
+```
 
-### 🚀 [Production Scripts](production/)
-For deployment and production management
-- `deploy-to-production.sh` - Production deployment automation
-- `migrate-local-to-production.sh` - Local to production migration
+### **3. Connect to Database**
+```bash
+# Connect to PostgreSQL
+docker exec -it melodia-postgres psql -U postgres -d melodia
+```
 
-### 🧪 [Testing Scripts](testing/)
-For development and testing
-- `test-phase5.js` - Comprehensive testing suite
-- `test-lyrics-api.mjs` - Lyrics API testing
-- `test-slug-generation.mjs` - Slug generation testing
+## 📋 Schema Updates Included
 
-### 🔧 [Utility Scripts](utilities/)
-For specific content and data management tasks
-- `optimize-og-image.mjs` - Open Graph image optimization
-- `set-song-sequence.mjs` - Song sequence management
-- `convert-aligned-words.mjs` - Lyrics alignment conversion
+### **Missing Columns Added:**
+- `song_requests.anonymous_user_id` (UUID) - For anonymous user tracking
+- `lyrics_drafts.is_approved` (BOOLEAN) - For lyrics approval workflow
+- `songs.song_request_id` (INTEGER, UNIQUE) - Link songs to requests
+- `songs.song_url_variant_1` (TEXT) - First song variant URL
+- `songs.song_url_variant_2` (TEXT) - Second song variant URL
 
-### 🔧 [Maintenance Scripts](maintenance/)
-For ongoing maintenance and monitoring
-- `check-song-requests.mjs` - Song request monitoring
-- `run-timestamped-lyrics-cleanup.sh` - Lyrics cleanup utility
+### **New Tables Created:**
+- `anonymous_users` - Track anonymous user sessions
+- `payments` - Payment processing and tracking
+- `pricing_plans` - Subscription plans and pricing
+- `payment_webhooks` - Webhook event processing
 
-## 📖 Documentation
+### **Foreign Key Constraints:**
+- `songs.song_request_id` → `song_requests.id`
+- `payments.song_request_id` → `song_requests.id`
+- `payments.user_id` → `users.id`
+- `payments.anonymous_user_id` → `anonymous_users.id`
+- `payment_webhooks.payment_id` → `payments.id`
 
-Each subdirectory contains its own README with detailed usage instructions.
+### **Performance Indexes:**
+- Indexes on frequently queried columns
+- Foreign key indexes for better join performance
+- Status and date indexes for filtering
 
-## 🎯 For New Users
+## 🔧 Database Management
 
-1. **Start with Essential Scripts** - Run the setup script first
-2. **Explore Testing Scripts** - Run tests to verify everything works
-3. **Use Utilities as Needed** - For specific content management tasks
-4. **Check Maintenance Scripts** - For ongoing monitoring and cleanup
+### **Check Database Status**
+```bash
+# Check if database is running
+docker ps | grep melodia-postgres
 
-## 🔄 For Developers
+# Check database health
+docker exec melodia-postgres pg_isready -U postgres -d melodia
+```
 
-- Edit scripts in their respective categories
-- Update category READMEs when adding new scripts
-- Keep the main `SCRIPTS_SUMMARY.md` updated
-- Test scripts before committing changes
+### **Backup Database**
+```bash
+# Create backup
+docker exec melodia-postgres pg_dump -U postgres -d melodia > backup_$(date +%Y%m%d_%H%M%S).sql
 
-## 📊 Summary
+# Restore from backup
+docker exec -i melodia-postgres psql -U postgres -d melodia < backup_file.sql
+```
 
-- **Total Scripts**: 13 files
-- **Categories**: 5 organized directories
-- **Essential**: 3 files (required for setup)
-- **Optional**: 10 files (for specific use cases)
+### **Reset Database**
+```bash
+# Drop and recreate database
+docker exec melodia-postgres psql -U postgres -c "DROP DATABASE IF EXISTS melodia;"
+docker exec melodia-postgres psql -U postgres -c "CREATE DATABASE melodia;"
+./scripts/update-database-schema.sh
+```
 
-This organization makes it easy to find the right script for any task! 🎉
+## 🐛 Troubleshooting
+
+### **Common Issues:**
+
+1. **Container not running:**
+   ```bash
+   docker-compose up -d postgres
+   ```
+
+2. **Permission denied:**
+   ```bash
+   chmod +x scripts/update-database-schema.sh
+   ```
+
+3. **Database connection failed:**
+   ```bash
+   # Check if container is healthy
+   docker exec melodia-postgres pg_isready -U postgres -d melodia
+   ```
+
+4. **Schema already exists:**
+   - The script uses `IF NOT EXISTS` and `ON CONFLICT DO NOTHING`
+   - Safe to run multiple times
+
+### **Logs:**
+```bash
+# View database logs
+docker logs melodia-postgres
+
+# Follow logs in real-time
+docker logs -f melodia-postgres
+```
+
+## 📊 Verification
+
+After running the schema update, verify everything is working:
+
+```sql
+-- Check all tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;
+
+-- Check all columns exist
+SELECT table_name, column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name IN ('song_requests', 'lyrics_drafts', 'songs', 'payments')
+ORDER BY table_name, column_name;
+
+-- Check foreign keys
+SELECT tc.table_name, kcu.column_name, ccu.table_name AS foreign_table_name
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY';
+```
+
+## 🎯 Next Steps
+
+1. **Run the schema update script**
+2. **Verify all tables and columns exist**
+3. **Test the application with the new schema**
+4. **Create database backups regularly**
+
+---
+
+**Note:** This script is idempotent - it can be run multiple times safely without causing issues.
