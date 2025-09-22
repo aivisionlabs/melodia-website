@@ -972,7 +972,7 @@ export default function CreateSongV2Page() {
 
               {/* Summary Text */}
               <p className="text-melodia-teal text-base leading-relaxed mb-8">
-                Okay <span className="font-bold">{requesterName || currentUser?.name || "there"}</span>! We're creating a <span className="font-bold">{moods.join(", ")}</span> song in{" "}
+                Okay <span className="font-bold">{requesterName || currentUser?.name || "there"}</span>! We&apos;re creating a <span className="font-bold">{moods.join(", ")}</span> song in{" "}
                 <span className="font-bold">{languages}</span> for your{" "}
                 <span className="font-bold">{recipientName}</span>, for your{" "}
                 <span className="font-bold">{occasion === "Other" ? customOccasion : occasion}</span>.
