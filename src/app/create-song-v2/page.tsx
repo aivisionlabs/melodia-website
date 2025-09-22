@@ -332,6 +332,35 @@ export default function CreateSongV2Page() {
     }
   };
 
+  const showLoadingSongOptions = () => {
+    // Create loading song variants with placeholder data
+    const baseTitle = generatedTitle || `${recipientName}'s Song`;
+    
+    const loadingVariants = [
+      {
+        id: 'loading_variant_1',
+        title: `${baseTitle} - Version 1`,
+        audioUrl: '', // Empty = loading
+        imageUrl: 'https://picsum.photos/400/400?random=variant1',
+        duration: 180,
+        downloadStatus: 'Generating...',
+        isLoading: true // No real audio URL = loading
+      },
+      {
+        id: 'loading_variant_2', 
+        title: `${baseTitle} - Version 2`,
+        audioUrl: '', // Empty = loading
+        imageUrl: 'https://picsum.photos/400/400?random=variant2',
+        duration: 195,
+        downloadStatus: 'Generating...',
+        isLoading: true // No real audio URL = loading
+      }
+    ];
+    
+    setSongVariants(loadingVariants);
+    setStep('song-options');
+  };
+
   const showMockSongOptions = () => {
     // Create mock song variants using the actual generated title and lyrics
     const baseTitle = generatedTitle || `${recipientName}'s Song`;
@@ -343,7 +372,8 @@ export default function CreateSongV2Page() {
         audioUrl: '/placeholder-audio.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant1',
         duration: 180,
-        downloadStatus: 'Download in 2 minutes'
+        downloadStatus: 'Download in 2 minutes',
+        isLoading: true // Initially loading
       },
       {
         id: 'mock_variant_2', 
@@ -351,12 +381,24 @@ export default function CreateSongV2Page() {
         audioUrl: '/placeholder-audio.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant2',
         duration: 195,
-        downloadStatus: 'Download in 2 minutes'
+        downloadStatus: 'Download in 2 minutes',
+        isLoading: true // Initially loading
       }
     ];
     
     setSongVariants(mockVariants);
     setStep('song-options');
+    
+    // Simulate loading completion after 3 seconds for demo
+    setTimeout(() => {
+      setSongVariants(prevVariants => 
+        prevVariants.map(variant => ({
+          ...variant,
+          isLoading: false,
+          downloadStatus: 'Download now'
+        }))
+      );
+    }, 3000);
   };
 
   const pollForSongVariants = async () => {
@@ -365,48 +407,57 @@ export default function CreateSongV2Page() {
       return;
     }
 
-    try {
-      // Use the existing working song-status API endpoint
-      const response = await fetch(`/api/song-status/${taskId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Song status response:', data);
+    // Always show the song options screen first with loading state
+    showLoadingSongOptions();
+
+    // Start polling
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/song-status/${taskId}`);
         
-        if (data.status === 'completed' && data.variants && data.variants.length >= 2) {
-          // Convert Suno variants to our format
-          const formattedVariants = data.variants.map((variant: any, index: number) => ({
-            id: variant.id,
-            title: variant.title || `${generatedTitle || `${recipientName}'s Song`} - Version ${index + 1}`,
-            audioUrl: variant.audioUrl || variant.streamAudioUrl,
-            imageUrl: variant.imageUrl,
-            duration: variant.duration || 180, // Default 3 minutes
-            downloadStatus: "Download now" // Change to "Download now" when ready
-          }));
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Song status response:', data);
           
-          setSongVariants(formattedVariants);
-          setStep('song-options');
-        } else if (data.status === 'processing' || data.status === 'pending') {
-          // If still processing, show mock options with "Download in 2 minutes"
-          console.log('Song still processing, showing mock options');
-          showMockSongOptions();
-        } else {
-          // If not ready yet, show mock options after a short delay
-          console.log('Song variants not ready yet, showing mock options');
-          setTimeout(() => {
+          if (data.status === 'completed' && data.variants && data.variants.length >= 2) {
+            // Convert Suno variants to our format
+            const formattedVariants = data.variants.map((variant: any, index: number) => ({
+              id: variant.id,
+              title: variant.title || `${generatedTitle || `${recipientName}'s Song`} - Version ${index + 1}`,
+              audioUrl: variant.audioUrl || variant.streamAudioUrl,
+              imageUrl: variant.imageUrl,
+              duration: variant.duration || 180,
+              downloadStatus: "Download now",
+              isLoading: false // Real audio URLs = not loading
+            }));
+            
+            setSongVariants(formattedVariants);
+            clearInterval(pollInterval); // Stop polling
+          } else if (data.status === 'processing') {
+            // Keep showing loading state, don't update variants
+            console.log('Song still processing...');
+          } else if (data.status === 'failed') {
+            console.log('Song generation failed');
+            clearInterval(pollInterval);
+            // Show error state or fallback
             showMockSongOptions();
-          }, 2000);
+          }
+        } else {
+          console.log('API error during polling');
+          clearInterval(pollInterval);
+          showMockSongOptions();
         }
-      } else {
-        // If API error, show mock options
-        console.log('API error, showing mock song options');
+      } catch (error) {
+        console.error("Error polling for song variants:", error);
+        clearInterval(pollInterval);
         showMockSongOptions();
       }
-    } catch (error) {
-      console.error("Error polling for song variants:", error);
-      // On any error, show mock options
-      showMockSongOptions();
-    }
+    }, 3000); // Poll every 3 seconds
+
+    // Stop polling after 5 minutes to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 300000);
   };
 
   const handleSelectVariant = (variantId: string) => {

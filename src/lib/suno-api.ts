@@ -452,13 +452,10 @@ export class SunoAPIFactory {
     }
 
     // Server-side: choose mock or real based on config
-    console.log('🔧 Server-side: Checking API configuration...');
     if (!this.instance) {
       if (shouldUseMockAPI()) {
-        console.log('🔧 Server-side: Using Mock Suno API');
         this.instance = new MockSunoAPI();
       } else {
-        console.log('🔧 Server-side: Using Real Suno API');
         const apiToken = getAPIToken();
         this.instance = new SunoAPI(apiToken);
       }

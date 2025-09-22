@@ -11,6 +11,7 @@ interface SongVariant {
   imageUrl: string;
   duration: number;
   downloadStatus: string;
+  isLoading?: boolean; // New property to track loading state
 }
 
 interface SongOptionsDisplayProps {
@@ -30,6 +31,12 @@ export default function SongOptionsDisplay({
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
 
   const handlePlayPreview = (variantId: string, audioUrl: string) => {
+    // Don't play if no audio URL (still loading)
+    if (!audioUrl || audioUrl === '') {
+      console.log('Audio not ready yet');
+      return;
+    }
+
     // Stop any currently playing audio
     Object.values(audioElements).forEach(audio => {
       audio.pause();
@@ -67,6 +74,15 @@ export default function SongOptionsDisplay({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Loading dots animation component
+  const LoadingDots = () => (
+    <div className="flex items-center gap-1">
+      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -99,9 +115,18 @@ export default function SongOptionsDisplay({
                   <h3 className="text-xl font-bold text-melodia-teal mb-2">
                     {variant.title}
                   </h3>
-                  <p className="text-melodia-coral font-medium">
-                    {variant.downloadStatus}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    {(!variant.audioUrl || variant.audioUrl === '') ? (
+                      <>
+                        <LoadingDots />
+                        <span className="text-melodia-coral font-medium text-sm">Generating...</span>
+                      </>
+                    ) : (
+                      <p className="text-melodia-coral font-medium">
+                        {variant.downloadStatus}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Album Art with Wood Frame */}
@@ -120,14 +145,21 @@ export default function SongOptionsDisplay({
                 </div>
               </div>
 
-              {/* Play Preview Button */}
-              <Button
-                onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
-                className="w-full h-12 bg-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Play 15s Preview
-              </Button>
+              {/* Play Preview Button or Loading State */}
+              {(!variant.audioUrl || variant.audioUrl === '') ? (
+                <div className="w-full h-12 bg-gray-100 text-gray-500 font-semibold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
+                  <LoadingDots />
+                  <span>Generating audio...</span>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
+                  className="w-full h-12 bg-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Play 15s Preview
+                </Button>
+              )}
             </div>
           ))}
         </div>

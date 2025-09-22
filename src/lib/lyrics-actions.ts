@@ -492,7 +492,10 @@ export async function createSongFromLyricsAction(requestId: number) {
       callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
     })
 
-    if (sunoResponse.code !== 200) {
+    if (sunoResponse.code !== 0 && sunoResponse.code !== 200) {
+      if (sunoResponse.code === 429) {
+        throw new Error(`Suno API credits insufficient: ${sunoResponse.msg}. Please add credits to your Suno API account.`)
+      }
       throw new Error(`Suno API error: ${sunoResponse.msg}`)
     }
 

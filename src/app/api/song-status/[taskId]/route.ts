@@ -118,7 +118,7 @@ export async function GET(
     // Get song status
     const statusResponse = await sunoAPI.getRecordInfo(taskId)
     console.log('statusResponse', statusResponse.data)
-    if (statusResponse.code !== 200) {
+    if (statusResponse.code !== 0 && statusResponse.code !== 200) {
       return NextResponse.json(
         { error: true, message: statusResponse.msg },
         { status: 400 }
