@@ -28,6 +28,7 @@ export default function SongOptionsDisplay({
   onBackupWithGoogle
 }: SongOptionsDisplayProps) {
   const [playingVariant, setPlayingVariant] = useState<string | null>(null);
+  const [initializedVariants, setInitializedVariants] = useState<{ [key: string]: boolean }>({});
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [currentTime, setCurrentTime] = useState<{ [key: string]: number }>({});
   const [duration, setDuration] = useState<{ [key: string]: number }>({});
@@ -100,6 +101,9 @@ export default function SongOptionsDisplay({
     
     // Set playing state BEFORE starting playback
     setPlayingVariant(variantId);
+    
+    // Mark this variant as initialized (has been played at least once)
+    setInitializedVariants(prev => ({ ...prev, [variantId]: true }));
     
     // Reset to beginning and play
     audio.currentTime = 0;
@@ -215,11 +219,11 @@ export default function SongOptionsDisplay({
                         <LoadingDots />
                         <span className="text-melodia-coral font-medium text-sm">Generating...</span>
                       </>
-                    ) : (
+                    ) : !initializedVariants[variant.id] ? (
                       <p className="text-melodia-coral font-medium">
-                        {variant.downloadStatus}
+                        Download now
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -245,7 +249,7 @@ export default function SongOptionsDisplay({
                   <LoadingDots />
                   <span>Generating audio...</span>
                 </div>
-              ) : playingVariant === variant.id ? (
+              ) : (playingVariant === variant.id || initializedVariants[variant.id]) ? (
                 // Player UI when playing
                 <div className="space-y-4">
                   {/* Progress Bar */}
@@ -271,7 +275,11 @@ export default function SongOptionsDisplay({
                       onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
                       className="w-12 h-12 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors"
                     >
-                      <Pause className="w-5 h-5" />
+                      {playingVariant === variant.id ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5" />
+                      )}
                     </button>
 
                     {/* Lyrics Button */}

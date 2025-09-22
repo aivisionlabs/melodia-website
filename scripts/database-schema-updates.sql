@@ -17,6 +17,7 @@ ALTER TABLE lyrics_drafts ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT f
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_request_id INTEGER UNIQUE;
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_url_variant_1 TEXT;
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_url_variant_2 TEXT;
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
 
 -- 2. Create missing tables
 -- =====================================================
@@ -73,22 +74,52 @@ CREATE TABLE IF NOT EXISTS payment_webhooks (
 -- =====================================================
 
 -- Add foreign key for songs.song_request_id
-ALTER TABLE songs ADD CONSTRAINT IF NOT EXISTS songs_song_request_id_fkey 
-    FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'songs_song_request_id_fkey') THEN
+        ALTER TABLE songs ADD CONSTRAINT songs_song_request_id_fkey 
+            FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
+    END IF;
+END $$;
 
 -- Add foreign keys for payments table
-ALTER TABLE payments ADD CONSTRAINT IF NOT EXISTS payments_song_request_id_fkey 
-    FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'payments_song_request_id_fkey') THEN
+        ALTER TABLE payments ADD CONSTRAINT payments_song_request_id_fkey 
+            FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
+    END IF;
+END $$;
 
-ALTER TABLE payments ADD CONSTRAINT IF NOT EXISTS payments_user_id_fkey 
-    FOREIGN KEY (user_id) REFERENCES users(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'payments_user_id_fkey') THEN
+        ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey 
+            FOREIGN KEY (user_id) REFERENCES users(id);
+    END IF;
+END $$;
 
-ALTER TABLE payments ADD CONSTRAINT IF NOT EXISTS payments_anonymous_user_id_fkey 
-    FOREIGN KEY (anonymous_user_id) REFERENCES anonymous_users(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'payments_anonymous_user_id_fkey') THEN
+        ALTER TABLE payments ADD CONSTRAINT payments_anonymous_user_id_fkey 
+            FOREIGN KEY (anonymous_user_id) REFERENCES anonymous_users(id);
+    END IF;
+END $$;
 
 -- Add foreign key for payment_webhooks table
-ALTER TABLE payment_webhooks ADD CONSTRAINT IF NOT EXISTS payment_webhooks_payment_id_fkey 
-    FOREIGN KEY (payment_id) REFERENCES payments(id);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'payment_webhooks_payment_id_fkey') THEN
+        ALTER TABLE payment_webhooks ADD CONSTRAINT payment_webhooks_payment_id_fkey 
+            FOREIGN KEY (payment_id) REFERENCES payments(id);
+    END IF;
+END $$;
 
 -- 4. Add indexes for better performance
 -- =====================================================

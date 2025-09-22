@@ -36,7 +36,7 @@ if [ $? -eq 0 ]; then
     echo "📊 Summary of changes:"
     echo "  • Added anonymous_user_id to song_requests table"
     echo "  • Added is_approved to lyrics_drafts table"
-    echo "  • Added song_request_id, song_url_variant_1, song_url_variant_2 to songs table"
+    echo "  • Added song_request_id, song_url_variant_1, song_url_variant_2, is_featured to songs table"
     echo "  • Created anonymous_users table"
     echo "  • Created payments table"
     echo "  • Created pricing_plans table"
