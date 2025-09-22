@@ -369,7 +369,7 @@ export default function CreateSongV2Page() {
       {
         id: 'mock_variant_1',
         title: `${baseTitle} - Version 1`,
-        audioUrl: '/placeholder-audio.mp3',
+        audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant1',
         duration: 180,
         downloadStatus: 'Download in 2 minutes',
@@ -378,7 +378,7 @@ export default function CreateSongV2Page() {
       {
         id: 'mock_variant_2', 
         title: `${baseTitle} - Version 2`,
-        audioUrl: '/placeholder-audio.mp3',
+        audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant2',
         duration: 195,
         downloadStatus: 'Download in 2 minutes',

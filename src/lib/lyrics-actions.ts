@@ -448,6 +448,7 @@ export async function createSongFromLyricsAction(requestId: number) {
       .where(eq(lyricsDraftsTable.id, request[0].approved_lyrics_id))
       .limit(1)
 
+      
     if (!approvedLyrics[0]) {
       throw new Error('Approved lyrics not found')
     }

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Download, ArrowLeft } from 'lucide-react';
+import { Play, Pause, Download, ArrowLeft, BookOpen, Share2 } from 'lucide-react';
 
 interface SongVariant {
   id: string;
@@ -29,6 +29,11 @@ export default function SongOptionsDisplay({
 }: SongOptionsDisplayProps) {
   const [playingVariant, setPlayingVariant] = useState<string | null>(null);
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
+  const [currentTime, setCurrentTime] = useState<{ [key: string]: number }>({});
+  const [duration, setDuration] = useState<{ [key: string]: number }>({});
+  const [sharePublicly, setSharePublicly] = useState<{ [key: string]: boolean }>({});
+  const [emailInput, setEmailInput] = useState<{ [key: string]: string }>({});
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePlayPreview = (variantId: string, audioUrl: string) => {
     // Don't play if no audio URL (still loading)
@@ -36,43 +41,132 @@ export default function SongOptionsDisplay({
       console.log('Audio not ready yet');
       return;
     }
-
-    // Stop any currently playing audio
-    Object.values(audioElements).forEach(audio => {
+  
+    // If clicking the same song that's playing, pause it
+    if (playingVariant === variantId) {
+      const audio = audioElements[variantId];
+      if (audio) {
+        audio.pause();
+        setPlayingVariant(null);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      }
+      return;
+    }
+  
+    // Stop any currently playing audio and reset their currentTime
+    Object.entries(audioElements).forEach(([id, audio]) => {
       audio.pause();
       audio.currentTime = 0;
     });
-
+  
+    // Clear any existing progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+  
+    let audio: HTMLAudioElement;
+  
     // Create new audio element if it doesn't exist
     if (!audioElements[variantId]) {
-      const audio = new Audio(audioUrl);
+      audio = new Audio(audioUrl);
       audio.preload = 'metadata';
+      
+      // Update the audioElements state immediately
       setAudioElements(prev => ({ ...prev, [variantId]: audio }));
+      
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(prev => ({ ...prev, [variantId]: audio.duration }));
+      });
       
       audio.addEventListener('ended', () => {
         setPlayingVariant(null);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
       });
-    }
-
-    const audio = audioElements[variantId] || new Audio(audioUrl);
-    
-    if (playingVariant === variantId) {
-      // Pause if currently playing
-      audio.pause();
-      setPlayingVariant(null);
+  
+      audio.addEventListener('error', (e) => {
+        console.error('Audio loading error:', e);
+        setPlayingVariant(null);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      });
     } else {
-      // Play the preview
-      setPlayingVariant(variantId);
-      audio.currentTime = 0;
-      audio.play().catch(console.error);
+      audio = audioElements[variantId];
     }
+    
+    // Set playing state BEFORE starting playback
+    setPlayingVariant(variantId);
+    
+    // Reset to beginning and play
+    audio.currentTime = 0;
+    
+    audio.play()
+      .then(() => {
+        // Start progress tracking only after successful play
+        progressIntervalRef.current = setInterval(() => {
+          setCurrentTime(prev => ({ ...prev, [variantId]: audio.currentTime }));
+        }, 100);
+      })
+      .catch((error) => {
+        console.error('Error playing audio:', error);
+        setPlayingVariant(null);
+      });
   };
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60); // Round to whole number
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const handleDownload = (audioUrl: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = audioUrl;
+    link.download = `${title}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShareToggle = (variantId: string) => {
+    setSharePublicly(prev => ({
+      ...prev,
+      [variantId]: !prev[variantId]
+    }));
+  };
+
+  const handleEmailChange = (variantId: string, email: string) => {
+    setEmailInput(prev => ({
+      ...prev,
+      [variantId]: email
+    }));
+  };
+
+  const handleSendEmail = (variantId: string) => {
+    const email = emailInput[variantId];
+    if (email) {
+      // TODO: Implement email sending functionality
+      console.log(`Sending song link to ${email} for variant ${variantId}`);
+      alert(`Song link will be sent to ${email}`);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      // Pause all audio elements
+      Object.values(audioElements).forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+    };
+  }, []);
 
   // Loading dots animation component
   const LoadingDots = () => (
@@ -145,13 +239,104 @@ export default function SongOptionsDisplay({
                 </div>
               </div>
 
-              {/* Play Preview Button or Loading State */}
+              {/* Play Preview Button or Player UI */}
               {(!variant.audioUrl || variant.audioUrl === '') ? (
                 <div className="w-full h-12 bg-gray-100 text-gray-500 font-semibold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
                   <LoadingDots />
                   <span>Generating audio...</span>
                 </div>
+              ) : playingVariant === variant.id ? (
+                // Player UI when playing
+                <div className="space-y-4">
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
+                        style={{ 
+                          width: `${duration[variant.id] ? (currentTime[variant.id] || 0) / duration[variant.id] * 100 : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>{formatDuration(currentTime[variant.id] || 0)}</span>
+                      <span>{formatDuration(duration[variant.id] || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Row */}
+                  <div className="flex gap-3">
+                    {/* Play/Pause Button */}
+                    <button
+                      onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
+                      className="w-12 h-12 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors"
+                    >
+                      <Pause className="w-5 h-5" />
+                    </button>
+
+                    {/* Lyrics Button */}
+                    <button
+                      onClick={() => alert('Lyrics feature coming soon!')}
+                      className="flex-1 h-12 bg-white border-2 border-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/10 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Lyrics
+                    </button>
+
+                    {/* Download Button */}
+                    <button
+                      onClick={() => handleDownload(variant.audioUrl, variant.title)}
+                      className="flex-1 h-12 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
+
+                  {/* Sharing Section */}
+                  <div className="space-y-3">
+                    {/* Horizontal Divider */}
+                    <div className="w-full h-px bg-gray-200"></div>
+
+                    {/* Share Publicly Checkbox */}
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sharePublicly[variant.id] || false}
+                          onChange={() => handleShareToggle(variant.id)}
+                          className="w-4 h-4 text-pink-500 bg-pink-500 border-pink-500 rounded focus:ring-pink-500 focus:ring-2"
+                        />
+                        <span className="text-sm text-gray-700">Share publicly</span>
+                      </label>
+                      <Share2 className="w-4 h-4 text-gray-400" />
+                    </div>
+
+                    {/* Email Input (Conditional) */}
+                    {sharePublicly[variant.id] && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">Get your song link via email</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="Enter your email ID"
+                            value={emailInput[variant.id] || ''}
+                            onChange={(e) => handleEmailChange(variant.id, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent"
+                          />
+                          <button
+                            onClick={() => handleSendEmail(variant.id)}
+                            className="px-4 py-2 bg-melodia-yellow text-melodia-teal font-semibold rounded-lg hover:bg-melodia-yellow/90 transition-colors"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
+                // Play Button when not playing
                 <Button
                   onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
                   className="w-full h-12 bg-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2"

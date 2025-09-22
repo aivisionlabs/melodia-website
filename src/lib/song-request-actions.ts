@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { songRequestsTable, songsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
-import { sanitizeInput } from './utils/validation'
+import { sanitizeInput } from './security'
 import { shouldRequirePayment } from './payment-config'
 
 // Input validation functions

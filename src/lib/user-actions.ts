@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
-import { validateEmail, validatePassword, validateName, sanitizeInput } from './utils/validation'
+import { validateEmail, validatePassword, validateName, sanitizeInput } from './security'
 
 
 
