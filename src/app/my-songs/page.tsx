@@ -1,171 +1,199 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Play, ArrowLeft, Music, Trash2, RefreshCw, Loader2, Search, Filter, X } from 'lucide-react'
-import Header from '@/components/Header'
-import { useAuth } from '@/hooks/use-auth'
-import { fetchUserContent, UserContentItem, getButtonForContent } from '@/lib/user-content-client'
-import { useToast } from '@/components/ui/toast'
-import { pollSongStatus } from '@/lib/song-status-client'
-import { VariantSelectionModal } from '@/components/VariantSelectionModal'
-import { MediaPlayer } from '@/components/MediaPlayer'
-
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Play,
+  ArrowLeft,
+  Music,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  Search,
+  Filter,
+  X,
+} from "lucide-react";
+import Header from "@/components/Header";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  fetchUserContent,
+  UserContentItem,
+  getButtonForContent,
+} from "@/lib/user-content-client";
+import { useToast } from "@/components/ui/toast";
+import { pollSongStatus } from "@/lib/song-status-client";
+import { VariantSelectionModal } from "@/components/VariantSelectionModal";
+import { MediaPlayer } from "@/components/MediaPlayer";
+import { MiniPlayer } from "@/components/MiniPlayer";
 
 export default function MySongsPage() {
-  const router = useRouter()
-  const { user, loading: authLoading, isAuthenticated } = useAuth()
-  const { addToast } = useToast()
-  const [userContent, setUserContent] = useState<UserContentItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [showProgressModal, setShowProgressModal] = useState(false)
-  const [progressItem, setProgressItem] = useState<UserContentItem | null>(null)
-  const [pollingSongs, setPollingSongs] = useState<Set<string>>(new Set())
-  const cleanupFunctionsRef = useRef<Map<string, () => void>>(new Map())
-  
+  const router = useRouter();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const { addToast } = useToast();
+  const [userContent, setUserContent] = useState<UserContentItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressItem, setProgressItem] = useState<UserContentItem | null>(
+    null
+  );
+  const [pollingSongs, setPollingSongs] = useState<Set<string>>(new Set());
+  const cleanupFunctionsRef = useRef<Map<string, () => void>>(new Map());
+
   // Variant selection modal state
-  const [showVariantModal, setShowVariantModal] = useState(false)
-  const [selectedSongForVariants, setSelectedSongForVariants] = useState<UserContentItem | null>(null)
-  
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [selectedSongForVariants, setSelectedSongForVariants] =
+    useState<UserContentItem | null>(null);
+
   // Media player state
-  const [selectedSong, setSelectedSong] = useState<any>(null)
-  const [songLyrics, setSongLyrics] = useState<any[]>([])
-  
+  const [selectedSong, setSelectedSong] = useState<any>(null);
+  const [songLyrics, setSongLyrics] = useState<any[]>([]);
+
   // Filter states
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [filteredContent, setFilteredContent] = useState<UserContentItem[]>([])
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [filteredContent, setFilteredContent] = useState<UserContentItem[]>([]);
 
   const stopPollingSong = (songId: string) => {
     // Call cleanup function if it exists
-    const cleanup = cleanupFunctionsRef.current.get(songId)
+    const cleanup = cleanupFunctionsRef.current.get(songId);
     if (cleanup) {
-      console.log(`Stopping polling for song ${songId}`)
-      cleanup()
-      cleanupFunctionsRef.current.delete(songId)
+      console.log(`Stopping polling for song ${songId}`);
+      cleanup();
+      cleanupFunctionsRef.current.delete(songId);
     }
-    
+
     // Remove from polling set
-    setPollingSongs(prev => {
-      const newSet = new Set(prev)
-      newSet.delete(songId)
-      return newSet
-    })
-  }
+    setPollingSongs((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(songId);
+      return newSet;
+    });
+  };
 
   const loadUserContent = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id) return;
 
     try {
-      setIsLoading(true)
-      console.log('Loading user content for user:', user.id)
-      const content = await fetchUserContent(user.id)
-      console.log('Loaded user content:', content.length, 'items')
-      setUserContent(content)
-      setFilteredContent(content) // Initialize filtered content
+      setIsLoading(true);
+      console.log("Loading user content for user:", user.id);
+      const content = await fetchUserContent(user.id);
+      console.log("Loaded user content:", content.length, "items");
+      setUserContent(content);
+      setFilteredContent(content); // Initialize filtered content
     } catch (error) {
-      console.error('Error loading user content:', error)
+      console.error("Error loading user content:", error);
       addToast({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load your songs. Please try again.'
-      })
+        type: "error",
+        title: "Error",
+        message: "Failed to load your songs. Please try again.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [user?.id, addToast])
+  }, [user?.id, addToast]);
 
   // Filter content based on search query and filters
   const applyFilters = useCallback(() => {
-    let filtered = [...userContent]
+    let filtered = [...userContent];
 
     // Search filter
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(query) ||
-        item.recipient_name.toLowerCase().includes(query)
-      )
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query) ||
+          item.recipient_name.toLowerCase().includes(query)
+      );
     }
 
     // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        const button = getButtonForContent(item)
-        const statusText = button.text.toLowerCase()
-        
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((item) => {
+        const button = getButtonForContent(item);
+        const statusText = button.text.toLowerCase();
+
         switch (statusFilter) {
-          case 'ready':
-            return statusText.includes('listen') || statusText.includes('play')
-          case 'processing':
-            return statusText.includes('progress') || statusText.includes('generating')
-          case 'draft':
-            return statusText.includes('generate') || statusText.includes('review')
-          case 'failed':
-            return statusText.includes('retry') || statusText.includes('failed')
+          case "ready":
+            return statusText.includes("listen") || statusText.includes("play");
+          case "processing":
+            return (
+              statusText.includes("progress") ||
+              statusText.includes("generating")
+            );
+          case "draft":
+            return (
+              statusText.includes("generate") || statusText.includes("review")
+            );
+          case "failed":
+            return (
+              statusText.includes("retry") || statusText.includes("failed")
+            );
           default:
-            return true
+            return true;
         }
-      })
+      });
     }
 
-    setFilteredContent(filtered)
-  }, [userContent, searchQuery, statusFilter])
+    setFilteredContent(filtered);
+  }, [userContent, searchQuery, statusFilter]);
 
   // Apply filters when search query or filters change
   useEffect(() => {
-    applyFilters()
-  }, [applyFilters])
+    applyFilters();
+  }, [applyFilters]);
 
   // Clear all filters
   const clearFilters = () => {
-    setSearchQuery('')
-    setStatusFilter('all')
-  }
+    setSearchQuery("");
+    setStatusFilter("all");
+  };
 
   // Helper function to safely parse lyrics
   const parseLyrics = (lyrics: any): any[] => {
-    if (!lyrics) return []
-    
-    if (typeof lyrics === 'string') {
+    if (!lyrics) return [];
+
+    if (typeof lyrics === "string") {
       try {
-        return JSON.parse(lyrics)
+        return JSON.parse(lyrics);
       } catch {
         // If it's not valid JSON, treat it as plain text and create a proper lyrics array
-        const lines = lyrics.split('\n').filter(line => line.trim() !== '')
+        const lines = lyrics.split("\n").filter((line) => line.trim() !== "");
         const lyricsArray = lines.map((line, index) => ({
           index: index,
           text: line.trim(),
           start: index * 5000, // 5 seconds per line
-          end: (index + 1) * 5000
-        }))
-        return lyricsArray
+          end: (index + 1) * 5000,
+        }));
+        return lyricsArray;
       }
     }
-    
-    return Array.isArray(lyrics) ? lyrics : []
-  }
+
+    return Array.isArray(lyrics) ? lyrics : [];
+  };
 
   // Handle variant selection for MediaPlayer
   const handleVariantSelectForPlayer = (variant: any, variantIndex: number) => {
-    if (!selectedSongForVariants) return
+    if (!selectedSongForVariants) return;
 
     // Get the correct lyrics for this variant
-    let variantLyrics = null
-    if (selectedSongForVariants.timestamped_lyrics_variants && 
-        selectedSongForVariants.timestamped_lyrics_variants[variantIndex]) {
+    let variantLyrics = null;
+    if (
+      selectedSongForVariants.timestamped_lyrics_variants &&
+      selectedSongForVariants.timestamped_lyrics_variants[variantIndex]
+    ) {
       // Use variant-specific timestamped lyrics if available
-      variantLyrics = selectedSongForVariants.timestamped_lyrics_variants[variantIndex]
+      variantLyrics =
+        selectedSongForVariants.timestamped_lyrics_variants[variantIndex];
     } else if (selectedSongForVariants.timestamp_lyrics) {
       // Fallback to main timestamped lyrics
-      variantLyrics = selectedSongForVariants.timestamp_lyrics
+      variantLyrics = selectedSongForVariants.timestamp_lyrics;
     } else {
       // Fallback to parsed plain text lyrics
-      variantLyrics = parseLyrics(selectedSongForVariants.lyrics)
+      variantLyrics = parseLyrics(selectedSongForVariants.lyrics);
     }
 
     // Create song object for MediaPlayer
@@ -173,351 +201,370 @@ export default function MySongsPage() {
       title: selectedSongForVariants.title,
       artist: selectedSongForVariants.recipient_name,
       song_url: variant.audioUrl || variant.streamAudioUrl,
-      slug: selectedSongForVariants.title.toLowerCase().replace(/\s+/g, '-'),
+      slug: selectedSongForVariants.title.toLowerCase().replace(/\s+/g, "-"),
       lyrics: variantLyrics,
       timestamp_lyrics: selectedSongForVariants.timestamp_lyrics || null,
-      timestamped_lyrics_variants: selectedSongForVariants.timestamped_lyrics_variants || null,
+      timestamped_lyrics_variants:
+        selectedSongForVariants.timestamped_lyrics_variants || null,
       selected_variant: variantIndex,
       // Suno-specific fields for timestamped lyrics
       suno_task_id: selectedSongForVariants.suno_task_id,
-      suno_audio_id: variant.id // Use variant ID as audio ID
-    }
+      suno_audio_id: variant.id, // Use variant ID as audio ID
+    };
 
-    setSelectedSong(songForPlayer)
-    setSongLyrics(variantLyrics || [])
-  }
+    setSelectedSong(songForPlayer);
+    setSongLyrics(variantLyrics || []);
+  };
 
   // Handle listen button click
   const handleListenClick = (item: UserContentItem) => {
     if (item.variants && item.variants.length > 1) {
       // Show variant selection modal for songs with multiple variants
-      setSelectedSongForVariants(item)
-      setShowVariantModal(true)
+      setSelectedSongForVariants(item);
+      setShowVariantModal(true);
     } else if (item.variants && item.variants.length === 1) {
       // Direct play for songs with single variant
-      handleVariantSelectForPlayer(item.variants[0], 0)
+      handleVariantSelectForPlayer(item.variants[0], 0);
     } else {
       // Fallback for songs without variants
-      let songLyrics = null
-      if (item.timestamped_lyrics_variants && item.timestamped_lyrics_variants[0]) {
+      let songLyrics = null;
+      if (
+        item.timestamped_lyrics_variants &&
+        item.timestamped_lyrics_variants[0]
+      ) {
         // Use variant-specific timestamped lyrics if available
-        songLyrics = item.timestamped_lyrics_variants[0]
+        songLyrics = item.timestamped_lyrics_variants[0];
       } else if (item.timestamp_lyrics) {
         // Fallback to main timestamped lyrics
-        songLyrics = item.timestamp_lyrics
+        songLyrics = item.timestamp_lyrics;
       } else {
         // Fallback to parsed plain text lyrics
-        songLyrics = parseLyrics(item.lyrics)
+        songLyrics = parseLyrics(item.lyrics);
       }
 
       const songForPlayer = {
         title: item.title,
         artist: item.recipient_name,
         song_url: item.audio_url,
-        slug: item.title.toLowerCase().replace(/\s+/g, '-'),
+        slug: item.title.toLowerCase().replace(/\s+/g, "-"),
         lyrics: songLyrics,
         timestamp_lyrics: item.timestamp_lyrics || null,
         timestamped_lyrics_variants: item.timestamped_lyrics_variants || null,
         selected_variant: 0,
         // Suno-specific fields for timestamped lyrics
         suno_task_id: item.suno_task_id,
-        suno_audio_id: item.song_id?.toString() // Use song ID as audio ID
-      }
-      setSelectedSong(songForPlayer)
-      setSongLyrics(songLyrics || [])
+        suno_audio_id: item.song_id?.toString(), // Use song ID as audio ID
+      };
+      setSelectedSong(songForPlayer);
+      setSongLyrics(songLyrics || []);
     }
-  }
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login')
-      return
+      router.push("/sign-in");
+      return;
     }
 
     if (user?.id) {
-      loadUserContent()
+      loadUserContent();
     }
-  }, [user, authLoading, isAuthenticated, router, loadUserContent])
+  }, [user, authLoading, isAuthenticated, router, loadUserContent]);
 
   // Refresh data when page becomes visible (e.g., when user navigates back from home)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user?.id) {
-        loadUserContent()
+        loadUserContent();
       } else if (document.hidden) {
         // Stop all polling when page becomes hidden
-        console.log('Page hidden - stopping all polling')
+        console.log("Page hidden - stopping all polling");
         cleanupFunctionsRef.current.forEach((cleanup, songId) => {
-          console.log(`Stopping polling for song ${songId} - page hidden`)
-          cleanup()
-        })
-        cleanupFunctionsRef.current.clear()
-        setPollingSongs(new Set())
+          console.log(`Stopping polling for song ${songId} - page hidden`);
+          cleanup();
+        });
+        cleanupFunctionsRef.current.clear();
+        setPollingSongs(new Set());
       }
-    }
+    };
 
     const handleFocus = () => {
       if (user?.id) {
-        loadUserContent()
+        loadUserContent();
       }
-    }
+    };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [user?.id, loadUserContent])
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [user?.id, loadUserContent]);
 
   // Start individual song polling for processing songs
   useEffect(() => {
     if (user?.id && userContent.length > 0) {
       // Find songs that need polling
-      const songsToPoll = userContent.filter(item => 
-        item.type === 'song' && 
-        (item.status === 'processing' || item.status === 'generating') &&
-        !pollingSongs.has(item.id)
-      )
+      const songsToPoll = userContent.filter(
+        (item) =>
+          item.type === "song" &&
+          (item.status === "processing" || item.status === "generating") &&
+          !pollingSongs.has(item.id)
+      );
 
       if (songsToPoll.length > 0) {
-        console.log(`Found ${songsToPoll.length} songs to poll:`, songsToPoll.map(s => s.id))
-        
-        songsToPoll.forEach(song => {
+        console.log(
+          `Found ${songsToPoll.length} songs to poll:`,
+          songsToPoll.map((s) => s.id)
+        );
+
+        songsToPoll.forEach((song) => {
           // Extract taskId from song metadata or use a fallback
-          const taskId = song.suno_task_id || `demo-task-${Date.now()}`
-          
-          console.log(`Starting polling for song ${song.id} with taskId ${taskId}`)
-          
+          const taskId = song.suno_task_id || `demo-task-${Date.now()}`;
+
+          console.log(
+            `Starting polling for song ${song.id} with taskId ${taskId}`
+          );
+
           // Mark as polling immediately to prevent duplicate polling
-          setPollingSongs(prev => new Set(prev.add(song.id)))
-          
+          setPollingSongs((prev) => new Set(prev.add(song.id)));
+
           // Start polling this individual song
           const cleanup = pollSongStatus(
             taskId,
             (status) => {
-              console.log(`Song ${song.id} status update:`, status)
-              
+              console.log(`Song ${song.id} status update:`, status);
+
               // Song status will be updated in setUserContent below
-              
+
               // If completed, update the user content
-              if (status.status === 'completed' && status.audioUrl) {
-                setUserContent(prev => prev.map(item => 
-                  item.id === song.id 
-                    ? { ...item, status: 'ready', audio_url: status.audioUrl }
-                    : item
-                ))
-                
+              if (status.status === "completed" && status.audioUrl) {
+                setUserContent((prev) =>
+                  prev.map((item) =>
+                    item.id === song.id
+                      ? { ...item, status: "ready", audio_url: status.audioUrl }
+                      : item
+                  )
+                );
+
                 addToast({
-                  type: 'success',
-                  title: 'Song Ready!',
-                  message: `${song.title} has been generated and is ready to listen!`
-                })
-                
+                  type: "success",
+                  title: "Song Ready!",
+                  message: `${song.title} has been generated and is ready to listen!`,
+                });
+
                 // Stop polling this song
-                stopPollingSong(song.id)
-              } else if (status.status === 'failed') {
-                setUserContent(prev => prev.map(item => 
-                  item.id === song.id 
-                    ? { ...item, status: 'failed' }
-                    : item
-                ))
-                
+                stopPollingSong(song.id);
+              } else if (status.status === "failed") {
+                setUserContent((prev) =>
+                  prev.map((item) =>
+                    item.id === song.id ? { ...item, status: "failed" } : item
+                  )
+                );
+
                 addToast({
-                  type: 'error',
-                  title: 'Song Generation Failed',
-                  message: `${song.title} failed to generate. You can try again.`
-                })
-                
+                  type: "error",
+                  title: "Song Generation Failed",
+                  message: `${song.title} failed to generate. You can try again.`,
+                });
+
                 // Stop polling this song
-                stopPollingSong(song.id)
+                stopPollingSong(song.id);
               }
             },
             (error) => {
-              console.error(`Error polling song ${song.id}:`, error)
+              console.error(`Error polling song ${song.id}:`, error);
               addToast({
-                type: 'error',
-                title: 'Status Check Failed',
-                message: 'Failed to check song status. Please refresh the page.'
-              })
-              
+                type: "error",
+                title: "Status Check Failed",
+                message:
+                  "Failed to check song status. Please refresh the page.",
+              });
+
               // Stop polling this song on error
-              stopPollingSong(song.id)
+              stopPollingSong(song.id);
             },
             10000 // Poll every 10 seconds
-          )
-          
+          );
+
           // Store cleanup function in ref
-          cleanupFunctionsRef.current.set(song.id, cleanup)
-        })
+          cleanupFunctionsRef.current.set(song.id, cleanup);
+        });
       }
     }
-  }, [userContent, user?.id, addToast, pollingSongs]) // Added missing dependencies
+  }, [userContent, user?.id, addToast, pollingSongs]); // Added missing dependencies
 
   // Cleanup polling when component unmounts
   useEffect(() => {
-    const cleanupFunctions = cleanupFunctionsRef.current
+    const cleanupFunctions = cleanupFunctionsRef.current;
     return () => {
-      console.log('Cleaning up all polling on component unmount')
+      console.log("Cleaning up all polling on component unmount");
       // Call all cleanup functions
       cleanupFunctions.forEach((cleanup, songId) => {
-        console.log(`Stopping polling for song ${songId}`)
-        cleanup()
-      })
+        console.log(`Stopping polling for song ${songId}`);
+        cleanup();
+      });
       // Clear the ref
-      cleanupFunctions.clear()
-    }
-  }, []) // Empty dependency array - only run on unmount
+      cleanupFunctions.clear();
+    };
+  }, []); // Empty dependency array - only run on unmount
 
   const handlePlaySong = (item: UserContentItem) => {
     const button = getButtonForContent(item);
-    
+
     switch (button.action) {
-      case 'listen':
-        handleListenClick(item)
+      case "listen":
+        handleListenClick(item);
         break;
-        
-      case 'progress':
+
+      case "progress":
         // Show progress modal
         setProgressItem(item);
         setShowProgressModal(true);
         break;
-        
-      case 'retry':
+
+      case "retry":
         // Navigate to lyrics display page to retry generation
         if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`)
+          router.push(`/lyrics-display?requestId=${item.request_id}`);
         }
         break;
-        
-      case 'generate':
+
+      case "generate":
         // Navigate to lyrics display page to generate song
         if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`)
+          router.push(`/lyrics-display?requestId=${item.request_id}`);
         }
         break;
-        
-      case 'view':
-      case 'review':
+
+      case "view":
+      case "review":
       default:
         // Navigate to lyrics display page
         if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`)
+          router.push(`/lyrics-display?requestId=${item.request_id}`);
         }
         break;
     }
-  }
+  };
 
   const handleDeleteSong = async (item: UserContentItem) => {
-    if (confirm('Are you sure you want to delete this item?')) {
+    if (confirm("Are you sure you want to delete this item?")) {
       try {
-        const response = await fetch('/api/delete-content', {
-          method: 'DELETE',
+        const response = await fetch("/api/delete-content", {
+          method: "DELETE",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             contentId: item.id,
-            contentType: item.type
-          })
+            contentType: item.type,
+          }),
         });
 
         if (!response.ok) {
           const errorResult = await response.json();
-          throw new Error(errorResult.message || 'Failed to delete item');
+          throw new Error(errorResult.message || "Failed to delete item");
         }
 
         // Remove from local state
-        const updatedContent = userContent.filter(content => content.id !== item.id);
+        const updatedContent = userContent.filter(
+          (content) => content.id !== item.id
+        );
         setUserContent(updatedContent);
-        
+
         addToast({
-          type: 'success',
-          title: 'Deleted',
-          message: 'Item deleted successfully'
+          type: "success",
+          title: "Deleted",
+          message: "Item deleted successfully",
         });
       } catch (error) {
-        console.error('Error deleting item:', error);
+        console.error("Error deleting item:", error);
         addToast({
-          type: 'error',
-          title: 'Delete Failed',
-          message: error instanceof Error ? error.message : 'Failed to delete item'
+          type: "error",
+          title: "Delete Failed",
+          message:
+            error instanceof Error ? error.message : "Failed to delete item",
         });
       }
     }
-  }
+  };
 
   const handleBack = () => {
-    router.back()
-  }
+    router.back();
+  };
 
   const handleRefresh = () => {
-    loadUserContent()
-  }
-
+    loadUserContent();
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const getStatusBadge = (item: UserContentItem) => {
-    const button = getButtonForContent(item)
+    const button = getButtonForContent(item);
     return (
-      <Badge 
-        variant={button.variant === 'destructive' ? 'destructive' : 'default'}
-        className={button.variant === 'destructive' ? 'bg-red-500' : 'bg-green-500'}
+      <Badge
+        variant={button.variant === "destructive" ? "destructive" : "default"}
+        className={
+          button.variant === "destructive" ? "bg-red-500" : "bg-green-500"
+        }
       >
         {button.text}
       </Badge>
-    )
-  }
+    );
+  };
 
   // Show loading state
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-yellow-400" />
-          <p className="text-white">Loading your songs...</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-foreground">Loading your songs...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background">
       {/* Navigation Header */}
       <Header />
-      
+
       {/* Page Header */}
-      <div className="bg-black/20 backdrop-blur-sm border-b border-white/10">
+      <div className="bg-secondary/20 backdrop-blur-sm border-b border-accent/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-accent/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            
+
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white">My Songs</h1>
-              <p className="text-gray-300">All your generated songs in one place</p>
+              <h1 className="text-2xl font-bold text-foreground">My Songs</h1>
+              <p className="text-muted-foreground">
+                All your generated songs in one place
+              </p>
             </div>
-            
+
             <Button
               onClick={handleRefresh}
               variant="ghost"
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-accent/10"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
@@ -530,126 +577,145 @@ export default function MySongsPage() {
         {/* Search and Filters - Always Visible */}
         {userContent.length > 0 && (
           <div className="mb-6 space-y-4">
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Search by title or recipient name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-yellow-500"
-                />
-                {searchQuery && (
-                  <Button
-                    onClick={() => setSearchQuery('')}
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search by title or recipient name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-input border-melodia-teal-medium text-foreground placeholder-muted-foreground focus:border-accent"
+              />
+              {searchQuery && (
+                <Button
+                  onClick={() => setSearchQuery("")}
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Filter Chips */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground text-sm">Filters:</span>
+              </div>
+
+              {/* Filter Chips Container */}
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs text-muted-foreground font-medium self-center mr-2">
+                  Status:
+                </span>
+                {[
+                  { value: "all", label: "All Status", icon: "🔍" },
+                  { value: "ready", label: "Ready to Play", icon: "▶️" },
+                  { value: "processing", label: "Processing", icon: "⏳" },
+                  { value: "draft", label: "Draft/Review", icon: "📄" },
+                  { value: "failed", label: "Failed", icon: "❌" },
+                ].map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => setStatusFilter(status.value)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                      statusFilter === status.value
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-secondary text-secondary-foreground hover:bg-accent/10 border border-melodia-teal-medium"
+                    }`}
                   >
-                    <X className="w-4 h-4" />
-                  </Button>
+                    <span className="mr-1">{status.icon}</span>
+                    {status.label}
+                  </button>
+                ))}
+
+                {/* Clear All Filters */}
+                {(searchQuery || statusFilter !== "all") && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-3 py-1.5 rounded-full text-sm font-bold bg-accent text-accent-foreground hover:bg-accent/90 transition-all duration-200 border-2 border-accent shadow-coral hover:shadow-glow transform hover:scale-105"
+                  >
+                    <X className="w-4 h-4 mr-1 inline" />
+                    Clear All
+                  </button>
                 )}
               </div>
+            </div>
 
-              {/* Filter Chips */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-300 text-sm">Filters:</span>
-                </div>
-
-                {/* Filter Chips Container */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-xs text-gray-400 font-medium self-center mr-2">Status:</span>
-                  {[
-                    { value: 'all', label: 'All Status', icon: '🔍' },
-                    { value: 'ready', label: 'Ready to Play', icon: '▶️' },
-                    { value: 'processing', label: 'Processing', icon: '⏳' },
-                    { value: 'draft', label: 'Draft/Review', icon: '📄' },
-                    { value: 'failed', label: 'Failed', icon: '❌' }
-                  ].map((status) => (
-                    <button
-                      key={status.value}
-                      onClick={() => setStatusFilter(status.value)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                        statusFilter === status.value
-                          ? 'bg-yellow-500 text-black hover:bg-yellow-600'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
-                      }`}
-                    >
-                      <span className="mr-1">{status.icon}</span>
-                      {status.label}
-                    </button>
-                  ))}
-
-                  {/* Clear All Filters */}
-                  {(searchQuery || statusFilter !== 'all') && (
-                    <button
-                      onClick={clearFilters}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all duration-200 border border-red-500"
-                    >
-                      <X className="w-4 h-4 mr-1 inline" />
-                      Clear All
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Results Count */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <p className="text-gray-300">
-                    Showing {filteredContent.length} of {userContent.length} item{userContent.length !== 1 ? 's' : ''}
-                  </p>
-                  {(searchQuery || statusFilter !== 'all') && (
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
-                        {[searchQuery, statusFilter !== 'all'].filter(Boolean).length} filter{([searchQuery, statusFilter !== 'all'].filter(Boolean).length !== 1) ? 's' : ''} active
-                      </span>
-                    </div>
-                  )}
-                </div>
+            {/* Results Count */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <p className="text-muted-foreground">
+                  Showing {filteredContent.length} of {userContent.length} item
+                  {userContent.length !== 1 ? "s" : ""}
+                </p>
+                {(searchQuery || statusFilter !== "all") && (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
+                      {
+                        [searchQuery, statusFilter !== "all"].filter(Boolean)
+                          .length
+                      }{" "}
+                      filter
+                      {[searchQuery, statusFilter !== "all"].filter(Boolean)
+                        .length !== 1
+                        ? "s"
+                        : ""}{" "}
+                      active
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
         )}
 
         {/* Content Display */}
         {userContent.length === 0 ? (
-          <Card className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
             <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-              <h3 className="text-xl font-bold text-white mb-2">No Content Yet</h3>
-              <p className="text-gray-300 mb-4">
+              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <h3 className="text-xl font-bold text-card-foreground mb-2">
+                No Content Yet
+              </h3>
+              <p className="text-muted-foreground mb-4">
                 Generate your first personalized song to see it here!
               </p>
               <Button
-                onClick={() => router.push('/')}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                onClick={() => router.push("/")}
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
               >
                 Create Your First Song
               </Button>
             </CardContent>
           </Card>
         ) : filteredContent.length === 0 ? (
-          <Card className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
             <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-              <h3 className="text-xl font-bold text-white mb-2">No Results Found</h3>
-              <p className="text-gray-300 mb-4">
-                Try adjusting your search or filters to find what you&apos;re looking for.
+              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <h3 className="text-xl font-bold text-card-foreground mb-2">
+                No Results Found
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your search or filters to find what you&apos;re
+                looking for.
               </p>
-              {(searchQuery || statusFilter !== 'all') && (
+              {(searchQuery || statusFilter !== "all") && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-400 mb-2">Current filters:</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Current filters:
+                  </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {searchQuery && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                         Search: &quot;{searchQuery}&quot;
                       </span>
                     )}
-                    {statusFilter !== 'all' && (
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">
+                    {statusFilter !== "all" && (
+                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                         Status: {statusFilter}
                       </span>
                     )}
@@ -658,7 +724,7 @@ export default function MySongsPage() {
               )}
               <Button
                 onClick={clearFilters}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
               >
                 Clear All Filters
               </Button>
@@ -667,75 +733,74 @@ export default function MySongsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredContent.map((item) => {
-                const button = getButtonForContent(item)
-                return (
-                  <Card 
-                    key={`${item.type}-${item.id}`} 
-                    className="bg-gray-800/50 backdrop-blur-sm border-yellow-500/30 hover:bg-yellow-500/10 transition-all duration-300 cursor-pointer group"
-                    onClick={() => handlePlaySong(item)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-white text-lg font-bold line-clamp-1 group-hover:text-yellow-300 transition-colors">
-                          {item.title}
-                        </CardTitle>
-                        {getStatusBadge(item)}
-                      </div>
-                      <p className="text-gray-400 text-sm">
-                        Created: {formatDate(item.created_at)}
+              const button = getButtonForContent(item);
+              return (
+                <Card
+                  key={`${item.type}-${item.id}`}
+                  className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-accent/10 transition-all duration-300 cursor-pointer group"
+                  onClick={() => handlePlaySong(item)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-card-foreground text-lg font-bold line-clamp-1 group-hover:text-accent transition-colors">
+                        {item.title}
+                      </CardTitle>
+                      {getStatusBadge(item)}
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      Created: {formatDate(item.created_at)}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      For: {item.recipient_name}
+                    </p>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    <div className="bg-primary/10 rounded-lg p-3">
+                      <p className="text-card-foreground text-sm">
+                        Type: {item.type.replace("_", " ").toUpperCase()}
                       </p>
-                      <p className="text-gray-500 text-xs">
-                        For: {item.recipient_name}
-                      </p>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-4">
-                      <div className="bg-yellow-500/10 rounded-lg p-3">
-                        <p className="text-gray-300 text-sm">
-                          Type: {item.type.replace('_', ' ').toUpperCase()}
+                      {item.audio_url && (
+                        <p className="text-accent text-xs mt-1">
+                          🎵 Audio available
                         </p>
-                        {item.audio_url && (
-                          <p className="text-green-400 text-xs mt-1">
-                            🎵 Audio available
-                          </p>
-                        )}
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (button.action === "listen") {
+                              handleListenClick(item);
+                            } else {
+                              handlePlaySong(item);
+                            }
+                          }}
+                          className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          {button.text}
+                        </Button>
+
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSong(item);
+                          }}
+                          variant="outline"
+                          size="icon"
+                          className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (button.action === 'listen') {
-                                handleListenClick(item)
-                              } else {
-                                handlePlaySong(item)
-                              }
-                            }}
-                            className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            {button.text}
-                          </Button>
-                          
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteSong(item)
-                            }}
-                            variant="outline"
-                            size="icon"
-                            className="border-red-300 text-red-300 hover:bg-red-500/20"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -743,41 +808,43 @@ export default function MySongsPage() {
       {/* Progress Modal */}
       {showProgressModal && progressItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="bg-gray-800/95 backdrop-blur-sm border-yellow-500/30 max-w-md w-full mx-4">
+          <Card className="bg-card/95 backdrop-blur-sm border-primary/30 max-w-md w-full mx-4">
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
+              <CardTitle className="text-card-foreground flex items-center">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Song Generation in Progress
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-card-foreground mb-2">
                   {progressItem.title}
                 </h3>
-                <p className="text-gray-300 mb-4">
-                  Your personalized song is being generated. This usually takes 2-3 minutes.
+                <p className="text-muted-foreground mb-4">
+                  Your personalized song is being generated. This usually takes
+                  2-3 minutes.
                 </p>
-                
-                <div className="bg-yellow-500/10 rounded-lg p-4 mb-4">
+
+                <div className="bg-primary/10 rounded-lg p-4 mb-4">
                   <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
-                    <span className="text-yellow-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-primary text-sm">
                       Processing your song...
                     </span>
                   </div>
                 </div>
-                
-                <p className="text-gray-400 text-sm">
-                  We&apos;ll automatically update this page when your song is ready!
+
+                <p className="text-muted-foreground text-sm">
+                  We&apos;ll automatically update this page when your song is
+                  ready!
                 </p>
               </div>
-              
+
               <div className="flex space-x-2">
                 <Button
                   onClick={() => setShowProgressModal(false)}
                   variant="outline"
-                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="flex-1 border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
                 >
                   Close
                 </Button>
@@ -786,7 +853,7 @@ export default function MySongsPage() {
                     setShowProgressModal(false);
                     loadUserContent(); // Refresh the data
                   }}
-                  className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold"
+                  className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
                 >
                   Refresh Status
                 </Button>
@@ -801,8 +868,8 @@ export default function MySongsPage() {
         <VariantSelectionModal
           isOpen={showVariantModal}
           onClose={() => {
-            setShowVariantModal(false)
-            setSelectedSongForVariants(null)
+            setShowVariantModal(false);
+            setSelectedSongForVariants(null);
           }}
           songTitle={selectedSongForVariants.title}
           variants={selectedSongForVariants.variants || []}
@@ -810,13 +877,16 @@ export default function MySongsPage() {
         />
       )}
 
-      {/* MediaPlayer Modal */}
+      {/* Sticky Mini Player */}
       {selectedSong && (
-        <MediaPlayer
-          song={selectedSong}
-          onClose={() => setSelectedSong(null)}
+        <MiniPlayer
+          song={{
+            title: selectedSong.title,
+            artist: selectedSong.artist,
+            song_url: selectedSong.song_url,
+          }}
         />
       )}
     </div>
-  )
+  );
 }

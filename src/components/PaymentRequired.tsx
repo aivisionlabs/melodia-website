@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { CreditCard, X, AlertCircle } from 'lucide-react';
-import { PaymentRequiredProps } from '@/types/payment';
-import { formatAmount } from '@/lib/razorpay-client';
+import React from "react";
+import { CreditCard, X, AlertCircle } from "lucide-react";
+import { PaymentRequiredProps } from "@/types/payment";
+import { formatAmount } from "@/lib/razorpay-client";
 
 export const PaymentRequired: React.FC<PaymentRequiredProps> = ({
   onProceedToPayment,
@@ -27,38 +27,40 @@ export const PaymentRequired: React.FC<PaymentRequiredProps> = ({
 
         <div className="p-6">
           <div className="text-center mb-6">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
-              <CreditCard className="h-6 w-6 text-blue-600" />
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20 mb-4">
+              <CreditCard className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               Complete Payment to Continue
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               You need to complete payment to generate your personalized song.
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-secondary rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">{planName}</p>
-                <p className="text-sm text-gray-600">One-time payment</p>
+                <p className="font-medium text-foreground">{planName}</p>
+                <p className="text-sm text-muted-foreground">
+                  One-time payment
+                </p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">
+                <p className="text-lg font-bold text-foreground">
                   {formatAmount(amount, currency)}
                 </p>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6">
             <div className="flex items-start">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
-              <div className="text-sm text-yellow-800">
+              <AlertCircle className="h-5 w-5 text-primary mt-0.5 mr-3 flex-shrink-0" />
+              <div className="text-sm text-foreground">
                 <p className="font-medium mb-1">What happens after payment?</p>
-                <ul className="list-disc list-inside space-y-1 text-yellow-700">
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>AI will generate personalized lyrics for your song</li>
                   <li>You can review and edit the lyrics</li>
                   <li>AI will create the music and vocals</li>
@@ -71,13 +73,13 @@ export const PaymentRequired: React.FC<PaymentRequiredProps> = ({
           <div className="flex space-x-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2 text-muted-foreground bg-secondary rounded-lg hover:bg-secondary/80 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={onProceedToPayment}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 text-primary-foreground bg-gradient-primary rounded-lg hover:bg-gradient-primary/90 transition-colors shadow-glow"
             >
               Proceed to Payment
             </button>

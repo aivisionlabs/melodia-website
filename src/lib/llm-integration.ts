@@ -12,6 +12,7 @@ export interface SongFormData {
   recipient_name: string;
   languages: string[];
   additional_details: string;
+  requester_name?: string;
 }
 
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
@@ -72,14 +73,15 @@ SONGWRITING GUIDELINES:
 - Write in the specified language ONLY - if Hindi is specified, write in Hindi with Devanagari script BUT keep names exactly as provided
 - Follow the exact style/genre mentioned in details
 - Do NOT add extra descriptive words
-- Keep it simple and direct based on the 3 inputs only
+- Keep it simple and direct based on the 4 inputs only
 
 EXACT USER INPUTS TO USE:
+Requester Name: ${formData.requester_name || 'Anonymous'}
 Recipient Name & Relationship: ${formData.recipient_name}
 Language(s): ${Array.isArray(formData.languages) ? formData.languages.join(', ') : formData.languages}
 Specific Details & Style: ${formData.additional_details}
 
-Create a song using ONLY these 3 inputs. Do not add extra words or descriptions.`;
+Create a song using ONLY these 4 inputs. Do not add extra words or descriptions.`;
 
   try {
     // Call Gemini API directly

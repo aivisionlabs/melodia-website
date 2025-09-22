@@ -142,10 +142,10 @@ class MockSunoAPI {
           id: `variant_1_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://mock-suno.com/images/${taskId}_variant1.jpeg`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
-          title: request.title,
+          title: `${request.title} - Acoustic Version`,
           tags: request.style,
           createTime: new Date().toISOString(),
           duration: Math.floor(Math.random() * 60) + 120 // 2-3 minutes
@@ -163,10 +163,10 @@ class MockSunoAPI {
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://mock-suno.com/images/${taskId}_variant2.jpeg`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
-          title: request.title,
+          title: `${request.title} - Electric Version`,
           tags: request.style,
           createTime: new Date().toISOString(),
           duration: Math.floor(Math.random() * 60) + 120 // 2-3 minutes
@@ -329,10 +329,10 @@ class MockSunoAPI {
           id: `variant_1_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://mock-suno.com/images/${taskId}_variant1.jpeg`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
-          title: request.title,
+          title: `${request.title} - Acoustic Version`,
           tags: request.style,
           createTime: new Date().toISOString(),
           duration: Math.floor(Math.random() * 60) + 120 // 2-3 minutes
@@ -350,10 +350,10 @@ class MockSunoAPI {
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://mock-suno.com/images/${taskId}_variant2.jpeg`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
-          title: request.title,
+          title: `${request.title} - Electric Version`,
           tags: request.style,
           createTime: new Date().toISOString(),
           duration: Math.floor(Math.random() * 60) + 120 // 2-3 minutes
@@ -444,6 +444,7 @@ export class SunoAPIFactory {
   static getAPI(): MockSunoAPI | SunoAPI {
     // On the client, always use mock API (keeps tokens server-only)
     if (typeof window !== 'undefined') {
+      console.log('🔧 Client-side: Using Mock Suno API');
       if (!this.instance || !(this.instance instanceof MockSunoAPI)) {
         this.instance = new MockSunoAPI();
       }
@@ -453,10 +454,8 @@ export class SunoAPIFactory {
     // Server-side: choose mock or real based on config
     if (!this.instance) {
       if (shouldUseMockAPI()) {
-        console.log('🔧 Using Mock Suno API');
         this.instance = new MockSunoAPI();
       } else {
-        console.log('🔧 Using Real Suno API');
         const apiToken = getAPIToken();
         this.instance = new SunoAPI(apiToken);
       }

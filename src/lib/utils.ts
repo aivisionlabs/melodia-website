@@ -163,6 +163,20 @@ export function validateSongId(id: string): boolean {
   return /^\d+$/.test(id)
 }
 
+// Sanitize search query
+export function sanitizeSearchQuery(query: string): string {
+  if (!query || typeof query !== 'string') return ''
+  
+  return query
+    .trim()
+    .replace(/[<>]/g, '') // Remove < and >
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .replace(/data:/gi, '') // Remove data: protocol
+    .replace(/vbscript:/gi, '') // Remove vbscript: protocol
+    .substring(0, 100) // Limit length
+}
+
 // Debounce function
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,

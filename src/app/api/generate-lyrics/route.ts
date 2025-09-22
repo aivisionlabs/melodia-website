@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateLyrics } from '@/lib/llm-integration';
 import { db } from '@/lib/db';
-import { songRequestsTable, paymentsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { songRequestsTable, paymentsTable, lyricsDraftsTable } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/user-actions';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient_name, languages, additional_details, requestId, userId } = body;
+    const { recipient_name, languages, additional_details, requestId, userId, requester_name } = body;
 
     // Validate required fields
     if (!recipient_name || !languages || languages.length === 0) {
@@ -27,13 +27,11 @@ export async function POST(request: NextRequest) {
         // Use provided userId
         currentUser = { id: userId } as any;
       } else {
-        // Try to get from authentication
+        // Try to get from authentication, but allow anonymous users
         currentUser = await getCurrentUser();
         if (!currentUser) {
-          return NextResponse.json(
-            { error: true, message: 'User ID or authentication required' },
-            { status: 401 }
-          );
+          // Allow anonymous users for create-song-v2 flow
+          currentUser = { id: null } as any;
         }
       }
 
@@ -51,15 +49,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (songRequest[0].user_id !== currentUser.id) {
+      // Allow access if user_id matches or if both are null (anonymous users)
+      if (songRequest[0].user_id !== currentUser.id && !(songRequest[0].user_id === null && currentUser.id === null)) {
         return NextResponse.json(
           { error: true, message: 'Unauthorized access' },
           { status: 403 }
         );
       }
 
-      // Check payment status only if payment is required
-      if (songRequest[0].payment_required) {
+      // Check payment status only if payment is required (skip for anonymous users)
+      // Note: payment_required column was removed from database, so skip payment check for now
+      if (false && currentUser.id !== null) {
         if (songRequest[0].payment_id) {
           const payment = await db
             .select()
@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
     const result = await generateLyrics({
       recipient_name,
       languages,
-      additional_details: additional_details || ''
+      additional_details: additional_details || '',
+      requester_name: requester_name || 'Anonymous'
     });
 
     if (result.error) {
@@ -107,6 +108,53 @@ export async function POST(request: NextRequest) {
         },
         { status: 503 }
       );
+    }
+
+    // Store lyrics in database if requestId is provided
+    if (requestId) {
+      try {
+        // Get the latest version number for this request
+        const latestDraft = await db
+          .select({ version: lyricsDraftsTable.version })
+          .from(lyricsDraftsTable)
+          .where(eq(lyricsDraftsTable.song_request_id, requestId))
+          .orderBy(desc(lyricsDraftsTable.version))
+          .limit(1);
+
+        const newVersion = latestDraft[0] ? latestDraft[0].version + 1 : 1;
+
+        // Save lyrics draft
+        const [draft] = await db
+          .insert(lyricsDraftsTable)
+          .values({
+            song_request_id: requestId,
+            version: newVersion,
+            language: languages,
+            generated_text: result.lyrics || '',
+            status: 'draft'
+          })
+          .returning();
+
+        // Update song request status
+        await db
+          .update(songRequestsTable)
+          .set({ lyrics_status: 'needs_review' })
+          .where(eq(songRequestsTable.id, requestId));
+
+        return NextResponse.json({
+          success: true,
+          lyrics: result.lyrics,
+          draft: draft
+        });
+      } catch (dbError) {
+        console.error('Error storing lyrics in database:', dbError);
+        // Still return the lyrics even if database storage fails
+        return NextResponse.json({
+          success: true,
+          lyrics: result.lyrics,
+          warning: 'Lyrics generated but not saved to database'
+        });
+      }
     }
 
     return NextResponse.json({

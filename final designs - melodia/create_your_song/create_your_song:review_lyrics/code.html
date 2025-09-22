@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia Lyrics Edit</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary-bright-yellow: #ffd166;
+            --secondary-light-cream: #fdfdfd;
+            --accent-vibrant-coral: #ef476f;
+            --text-dark-teal: #073b4c;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--primary-bright-yellow);
+            color: var(--text-dark-teal);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        .shadow-top {
+            box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1), 0 -2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        #edit-section.hidden {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .rotate-180 {
+      transform: rotate(180deg);
+    }
+    .transition-transform {
+      transition: transform 0.3s ease;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--primary-bright-yellow)]" x-data="{ editing: false, musicStyleOpen: false }">
+<div class="flex flex-col min-h-screen">
+<header class="p-4 flex items-center justify-between sticky top-0 bg-[var(--primary-bright-yellow)] z-10">
+<button class="text-[var(--text-dark-teal)]">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<h1 class="text-2xl font-bold text-center flex-grow">Your Lyrics</h1>
+<div class="w-8"></div>
+</header>
+<main class="flex-grow px-6 py-8">
+<div class="bg-[var(--secondary-light-cream)] rounded-3xl shadow-lg p-6 space-y-4">
+<h2 class="text-xl font-bold mb-4 text-center">For Anjali</h2>
+<div class="border-b border-gray-200 pb-4">
+<button @click="musicStyleOpen = !musicStyleOpen" class="w-full flex justify-between items-center text-left">
+<h3 class="text-lg font-semibold text-[var(--text-dark-teal)]">Music Style</h3>
+<span :class="{ 'rotate-180': musicStyleOpen }" class="material-symbols-outlined transition-transform">expand_more</span>
+</button>
+<div class="pt-2" x-show="musicStyleOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0 transform -translate-y-2" x-transition:leave-start="opacity-100 transform translate-y-0">
+<p class="text-base text-[var(--text-dark-teal)]">Joyful Pop</p>
+</div>
+</div>
+<div class="space-y-4 text-left text-base leading-relaxed">
+<p><span class="font-semibold">[Verse 1]</span><br/>
+                    Teri muskaan, jaise subah ki pehli kiran<br/>
+                    Har pal tere saath, hai ek naya jivan<br/>
+                    Our anniversary, a day to remember<br/>
+                    You and I together, forever and ever</p>
+<p><span class="font-semibold">[Chorus]</span><br/>
+                    Oh Anjali, you are my everything<br/>
+                    This joyful pop song, for you I sing<br/>
+                    In Hindi and English, our love takes wing<br/>
+                    Happy anniversary, my darling queen</p>
+<p><span class="font-semibold">[Verse 2]</span><br/>
+                    From our first hello, to this special day<br/>
+                    You've colored my world in a beautiful way<br/>
+                    Har lamha tere bin, soona sa laage<br/>
+                    Tu hai meri duniya, tu hi mera aage</p>
+</div>
+</div>
+</main>
+<footer class="sticky bottom-0 bg-[var(--secondary-light-cream)] p-4 rounded-t-3xl shadow-top">
+<div class="max-w-md mx-auto">
+<div :class="{ 'hidden': editing }" id="confirmation-section">
+<div class="flex flex-col items-center space-y-4">
+<button class="w-full h-14 bg-[var(--accent-vibrant-coral)] text-white rounded-full font-bold text-lg">Confirm and Move Forward</button>
+<button @click="editing = true" class="text-[var(--text-dark-teal)] font-semibold">Edit</button>
+</div>
+</div>
+<div :class="{ 'hidden': !editing }" id="edit-section">
+<div class="relative">
+<textarea class="w-full h-24 p-4 rounded-2xl border-2 border-[var(--text-dark-teal)] focus:ring-[var(--accent-vibrant-coral)] focus:border-[var(--accent-vibrant-coral)] placeholder:text-gray-500 bg-white text-[var(--text-dark-teal)] resize-none" placeholder="Tell me what to change...">[Verse 1]
+Teri muskaan, jaise subah ki pehli kiran
+Har pal tere saath, hai ek naya jivan
+Our anniversary, a day to remember
+You and I together, forever and ever
+[Chorus]
+Oh Anjali, you are my everything
+This joyful pop song, for you I sing
+In Hindi and English, our love takes wing
+Happy anniversary, my darling queen
+[Verse 2]
+From our first hello, to this special day
+You've colored my world in a beautiful way
+Har lamha tere bin, soona sa laage
+Tu hai meri duniya, tu hi mera aage</textarea>
+<button class="absolute right-3 bottom-3 w-10 h-10 bg-[var(--accent-vibrant-coral)] text-white rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">arrow_upward</span>
+</button>
+</div>
+<p class="text-center text-sm mt-2 text-[var(--text-dark-teal)] font-medium">
+<span class="font-bold text-[var(--accent-vibrant-coral)]">2</span> attempts remaining
+                </p>
+</div>
+</div>
+</footer>
+</div>
+<script defer="" src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+</body></html>

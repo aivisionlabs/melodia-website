@@ -2,7 +2,8 @@
 
 export interface Payment {
   id: number;
-  user_id: number;
+  user_id?: number | null;
+  anonymous_user_id?: string | null;
   song_request_id: number;
   razorpay_payment_id: string;
   razorpay_order_id: string;
@@ -99,6 +100,7 @@ export interface RazorpayWebhookEvent {
 export interface CreateOrderRequest {
   songRequestId: number;
   planId: number;
+  anonymous_user_id?: string;
 }
 
 export interface CreateOrderResponse {
@@ -124,6 +126,7 @@ export interface VerifyPaymentRequest {
   razorpay_payment_id: string;
   razorpay_order_id: string;
   razorpay_signature: string;
+  anonymous_user_id?: string;
 }
 
 export interface VerifyPaymentResponse {

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - Personalize Your Song</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+    :root {
+      --primary-bright-yellow: #FFD166;
+      --secondary-light-cream: #FDFDFD;
+      --accent-vibrant-coral: #EF476F;
+      --text-dark-teal: #073B4C;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Poppins', sans-serif;
+    }
+    .tag {
+      transition: all 0.2s ease-in-out;
+    }
+    .tag:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .tag.selected {
+      background-color: var(--accent-vibrant-coral);
+      color: var(--secondary-light-cream);
+      box-shadow: 0 4px 10px rgba(239, 71, 111, 0.4);
+    }
+    #other-mood-input-container {
+      display: none;
+    }
+    #other-mood-input-container.active {
+      display: block;
+    }html {
+      overflow-y: scroll;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--secondary-light-cream)] text-[var(--text-dark-teal)]">
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between group/design-root overflow-x-hidden pb-32">
+<div class="p-6">
+<header class="flex items-center justify-between mb-8">
+<button class="text-[var(--text-dark-teal)]">
+<svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg"><path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path></svg>
+</button>
+<div class="w-7"></div>
+</header>
+<h1 class="text-3xl font-bold mb-2">Add your personal touch</h1>
+<p class="text-base text-gray-500 mb-8">This step is optional, but it makes the song truly unique!</p>
+<div class="mb-8">
+<label class="text-xl font-bold leading-tight tracking-tight mb-2 block" for="song-story">The Story Behind the Song <span class="font-normal text-gray-400 text-sm">(Optional)</span></label>
+<textarea class="form-textarea flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-2xl text-[var(--text-dark-teal)] focus:outline-0 focus:ring-2 focus:ring-[var(--primary-bright-yellow)] border-2 border-gray-200 bg-white focus:border-transparent min-h-40 placeholder:text-gray-400 p-4 text-base font-normal leading-relaxed" id="song-story" placeholder="Share a memory, an inside joke, or what makes them special. The more details, the more personal the song!"></textarea>
+</div>
+<div>
+<h2 class="text-xl font-bold leading-tight tracking-tight mb-4">The Vibe</h2>
+<div class="mb-6">
+<h3 class="font-semibold text-lg mb-3 text-gray-600">Mood</h3>
+<div class="flex flex-wrap gap-3">
+<button class="tag flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white pl-5 pr-5 border-2 border-gray-200">
+<p class="text-[var(--text-dark-teal)] text-sm font-semibold leading-normal">Joyful</p>
+</button>
+<button class="tag flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white pl-5 pr-5 border-2 border-gray-200 selected">
+<p class="text-white text-sm font-semibold leading-normal">Sentimental</p>
+</button>
+<button class="tag flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white pl-5 pr-5 border-2 border-gray-200">
+<p class="text-[var(--text-dark-teal)] text-sm font-semibold leading-normal">Upbeat &amp; Fun</p>
+</button>
+<button class="tag flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white pl-5 pr-5 border-2 border-gray-200">
+<p class="text-[var(--text-dark-teal)] text-sm font-semibold leading-normal">Romantic</p>
+</button>
+<button class="tag flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white pl-5 pr-5 border-2 border-gray-200" id="other-mood-tag">
+<p class="text-[var(--text-dark-teal)] text-sm font-semibold leading-normal">Other</p>
+</button>
+</div>
+<div class="mt-4" id="other-mood-input-container">
+<input class="form-input flex w-full min-w-0 flex-1 rounded-full text-[var(--text-dark-teal)] focus:outline-0 focus:ring-2 focus:ring-[var(--primary-bright-yellow)] border-2 border-gray-200 bg-white focus:border-transparent placeholder:text-gray-400 p-4 text-base font-normal leading-relaxed h-14" id="other-mood-input" placeholder="Enter a custom mood..." type="text"/>
+</div>
+</div>
+</div>
+</div>
+<div class="sticky bottom-0 bg-[var(--secondary-light-cream)] pt-4 pb-6 px-6">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 px-5 bg-[var(--primary-bright-yellow)] text-[var(--text-dark-teal)] text-lg font-bold leading-normal tracking-wide shadow-lg shadow-yellow-500/30 hover:scale-105 transition-transform">
+<span class="truncate">Create My Song</span>
+</button>
+</div>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-gray-200/80 shadow-t-lg">
+<div class="flex justify-around h-20 items-center">
+<a class="flex flex-col items-center gap-1 text-[var(--accent-vibrant-coral)]" href="#">
+<span class="material-symbols-outlined text-3xl">home</span>
+<span class="text-xs font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400" href="#">
+<span class="material-symbols-outlined text-3xl">star</span>
+<span class="text-xs font-medium">Best Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400" href="#">
+<span class="material-symbols-outlined text-3xl">music_note</span>
+<span class="text-xs font-medium">My Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400" href="#">
+<span class="material-symbols-outlined text-3xl">person</span>
+<span class="text-xs font-medium">Profile</span>
+</a>
+</div>
+</nav>
+<script>
+    const tags = document.querySelectorAll('.tag');
+    const otherMoodTag = document.getElementById('other-mood-tag');
+    const otherMoodInputContainer = document.getElementById('other-mood-input-container');
+    const otherMoodInput = document.getElementById('other-mood-input');
+    tags.forEach(tag => {
+      tag.addEventListener('click', () => {
+        const isOtherTag = tag.id === 'other-mood-tag';
+        if (!tag.classList.contains('selected')) {
+           tags.forEach(t => {
+                t.classList.remove('selected');
+                const p = t.querySelector('p');
+                if (p) {
+                    p.classList.remove('text-white');
+                    p.classList.add('text-[var(--text-dark-teal)]');
+                }
+           });
+           tag.classList.add('selected');
+           const p = tag.querySelector('p');
+           if (p) {
+               p.classList.add('text-white');
+               p.classList.remove('text-[var(--text-dark-teal)]');
+           }
+        } else {
+             tag.classList.remove('selected');
+             const p = tag.querySelector('p');
+             if (p) {
+                 p.classList.remove('text-white');
+                 p.classList.add('text-[var(--text-dark-teal)]');
+             }
+        }
+        if (isOtherTag && tag.classList.contains('selected')) {
+          otherMoodInputContainer.classList.add('active');
+        } else if (isOtherTag && !tag.classList.contains('selected')) {
+          otherMoodInputContainer.classList.remove('active');
+        } else if (!isOtherTag && otherMoodInputContainer.classList.contains('active')) {
+            otherMoodInputContainer.classList.remove('active');
+            otherMoodTag.classList.remove('selected');
+            const p = otherMoodTag.querySelector('p');
+            if (p) {
+                p.classList.remove('text-white');
+                p.classList.add('text-[var(--text-dark-teal)]');
+            }
+        }
+      });
+    });
+  </script>
+
+</body></html>

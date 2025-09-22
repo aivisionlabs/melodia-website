@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FFD166",
+            "secondary": "#FDFDFD",
+            "accent": "#EF476F",
+            "text": "#073B4C",
+          },
+          fontFamily: {
+            "display": ["Poppins", "sans-serif"],
+            "body": ["Montserrat", "sans-serif"],
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "1.5rem",
+            "xl": "2rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary text-text">
+<div class="flex flex-col min-h-screen">
+<main class="flex-grow flex flex-col items-center px-6 py-8">
+<div class="w-full max-w-sm">
+<div class="flex flex-col items-center mb-8">
+<div class="relative mb-4">
+<div class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+<span class="material-symbols-outlined text-gray-400 text-6xl">
+                person
+              </span>
+</div>
+</div>
+<h1 class="font-display text-3xl font-bold text-text">Alex Doe</h1>
+</div>
+<div class="my-8">
+<a class="block bg-accent text-white font-bold py-4 px-6 rounded-full hover:bg-pink-500 transition-colors flex items-center justify-center gap-3 text-lg" href="#">
+<span class="material-symbols-outlined text-3xl">
+              music_note
+            </span>
+<span>View My Songs</span>
+</a>
+</div>
+<div class="space-y-6">
+<div>
+<label class="text-sm font-medium text-text/70">Full Name</label>
+<p class="mt-1 text-lg font-semibold text-text">Alex Doe</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text/70">Date of Birth</label>
+<p class="mt-1 text-lg font-semibold text-text">January 1, 1990</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text/70">Email Address</label>
+<p class="mt-1 text-lg font-semibold text-text">alex.doe@email.com</p>
+</div>
+<div>
+<label class="text-sm font-medium text-text/70">Phone Number</label>
+<p class="mt-1 text-lg font-semibold text-text/50 italic">Not provided</p>
+</div>
+</div>
+<div class="mt-12">
+<button class="w-full bg-primary text-text font-bold py-3 px-6 rounded-full hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">
+              edit
+            </span>
+<span>Edit Details</span>
+</button>
+</div>
+</div>
+</main>
+<footer class="sticky bottom-0 bg-secondary/95 backdrop-blur-sm">
+<nav class="flex justify-around items-center p-4 border-t border-text/10">
+<a class="flex flex-col items-center text-text/60 hover:text-accent transition-colors" href="#">
+<span class="material-symbols-outlined text-3xl">
+            home
+          </span>
+<span class="text-xs font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center text-text/60 hover:text-accent transition-colors" href="#">
+<span class="material-symbols-outlined text-3xl">
+            star
+          </span>
+<span class="text-xs font-medium">Best Songs</span>
+</a>
+<a class="flex flex-col items-center text-text/60 hover:text-accent transition-colors" href="#">
+<span class="material-symbols-outlined text-3xl">
+            music_note
+          </span>
+<span class="text-xs font-medium">My Songs</span>
+</a>
+<a class="flex flex-col items-center text-accent transition-colors relative" href="#">
+<span class="font-bold text-accent">
+<span class="material-symbols-outlined text-3xl">
+              account_circle
+            </span>
+</span>
+<span class="text-xs font-bold">Profile</span>
+<div class="absolute -bottom-4 w-12 h-1 bg-accent rounded-full"></div>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>

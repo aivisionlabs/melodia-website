@@ -448,6 +448,7 @@ export async function createSongFromLyricsAction(requestId: number) {
       .where(eq(lyricsDraftsTable.id, request[0].approved_lyrics_id))
       .limit(1)
 
+      
     if (!approvedLyrics[0]) {
       throw new Error('Approved lyrics not found')
     }
@@ -477,8 +478,10 @@ export async function createSongFromLyricsAction(requestId: number) {
       .returning()
 
     // Start Suno job
+    console.log('🎵 Starting Suno job for song creation...');
     const { SunoAPIFactory } = await import('./suno-api')
     const sunoAPI = SunoAPIFactory.getAPI()
+    console.log('🎵 SunoAPI instance:', sunoAPI.constructor.name);
 
     const sunoResponse = await sunoAPI.generateSong({
       prompt: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
@@ -490,7 +493,10 @@ export async function createSongFromLyricsAction(requestId: number) {
       callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
     })
 
-    if (sunoResponse.code !== 200) {
+    if (sunoResponse.code !== 0 && sunoResponse.code !== 200) {
+      if (sunoResponse.code === 429) {
+        throw new Error(`Suno API credits insufficient: ${sunoResponse.msg}. Please add credits to your Suno API account.`)
+      }
       throw new Error(`Suno API error: ${sunoResponse.msg}`)
     }
 

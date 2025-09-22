@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - Song Generation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<style>
+      .font-heading {
+        font-family: 'Poppins', sans-serif;
+      }
+      .font-body {
+        font-family: 'Montserrat', sans-serif;
+      }
+      .note {
+        position: absolute;
+        animation-name: float;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+      }
+      @keyframes float {
+        0% {
+          transform: translateY(0px) rotate(0deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-150px) rotate(20deg);
+          opacity: 0;
+        }
+      }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+          theme: {
+              extend: {
+                  colors: {
+                      'primary': {
+                          'bright-yellow': '#FFD166',
+                      },
+                      'secondary': {
+                          'light-cream': '#FDFDFD',
+                      },
+                      'accent': {
+                          'vibrant-coral': '#EF476F',
+                      },
+                      'text': {
+                          'dark-teal': '#073B4C',
+                      },
+                  },
+                  fontFamily: {
+                      'heading': ['Poppins', 'sans-serif'],
+                      'body': ['Montserrat', 'sans-serif'],
+                  },
+              },
+          },
+      };
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-secondary-light-cream text-text-dark-teal font-body">
+<div class="flex flex-col h-screen justify-between p-6">
+<header class="text-center">
+<h1 class="font-heading text-2xl font-bold">Melodia</h1>
+</header>
+<main class="flex flex-col items-center text-center space-y-8">
+<div class="relative w-48 h-48">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-36 h-36 bg-primary-bright-yellow rounded-full animate-pulse"></div>
+</div>
+<div class="note" style="left: 10%; animation-duration: 3s; animation-delay: 0s;">
+<svg fill="#EF476F" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+</div>
+<div class="note" style="left: 30%; animation-duration: 4s; animation-delay: 1s;">
+<svg fill="#EF476F" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+</div>
+<div class="note" style="left: 50%; animation-duration: 2.5s; animation-delay: 0.5s;">
+<svg fill="#EF476F" height="28" viewBox="0 0 24 24" width="28" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+</div>
+<div class="note" style="left: 70%; animation-duration: 3.5s; animation-delay: 1.5s;">
+<svg fill="#EF476F" height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+</div>
+</div>
+<div class="space-y-2">
+<h2 class="font-heading text-2xl font-bold">Crafting your song...</h2>
+<p class="text-text-dark-teal/80 max-w-xs mx-auto">Our AI is turning your story into a musical masterpiece. Hang tight!</p>
+</div>
+<div class="flex items-center justify-center space-x-4">
+<div class="w-32 h-32 bg-secondary-light-cream border-4 border-primary-bright-yellow rounded-full flex items-center justify-center">
+<span class="font-heading text-4xl font-bold text-accent-vibrant-coral" id="countdown">45</span>
+</div>
+</div>
+</main>
+<footer class="text-center">
+<p class="text-xs text-text-dark-teal/60">© Melodia 2024</p>
+</footer>
+</div>
+<script>
+        let countdownElement = document.getElementById('countdown');
+        let countdown = 45;
+        const interval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(interval);
+            }
+        }, 1000);
+    </script>
+
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Melodia - New Song</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&amp;family=Montserrat:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+    :root {
+      --primary-bright-yellow: #FFD166;
+      --secondary-light-cream: #FDFDFD;
+      --accent-vibrant-coral: #EF476F;
+      --text-dark-teal: #073B4C;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--secondary-light-cream);
+      color: var(--text-dark-teal);
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Poppins', sans-serif;
+    }
+    .form-input {
+      background-color: white;
+      border: 1px solid #E0E0E0;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      color: var(--text-dark-teal);
+      transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .form-input:focus {
+      border-color: var(--primary-bright-yellow);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.5);
+    }
+    .chip {
+      cursor: pointer;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      background-color: white;
+      border: 1px solid #E0E0E0;
+      color: var(--text-dark-teal);
+      font-weight: 500;
+      transition: all 0.2s ease-in-out;
+    }
+    .chip.active {
+      background-color: var(--primary-bright-yellow);
+      border-color: var(--primary-bright-yellow);
+      color: var(--text-dark-teal);
+      font-weight: 600;
+    }
+    .chip:hover {
+      background-color: #FFF9EB;
+    }
+    .chip.active:hover {
+      background-color: #FDDF88;
+    }
+    .nav-item.active .material-symbols-outlined, .nav-item.active .nav-text {
+        color: var(--accent-vibrant-coral);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased">
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between group/design-root overflow-x-hidden pb-24">
+<div class="p-6 space-y-8 flex-grow">
+<header class="text-center">
+<h1 class="text-3xl font-bold text-[var(--text-dark-teal)]">Create your song</h1>
+<p class="text-md text-[var(--text-dark-teal)] opacity-80 mt-1">Tell us a little bit about it.</p>
+</header>
+<form class="space-y-8" id="song-form">
+<div>
+<label class="block text-lg font-semibold text-[var(--text-dark-teal)] mb-2" for="to-for">To / For</label>
+<p class="text-sm text-[var(--text-dark-teal)] opacity-70 mb-3">Who is this song for?</p>
+<input class="form-input w-full" id="to-for" name="to-for" placeholder="My best friend, Rohan" type="text"/>
+</div>
+<div>
+<label class="block text-lg font-semibold text-[var(--text-dark-teal)] mb-3">Occasion</label>
+<div class="flex flex-wrap gap-3" id="occasion-chips">
+<button class="chip active" type="button">Birthday</button>
+<button class="chip" type="button">Anniversary</button>
+<button class="chip" type="button">Wedding</button>
+<button class="chip" id="other-chip" type="button">Other</button>
+</div>
+<div class="mt-4 hidden" id="other-occasion-container">
+<input class="form-input w-full" id="other-occasion" name="other-occasion" placeholder="e.g., Graduation, Just because..." type="text"/>
+</div>
+</div>
+<div>
+<label class="block text-lg font-semibold text-[var(--text-dark-teal)] mb-2" for="language">Language</label>
+<input class="form-input w-full" id="language" name="language" placeholder="English" type="text"/>
+<p class="text-sm text-[var(--text-dark-teal)] opacity-70 mt-2 px-1">Feel free to mix it up! e.g., Hindi + English, Punjabi</p>
+</div>
+</form>
+</div>
+<div class="p-6">
+<button class="w-full h-14 bg-[var(--accent-vibrant-coral)] text-white text-lg font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-200 ease-in-out transform hover:scale-105" form="song-form" type="submit">
+        Next
+      </button>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-[var(--secondary-light-cream)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-gray-200">
+<div class="flex justify-around items-center h-20 text-[var(--text-dark-teal)]">
+<a class="flex flex-col items-center gap-1 text-[var(--text-dark-teal)] nav-item active" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-xs font-semibold nav-text">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 nav-item" href="#">
+<span class="material-symbols-outlined">stars</span>
+<span class="text-xs font-medium nav-text">Best Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 nav-item" href="#">
+<span class="material-symbols-outlined">music_note</span>
+<span class="text-xs font-medium nav-text">My Songs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 nav-item" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-xs font-medium nav-text">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+<script>
+    const occasionChips = document.getElementById('occasion-chips');
+    const otherChip = document.getElementById('other-chip');
+    const otherOccasionContainer = document.getElementById('other-occasion-container');
+    occasionChips.addEventListener('click', (e) => {
+      if (e.target.classList.contains('chip')) {
+        // Remove active class from all chips
+        occasionChips.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+        // Add active class to the clicked chip
+        e.target.classList.add('active');
+        // Show/hide the "Other" input field
+        if (e.target.id === 'other-chip') {
+          otherOccasionContainer.classList.remove('hidden');
+        } else {
+          otherOccasionContainer.classList.add('hidden');
+        }
+      }
+    });
+  </script>
+
+</body></html>

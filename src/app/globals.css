@@ -1,51 +1,150 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #eab308;
-  --primary-foreground: #ffffff;
-  --secondary: #fef3c7;
-  --secondary-foreground: #171717;
-  --muted: #fef3c7;
-  --muted-foreground: #737373;
-  --accent: #fef3c7;
-  --accent-foreground: #171717;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e5e5e5;
-  --input: #ffffff;
-  --ring: #eab308;
-  --radius: 0.5rem;
-  
-  /* Yellow theme gradients */
-  --gradient-primary: linear-gradient(135deg, #facc15 0%, #fbbf24 50%, #f59e0b 100%);
-  --gradient-secondary: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #facc15 100%);
-  --gradient-accent: linear-gradient(135deg, #fef08a 0%, #fde047 50%, #facc15 100%);
-  
-  /* Yellow theme shadows */
-  --shadow-glow: 0 0 20px rgba(251, 191, 36, 0.3);
-  --shadow-elegant: 0 4px 6px -1px rgba(251, 191, 36, 0.1), 0 2px 4px -1px rgba(251, 191, 36, 0.06);
-  
-  /* Yellow theme transitions */
-  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+@theme {
+  /* Joyful Jam Session Design System Colors - Light Theme */
+  --color-background: #FDFDFD; /* Light Cream - Main background */
+  --color-foreground: #073B4C; /* Dark Teal - Primary text */
+  --color-card: #FFFFFF; /* White - Card backgrounds */
+  --color-card-foreground: #073B4C; /* Dark Teal - Card text */
+  --color-popover: #FFFFFF; /* White - Popover backgrounds */
+  --color-popover-foreground: #073B4C; /* Dark Teal - Popover text */
+  --color-primary: #FFD166; /* Bright Yellow - Primary buttons and highlights */
+  --color-primary-foreground: #073B4C; /* Dark Teal - Text on yellow */
+  --color-secondary: #F9FAFB; /* Light gray - Secondary backgrounds */
+  --color-secondary-foreground: #073B4C; /* Dark Teal - Secondary text */
+  --color-muted: #F3F4F6; /* Light gray - Muted backgrounds */
+  --color-muted-foreground: #6B7280; /* Medium gray - Muted text */
+  --color-accent: #EF476F; /* Vibrant Coral - Accent elements */
+  --color-accent-foreground: #FFFFFF; /* White - Text on coral */
+  --color-destructive: #EF4444; /* Red - Error states */
+  --color-destructive-foreground: #FFFFFF; /* White - Text on red */
+  --color-border: rgba(7, 59, 76, 0.2); /* Dark Teal 20% opacity - Subtle borders */
+  --color-input: #FFFFFF; /* White - Input backgrounds */
+  --color-ring: #FFD166; /* Bright Yellow - Focus rings */
+
+  /* Melodia Brand Colors */
+  --color-melodia-yellow: #FFD166; /* Bright Yellow - Primary CTAs */
+  --color-melodia-cream: #FDFDFD; /* Light Cream - Backgrounds */
+  --color-melodia-coral: #EF476F; /* Vibrant Coral - Accents */
+  --color-melodia-teal: #073B4C; /* Dark Teal - Text */
+  --color-melodia-teal-light: #F9FAFB; /* Light gray - Secondary backgrounds */
+  --color-melodia-teal-medium: rgba(7, 59, 76, 0.2); /* Dark teal 20% opacity */
+  --color-melodia-teal-dark: rgba(7, 59, 76, 0.8); /* Dark teal 80% opacity */
+
+  /* Melodia Brand Colors with Opacity */
+  --color-melodia-yellow-20: rgba(255, 209, 102, 0.2); /* Yellow 20% opacity */
+  --color-melodia-yellow-15: rgba(255, 209, 102, 0.15); /* Yellow 15% opacity */
+  --color-melodia-coral-20: rgba(239, 71, 111, 0.2); /* Coral 20% opacity */
+  --color-melodia-coral-15: rgba(239, 71, 111, 0.15); /* Coral 15% opacity */
+
+  /* Border Radius */
+  --radius: 0.75rem; /* 12px border radius */
+
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(255, 209, 102, 0.4); /* Yellow glow */
+  --shadow-elegant: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-coral: 0 4px 6px -1px rgba(239, 71, 111, 0.2), 0 2px 4px -1px rgba(239, 71, 111, 0.1);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-coral-glow: 0 0 30px rgba(239, 71, 111, 0.3); /* Coral glow */
+
+  /* Typography - Updated to match design system */
+  --font-family-heading: 'Poppins', sans-serif;
+  --font-family-body: 'Montserrat', sans-serif;
+
+  /* Font sizes matching the design */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+  --font-size-5xl: 3rem; /* 48px */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: max(884px, 100dvh);
+}
+
+/* Typography Utilities */
+.font-heading {
+  font-family: var(--font-family-heading), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.font-body {
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* Heading Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-foreground);
+}
+
+h1 {
+  font-size: var(--font-size-5xl); /* 48px */
+  font-weight: 800;
+}
+
+h2 {
+  font-size: var(--font-size-4xl); /* 36px */
+  font-weight: 600;
+}
+
+h3 {
+  font-size: var(--font-size-3xl); /* 30px */
+  font-weight: 600;
+}
+
+h4 {
+  font-size: var(--font-size-2xl); /* 24px */
+  font-weight: 600;
+}
+
+h5 {
+  font-size: var(--font-size-xl); /* 20px */
+  font-weight: 600;
+}
+
+h6 {
+  font-size: var(--font-size-lg); /* 18px */
+  font-weight: 600;
+}
+
+/* Body Text Styles */
+.text-large {
+  font-size: var(--font-size-lg); /* 18px */
+  line-height: 1.7;
+}
+
+.text-base {
+  font-size: var(--font-size-base); /* 16px */
+  line-height: 1.6;
+}
+
+.text-small {
+  font-size: var(--font-size-sm); /* 14px */
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: var(--font-size-xs); /* 12px */
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 /* Scrollbar hide utility */
@@ -53,6 +152,171 @@ body {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar { 
+.scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* Carousel snap utilities */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-center {
+  scroll-snap-align: center;
+}
+
+/* Background decorative circles */
+.bg-circle-yellow {
+  background-color: #FFD166 !important;
+  opacity: 0.3 !important;
+  filter: blur(40px) !important;
+}
+
+.bg-circle-coral {
+  background-color: #EF476F !important;
+  opacity: 0.3 !important;
+  filter: blur(40px) !important;
+}
+
+.bg-circle-yellow-small {
+  background-color: #FFD166 !important;
+  opacity: 0.2 !important;
+  filter: blur(30px) !important;
+}
+
+/* Form Input Styles - Matching Design System */
+.form-input {
+  background-color: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: var(--color-foreground);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+}
+
+.form-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.5);
+}
+
+.form-input::placeholder {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}
+
+/* Chip Styles - Matching Design System */
+.chip {
+  cursor: pointer;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  background-color: white;
+  border: 1px solid #E0E0E0;
+  color: var(--color-foreground);
+  font-weight: 500;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  transition: all 0.2s ease-in-out;
+}
+
+.chip.active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.chip:hover {
+  background-color: #FFF9EB;
+}
+
+.chip.active:hover {
+  background-color: #FDDF88;
+}
+
+/* Bottom Navigation Styles */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-background);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-muted-foreground);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-accent);
+}
+
+.bottom-nav-item.active .nav-text {
+  font-weight: 600;
+}
+
+.bottom-nav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Material Icons Support */
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings:
+  'FILL' 1,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+}
+
+/* Header spacing */
+.header-spacing {
+  padding-top: 4rem; /* Account for fixed header */
+}
+
+/* Main content spacing */
+main {
+  padding-bottom: 5rem; /* Account for bottom navigation */
+}
+
+/* Melodia Brand Color Classes */
+.bg-melodia-cream {
+  background-color: var(--color-melodia-cream);
+}
+
+.bg-melodia-yellow {
+  background-color: var(--color-melodia-yellow);
+}
+
+.bg-melodia-coral {
+  background-color: var(--color-melodia-coral);
+}
+
+.text-melodia-teal {
+  color: var(--color-melodia-teal);
+}
+
+.text-melodia-coral {
+  color: var(--color-melodia-coral);
 }

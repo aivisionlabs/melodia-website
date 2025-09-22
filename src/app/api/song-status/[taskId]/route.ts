@@ -37,7 +37,7 @@ export async function GET(
 
           if (songs.length > 0) {
             const song = songs[0]
-            const demoAudioUrl = 'https://demo-audio-url.com/song.mp3'
+            const demoAudioUrl = 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3'
             
             // Create demo variants
             const demoVariants = [
@@ -55,8 +55,8 @@ export async function GET(
               },
               {
                 id: 'demo-variant-2',
-                audioUrl: 'https://demo-audio-url.com/song-variant2.mp3',
-                streamAudioUrl: 'https://demo-stream-url.com/song-variant2.mp3',
+                audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
+                streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
                 imageUrl: 'https://demo-image-url.com/song2.jpg',
                 prompt: 'Demo song variant 2',
                 modelName: 'demo-model',
@@ -94,10 +94,10 @@ export async function GET(
         return NextResponse.json({
           success: true,
           status: 'completed',
-          audioUrl: 'https://demo-audio-url.com/song.mp3',
+          audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
           variants: [{
-            audioUrl: 'https://demo-audio-url.com/song.mp3',
-            streamAudioUrl: 'https://demo-stream-url.com/song.mp3',
+            audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
+            streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
             duration: 180
           }],
           demoMode: true
@@ -118,7 +118,7 @@ export async function GET(
     // Get song status
     const statusResponse = await sunoAPI.getRecordInfo(taskId)
     console.log('statusResponse', statusResponse.data)
-    if (statusResponse.code !== 200) {
+    if (statusResponse.code !== 0 && statusResponse.code !== 200) {
       return NextResponse.json(
         { error: true, message: statusResponse.msg },
         { status: 400 }

@@ -21,7 +21,7 @@ const ShareRequirementsCTA = ({
   };
 
   return (
-    <Link href="/create-song">
+    <Link href="/create-song-v2">
       <Button
         onClick={() => {
           trackCTAEvent.ctaClick("create_song_cta", "main_page", "button");

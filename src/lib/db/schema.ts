@@ -6,44 +6,51 @@ import {
   boolean,
   integer,
   jsonb,
-  numeric
+  numeric,
+  uuid
 } from 'drizzle-orm/pg-core';
 
-// Songs table
+// Songs table - stores the final, generated song
 export const songsTable = pgTable('songs', {
   id: serial('id').primaryKey(),
+  song_request_id: integer('song_request_id').notNull().unique(), // Each request generates one song record
+  user_id: integer('user_id').notNull(), // Which user ultimately owns this song
+
   created_at: timestamp('created_at').notNull().defaultNow(),
   title: text('title').notNull(),
-  lyrics: text('lyrics'),
+  lyrics: text('lyrics').notNull(),
+  duration: integer('duration'),
+  slug: text('slug').notNull().unique(),
+  status: text('status').default('processing'), // e.g., 'processing', 'complete', 'failed'
+  is_featured: boolean('is_featured').default(false), // For the "Best Songs" gallery
+
+  // Store the two generated audio files
+  song_url_variant_1: text('song_url_variant_1'),
+  song_url_variant_2: text('song_url_variant_2'),
+  metadata: jsonb('metadata'), // For storing provider-specific data like suno_task_id, etc.
+
+  // Legacy fields for backward compatibility (to be removed in future migration)
   timestamp_lyrics: jsonb('timestamp_lyrics'),
-  timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants').notNull().default('{}'), // Store lyrics for both variants
-  timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses').notNull().default('{}'), // Store only alignedWords data from API responses
-  music_style: text('music_style'),
+  timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants').notNull().default('{}'),
+  timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses').notNull().default('{}'),
   service_provider: text('service_provider').default('SU'),
   song_requester: text('song_requester'),
   prompt: text('prompt'),
   song_url: text('song_url'),
-  duration: integer('duration'), // Changed from numeric to integer to match database
-  slug: text('slug').notNull().unique(),
-  is_active: boolean('is_active').default(true), // Changed from add_to_library/is_deleted to is_active
-  status: text('status').default('draft'),
+  music_style: text('music_style'),
+  is_active: boolean('is_active').default(true),
   categories: text('categories').array(),
   tags: text('tags').array(),
   suno_task_id: text('suno_task_id'),
-  metadata: jsonb('metadata'),
-  user_id: integer('user_id'), // Reference to user who created this song
-  // Legacy fields for backward compatibility
   add_to_library: boolean('add_to_library'),
   is_deleted: boolean('is_deleted'),
   negative_tags: text('negative_tags'),
   suno_variants: jsonb('suno_variants'),
   selected_variant: integer('selected_variant'),
-  // Status tracking fields for song status checking
   status_checked_at: timestamp('status_checked_at'),
   last_status_check: timestamp('last_status_check'),
   status_check_count: integer('status_check_count').default(0),
-  // Payment integration fields
-  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
+  payment_id: integer('payment_id'), // Will be properly referenced later
 });
 
 // Users table for regular user accounts
@@ -56,10 +63,19 @@ export const usersTable = pgTable('users', {
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Anonymous users table to track anonymous sessions
+export const anonymousUsersTable = pgTable('anonymous_users', {
+  id: uuid('id').primaryKey().defaultRandom(), // Use UUID
+  created_at: timestamp('created_at').notNull().defaultNow(),
+});
+
 // Song requests table for form submissions
-export const songRequestsTable: any = pgTable('song_requests', {
+export const songRequestsTable = pgTable('song_requests', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id'), // Reference to user who made this request (nullable for guest requests)
+  // --- User relationship change ---
+  user_id: integer('user_id'), // For registered users
+  anonymous_user_id: uuid('anonymous_user_id'), // For anonymous users
+
   requester_name: text('requester_name').notNull(),
   phone_number: text('phone_number'),
   email: text('email'),
@@ -73,7 +89,7 @@ export const songRequestsTable: any = pgTable('song_requests', {
   additional_details: text('additional_details'),
   status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
   suno_task_id: text('suno_task_id'),
-  generated_song_id: integer('generated_song_id'), // Reference to the generated song in songs table
+  generated_song_id: integer('generated_song_id'), // Add foreign key reference
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
   // Phase 6: Lyrics workflow fields
@@ -81,7 +97,7 @@ export const songRequestsTable: any = pgTable('song_requests', {
   approved_lyrics_id: integer('approved_lyrics_id'),
   lyrics_locked_at: timestamp('lyrics_locked_at'),
   // Payment integration fields
-  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'set null' }),
+  payment_id: integer('payment_id'), // Will be properly referenced later
   payment_status: text('payment_status').default('pending'),
   payment_required: boolean('payment_required').default(true),
 });
@@ -89,7 +105,7 @@ export const songRequestsTable: any = pgTable('song_requests', {
 // Phase 6: Lyrics drafts table
 export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   id: serial('id').primaryKey(),
-  song_request_id: integer('song_request_id').notNull().references(() => songRequestsTable.id, { onDelete: 'cascade' }),
+  song_request_id: integer('song_request_id').notNull(),
   version: integer('version').notNull().default(1),
   language: text('language').array(),
   tone: text('tone').array(),
@@ -99,7 +115,8 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   generated_text: text('generated_text').notNull(),
   edited_text: text('edited_text'),
   status: text('status').notNull().default('draft'),
-  created_by: integer('created_by').references(() => usersTable.id),
+  is_approved: boolean('is_approved').default(false), // A clear flag for the final version
+  created_by: integer('created_by'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -119,6 +136,9 @@ export type SelectSong = typeof songsTable.$inferSelect;
 export type InsertUser = typeof usersTable.$inferInsert;
 export type SelectUser = typeof usersTable.$inferSelect;
 
+export type InsertAnonymousUser = typeof anonymousUsersTable.$inferInsert;
+export type SelectAnonymousUser = typeof anonymousUsersTable.$inferSelect;
+
 export type InsertSongRequest = typeof songRequestsTable.$inferInsert;
 export type SelectSongRequest = typeof songRequestsTable.$inferSelect;
 
@@ -128,11 +148,18 @@ export type SelectLyricsDraft = typeof lyricsDraftsTable.$inferSelect;
 export type InsertAdminUser = typeof adminUsersTable.$inferInsert;
 export type SelectAdminUser = typeof adminUsersTable.$inferSelect;
 
-// Payments table
+// Payments table - supports both registered and anonymous users
 export const paymentsTable = pgTable('payments', {
   id: serial('id').primaryKey(),
-  user_id: integer('user_id').references(() => usersTable.id, { onDelete: 'cascade' }),
-  song_request_id: integer('song_request_id').references(() => songRequestsTable.id, { onDelete: 'cascade' }),
+
+  // The song_request is the primary link
+  song_request_id: integer('song_request_id'),
+
+  // --- Ownership fields ---
+  user_id: integer('user_id'), // Nullable for anonymous payments
+  anonymous_user_id: uuid('anonymous_user_id'), // For anonymous users
+
+  // Payment provider fields
   razorpay_payment_id: text('razorpay_payment_id').unique(),
   razorpay_order_id: text('razorpay_order_id'),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
@@ -162,7 +189,7 @@ export const paymentWebhooksTable = pgTable('payment_webhooks', {
   id: serial('id').primaryKey(),
   razorpay_event_id: text('razorpay_event_id').unique(),
   event_type: text('event_type').notNull(),
-  payment_id: integer('payment_id').references(() => paymentsTable.id, { onDelete: 'cascade' }),
+  payment_id: integer('payment_id'),
   webhook_data: jsonb('webhook_data').notNull(),
   processed: boolean('processed').default(false),
   created_at: timestamp('created_at').defaultNow(),

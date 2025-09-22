@@ -4,7 +4,7 @@ import { Song, PublicSong } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 import { createServerSupabaseClient } from './supabase';
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting';
-import { validateSongId, sanitizeSearchQuery } from './utils/validation';
+import { validateSongId, sanitizeSearchQuery } from './utils';
 
 /**
  * Get all songs with optional search and pagination

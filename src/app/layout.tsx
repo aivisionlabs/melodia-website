@@ -5,7 +5,21 @@ import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
+import ConditionalBottomNav from "@/components/ConditionalBottomNav";
+import ConditionalHeader from "@/components/ConditionalHeader";
+import { Poppins, Montserrat } from "next/font/google";
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-montserrat",
+});
 
 export const metadata: Metadata = {
   title: "Melodia - Create Personalized Songs for loved ones",
@@ -70,13 +84,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html
+      lang="en"
+      className={`scroll-smooth ${poppins.variable} ${montserrat.variable}`}
+    >
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#fbbf24" />
-        <meta name="msapplication-TileColor" content="#fbbf24" />
+        <meta name="theme-color" content="#FFD166" />
+        <meta name="msapplication-TileColor" content="#FFD166" />
         <meta name="apple-mobile-web-app-title" content="Melodia" />
 
         {/* Google tag (gtag.js) - Production only */}
@@ -103,7 +120,9 @@ export default function RootLayout({
             <StructuredData type="website" />
             <StructuredData type="organization" />
             <PageTracking />
-            {children}
+            <ConditionalHeader />
+            <main className="min-h-screen">{children}</main>
+            <ConditionalBottomNav />
           </ToastProvider>
         </ErrorBoundary>
       </body>

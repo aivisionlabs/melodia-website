@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { createRazorpayOrder, generateReceiptId, validateRazorpayConfig } from '@/lib/razorpay';
 import { getCurrentUser } from '@/lib/user-actions';
 import { CreateOrderRequest, CreateOrderResponse } from '@/types/payment';
+import { validatePaymentRequest, sanitizeAnonymousUserId } from '@/lib/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,22 +19,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current user
+    // Get current user (optional for anonymous users)
     const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
 
     // Parse request body
     const body: CreateOrderRequest = await request.json();
-    const { songRequestId, planId } = body;
+    const { songRequestId, planId, anonymous_user_id } = body;
 
-    if (!songRequestId || !planId) {
+    // Sanitize anonymous user ID
+    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymous_user_id);
+
+    // Validate payment request data
+    const validation = validatePaymentRequest({
+      songRequestId,
+      planId,
+      userId: currentUser?.id || null,
+      anonymousUserId: sanitizedAnonymousUserId
+    });
+
+    if (!validation.isValid) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields' },
+        { success: false, message: validation.error },
         { status: 400 }
       );
     }
@@ -52,7 +58,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (songRequest[0].user_id !== currentUser.id) {
+    // Check ownership for both user types
+    if (currentUser && songRequest[0].user_id !== currentUser.id) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized access' },
+        { status: 403 }
+      );
+    }
+
+    if (sanitizedAnonymousUserId && songRequest[0].anonymous_user_id !== sanitizedAnonymousUserId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized access' },
         { status: 403 }
@@ -99,7 +113,8 @@ export async function POST(request: NextRequest) {
       {
         song_request_id: songRequestId,
         plan_id: planId,
-        user_id: currentUser.id,
+        user_id: currentUser?.id || null,
+        anonymous_user_id: sanitizedAnonymousUserId,
         plan_name: pricingPlan[0].name,
       }
     );
@@ -108,7 +123,8 @@ export async function POST(request: NextRequest) {
     const [payment] = await db
       .insert(paymentsTable)
       .values({
-        user_id: currentUser.id,
+        user_id: currentUser?.id || null,
+        anonymous_user_id: sanitizedAnonymousUserId,
         song_request_id: songRequestId,
         razorpay_order_id: razorpayOrder.id,
         amount: pricingPlan[0].price,
@@ -142,8 +158,8 @@ export async function POST(request: NextRequest) {
       name: 'Melodia',
       description: `Payment for ${pricingPlan[0].name} - ${pricingPlan[0].description}`,
       prefill: {
-        name: currentUser.name || undefined,
-        email: currentUser.email,
+        name: currentUser?.name || undefined,
+        email: currentUser?.email || undefined,
       },
       notes: {
         payment_id: payment.id,
