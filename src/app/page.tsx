@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import { useAnonymousUser } from "@/hooks/use-anonymous-user";
 import { SongRequestFormData } from "@/types";
 // Removed unused imports: getUserSongs, getUserSongRequests
 import { fetchLyricsDisplayData } from "@/lib/lyrics-display-client";
@@ -30,6 +31,7 @@ import Footer from "@/components/Footer";
 
 export default function HomePage() {
   const { user, loading, isAuthenticated } = useAuth();
+  const { anonymousUserId } = useAnonymousUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -457,10 +459,7 @@ export default function HomePage() {
           additional_details: formData.additional_details || "",
           delivery_preference: "email",
           user_id: user?.id || null,
-          anonymous_user_id:
-            typeof window !== "undefined"
-              ? localStorage.getItem("anonymous_user_id") || undefined
-              : undefined,
+          anonymous_user_id: anonymousUserId || undefined,
         }),
       });
 
