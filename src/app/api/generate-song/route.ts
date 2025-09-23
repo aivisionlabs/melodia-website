@@ -7,7 +7,7 @@ import { getCurrentUser } from '@/lib/user-actions'
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, lyrics, style, recipient_name, requestId, demoMode, userId } = await request.json()
+    const { title, lyrics, style, recipient_name, requestId, demoMode, userId, anonymousUserId } = await request.json()
 
     console.log('Received request:', { title, lyrics: lyrics?.substring(0, 100) + '...', style, recipient_name, demoMode })
 
@@ -25,17 +25,15 @@ export async function POST(request: NextRequest) {
       let currentUser = null;
       
       if (userId) {
-        // Use provided userId
+        // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
+      } else if (demoMode) {
+        // For demo mode, use a default user ID
+        currentUser = { id: 1 } as any;
       } else {
         // Try to get from authentication
         currentUser = await getCurrentUser();
-        if (!currentUser) {
-          return NextResponse.json(
-            { error: true, message: 'User ID or authentication required' },
-            { status: 401 }
-          );
-        }
+        // If no authenticated user, we'll handle anonymous users below
       }
 
       // Get song request
@@ -52,15 +50,45 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (songRequest[0].user_id !== currentUser.id) {
-        return NextResponse.json(
-          { error: true, message: 'Unauthorized access' },
-          { status: 403 }
-        );
+      // Handle authorization for different user types
+      if (!demoMode) {
+        // Check if this is an anonymous user request
+        console.log('Authorization check:', {
+        anonymousUserId,
+        dbAnonymousUserId: songRequest[0].anonymous_user_id,
+        currentUser,
+        dbUserId: songRequest[0].user_id
+      });
+        
+        if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
+          // Anonymous user owns this request - allow access
+          currentUser = { id: null, anonymousUserId } as any;
+        }
+        // Check if this is a registered user request
+        else if (currentUser && songRequest[0].user_id === currentUser.id) {
+          // Registered user owns this request - allow access
+        }
+        // Check if no user is logged in but the song request exists with user_id
+        else if (!currentUser && songRequest[0].user_id) {
+          // Use the user_id from the song request as the current user
+          currentUser = { id: songRequest[0].user_id } as any;
+        }
+        // Check if no user is logged in but the song request exists with anonymous_user_id
+        else if (!currentUser && songRequest[0].anonymous_user_id) {
+          // Use the anonymous_user_id from the song request
+          currentUser = { id: null, anonymousUserId: songRequest[0].anonymous_user_id } as any;
+        }
+        else {
+          // No valid ownership found
+          return NextResponse.json(
+            { error: true, message: 'Unauthorized access' },
+            { status: 403 }
+          );
+        }
       }
 
-      // Check payment status only if payment is required
-      if (songRequest[0].payment_required) {
+      // Check payment status only if payment is required and not in demo mode
+      if (!demoMode && songRequest[0].payment_required) {
         if (songRequest[0].payment_id) {
           const payment = await db
             .select()
@@ -109,7 +137,7 @@ export async function POST(request: NextRequest) {
             .insert(songsTable)
             .values({
               song_request_id: requestId,
-              user_id: currentUser.id,
+              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
               title,
               lyrics,
               music_style: style,
@@ -121,7 +149,8 @@ export async function POST(request: NextRequest) {
               suno_task_id: mockTaskId,
               metadata: {
                 original_request_id: requestId,
-                demo_mode: true
+                demo_mode: true,
+                anonymous_user_id: currentUser.anonymousUserId || null
               }
             })
             .returning({ id: songsTable.id })
@@ -199,7 +228,7 @@ export async function POST(request: NextRequest) {
             .insert(songsTable)
             .values({
               song_request_id: requestId,
-              user_id: currentUser.id,
+              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
               title,
               lyrics,
               music_style: style,
@@ -211,7 +240,8 @@ export async function POST(request: NextRequest) {
               suno_task_id: taskId,
               metadata: {
                 original_request_id: requestId,
-                demo_mode: false
+                demo_mode: false,
+                anonymous_user_id: currentUser.anonymousUserId || null
               }
             })
             .returning({ id: songsTable.id })

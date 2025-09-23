@@ -142,13 +142,13 @@ setup_database_schema() {
     print_status "Setting up database schema..."
     
     # Check if the SQL file exists
-    if [ ! -f "scripts/setup-complete-database.sql" ]; then
-        print_error "Database setup SQL file not found: scripts/setup-complete-database.sql"
+    if [ ! -f "scripts/essential/setup-complete-database.sql" ]; then
+        print_error "Database setup SQL file not found: scripts/essential/setup-complete-database.sql"
         exit 1
     fi
     
     # Execute the SQL file
-    if docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/setup-complete-database.sql; then
+    if docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/essential/setup-complete-database.sql; then
         print_success "Database schema setup completed"
     else
         print_error "Failed to setup database schema"

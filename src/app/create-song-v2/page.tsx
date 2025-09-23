@@ -7,6 +7,7 @@ import { X, Sparkles, ChevronDown, Edit } from "lucide-react";
 import { getCurrentUser } from "@/lib/user-actions";
 import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
 import SongOptionsDisplay from "@/components/SongOptionsDisplay";
+import { useAnonymousUser } from "@/hooks/use-anonymous-user";
 
 type Step = 1 | 2 | 3 | 'loading' | 'song-options';
 
@@ -40,6 +41,11 @@ export default function CreateSongV2Page() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [songVariants, setSongVariants] = useState<any[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [songCreationError, setSongCreationError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  // Anonymous user hook
+  const { anonymousUserId, loading: anonymousUserLoading } = useAnonymousUser();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -98,6 +104,14 @@ export default function CreateSongV2Page() {
       setError("Please enter who this song is for.");
       return;
     }
+    
+    // Validate recipient name format
+    const namePattern = /^[A-Za-z\s]+,\s*my\s+[A-Za-z\s]+$/i;
+    if (!namePattern.test(recipientName.trim())) {
+      setError("Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother').");
+      return;
+    }
+    
     setError(null);
     setStep(2);
   };
@@ -123,7 +137,7 @@ export default function CreateSongV2Page() {
           additional_details: `${moods.includes("Other") && customMood ? customMood : moods.join(", ")} style song. ${story ? `Story: ${story}` : ""}`,
           delivery_preference: "email",
           user_id: currentUser?.id || null,
-          // anonymous_user_id: typeof window !== "undefined" ? localStorage.getItem("anonymous_user_id") || undefined : undefined,
+          anonymous_user_id: anonymousUserId || undefined,
         }),
       });
 
@@ -135,8 +149,8 @@ export default function CreateSongV2Page() {
       const newRequestId = createRequestData.requestId;
       setRequestId(newRequestId);
 
-      // Step 2: Generate lyrics using the existing API with requestId for database storage
-      const response = await fetch("/api/generate-lyrics", {
+      // Step 2: Generate lyrics using the API with database storage and demo mode support
+      const response = await fetch("/api/generate-lyrics-with-storage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -146,8 +160,6 @@ export default function CreateSongV2Page() {
           languages: languages.split(",").map(lang => lang.trim()).filter(Boolean),
           additional_details: `${moods.includes("Other") && customMood ? customMood : moods.join(", ")} style song. ${story ? `Story: ${story}` : ""}`,
           requestId: newRequestId, // Add back for database storage
-          userId: currentUser?.id || null,
-          requester_name: requesterName || currentUser?.name || "Anonymous", // Pass requester name dynamically
         }),
       });
 
@@ -255,80 +267,107 @@ export default function CreateSongV2Page() {
       return;
     }
 
-    // Always show loading screen first
-    setStep('loading');
+    // Clear any previous errors and set retry state
+    setSongCreationError(null);
+    setIsRetrying(false);
 
     try {
-      // Use the same approach as create-song-from-lyrics page
-      // First, we need to approve the lyrics draft
+      // Step 1: Fetch lyrics draft
       console.log('🎵 Fetching lyrics draft for requestId:', requestId);
       const drafts = await fetch(`/api/lyrics-display?requestId=${requestId}`);
+      
+      if (!drafts.ok) {
+        throw new Error(`Failed to fetch lyrics draft: ${drafts.status} ${drafts.statusText}`);
+      }
+      
       const draftsData = await drafts.json();
       console.log('🎵 Lyrics draft response:', draftsData);
       
-      if (draftsData.success && draftsData.data && draftsData.data.lyricsDraft) {
-        // Approve the current draft
-        const approveResponse = await fetch("/api/approve-lyrics", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            draftId: draftsData.data.lyricsDraft.id,
-            requestId: requestId,
-          }),
-        });
-
-        if (approveResponse.ok) {
-          // Now create the song using the lyrics-actions approach
-          const createResponse = await fetch("/api/create-song-from-lyrics", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              requestId: requestId,
-            }),
-          });
-
-          if (createResponse.ok) {
-            const createData = await createResponse.json();
-            console.log("Song creation response:", createData);
-
-            if (createData.success && createData.taskId) {
-              setTaskId(createData.taskId);
-            } else {
-              console.log("Song creation failed, but showing loading screen anyway");
-              setTaskId(null);
-            }
-          } else {
-            console.log("Create song API failed, but showing loading screen anyway");
-            setTaskId(null);
-          }
-        } else {
-          console.log("Approve lyrics failed, but showing loading screen anyway");
-          setTaskId(null);
-        }
-      } else {
-        console.log("No lyrics draft found, but showing loading screen anyway");
-        setTaskId(null);
+      if (!draftsData.success || !draftsData.data || !draftsData.data.lyricsDraft) {
+        throw new Error("No lyrics draft found. Please try generating lyrics again.");
       }
+
+      // Step 2: Approve the current draft
+      const approveResponse = await fetch("/api/approve-lyrics", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          draftId: draftsData.data.lyricsDraft.id,
+          requestId: requestId,
+        }),
+      });
+
+      if (!approveResponse.ok) {
+        const errorData = await approveResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to approve lyrics: ${approveResponse.status}`);
+      }
+
+      // Step 3: Create the song
+      const createResponse = await fetch("/api/generate-song", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: generatedTitle || `${recipientName}'s Song`,
+          lyrics: editedLyrics,
+          style: generatedStyle || "Personal",
+          recipient_name: recipientName,
+          requestId: requestId,
+          userId: currentUser?.id || null,
+          anonymousUserId: anonymousUserId || null,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to create song: ${createResponse.status}`);
+      }
+
+      const createData = await createResponse.json();
+      console.log("Song creation response:", createData);
+
+      if (!createData.success || !createData.taskId) {
+        throw new Error(createData.message || "Song creation failed. Please try again.");
+      }
+
+      // Success! Set taskId and proceed to loading screen
+      setTaskId(createData.taskId);
+      setStep('loading');
+
     } catch (error) {
       console.error("Error creating song:", error);
-      // Even on error, show loading screen and then mock options
-      console.log("Song creation error, but showing loading screen anyway");
-      setTaskId(null);
+      
+      // Set error message and stay on current step
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while creating your song. Please try again.";
+      setSongCreationError(errorMessage);
+      
+      // Don't proceed to loading screen on error
+      // Stay on step 3 to show error message
     }
   };
 
+  const handleRetrySongCreation = async () => {
+    setIsRetrying(true);
+    await handleCreateSong();
+    setIsRetrying(false);
+  };
+
   const handleLoadingComplete = () => {
-    // After 45 seconds, always show song options screen
-    // If API fails, show mock data
+    // After 45 seconds, show song options screen
     if (taskId) {
       pollForSongVariants();
     } else {
-      // If no taskId, show mock song options
-      showMockSongOptions();
+      // Only show mock data in development mode
+      if (process.env.NODE_ENV === 'development') {
+        showMockSongOptions();
+      } else {
+        // In production, show error if no taskId
+        setSongCreationError("Song generation failed. Please try again.");
+        setStep(3); // Go back to lyrics step
+      }
     }
   };
 
@@ -362,13 +401,21 @@ export default function CreateSongV2Page() {
   };
 
   const showMockSongOptions = () => {
+    // Only show mock data in development mode
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('Mock song options should only be shown in development mode');
+      setSongCreationError("Song generation failed. Please try again.");
+      setStep(3);
+      return;
+    }
+
     // Create mock song variants using the actual generated title and lyrics
     const baseTitle = generatedTitle || `${recipientName}'s Song`;
     
     const mockVariants = [
       {
         id: 'mock_variant_1',
-        title: `${baseTitle} - Version 1`,
+        title: `${baseTitle} - Version 1 (DEMO)`,
         audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant1',
         duration: 180,
@@ -377,7 +424,7 @@ export default function CreateSongV2Page() {
       },
       {
         id: 'mock_variant_2', 
-        title: `${baseTitle} - Version 2`,
+        title: `${baseTitle} - Version 2 (DEMO)`,
         audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant2',
         duration: 195,
@@ -395,7 +442,7 @@ export default function CreateSongV2Page() {
         prevVariants.map(variant => ({
           ...variant,
           isLoading: false,
-          downloadStatus: 'Download now'
+          downloadStatus: 'Download now (DEMO)'
         }))
       );
     }, 3000);
@@ -403,7 +450,13 @@ export default function CreateSongV2Page() {
 
   const pollForSongVariants = async () => {
     if (!taskId) {
-      showMockSongOptions();
+      // Only show mock data in development mode
+      if (process.env.NODE_ENV === 'development') {
+        showMockSongOptions();
+      } else {
+        setSongCreationError("Song generation failed. Please try again.");
+        setStep(3);
+      }
       return;
     }
 
@@ -439,18 +492,35 @@ export default function CreateSongV2Page() {
           } else if (data.status === 'failed') {
             console.log('Song generation failed');
             clearInterval(pollInterval);
-            // Show error state or fallback
-            showMockSongOptions();
+            // Show error state or fallback based on environment
+            if (process.env.NODE_ENV === 'development') {
+              showMockSongOptions();
+            } else {
+              setSongCreationError("Song generation failed. Please try again.");
+              setStep(3);
+            }
           }
         } else {
           console.log('API error during polling');
           clearInterval(pollInterval);
-          showMockSongOptions();
+          // Show error state or fallback based on environment
+          if (process.env.NODE_ENV === 'development') {
+            showMockSongOptions();
+          } else {
+            setSongCreationError("Song generation failed. Please try again.");
+            setStep(3);
+          }
         }
       } catch (error) {
         console.error("Error polling for song variants:", error);
         clearInterval(pollInterval);
-        showMockSongOptions();
+        // Show error state or fallback based on environment
+        if (process.env.NODE_ENV === 'development') {
+          showMockSongOptions();
+        } else {
+          setSongCreationError("Song generation failed. Please try again.");
+          setStep(3);
+        }
       }
     }, 3000); // Poll every 3 seconds
 
@@ -477,6 +547,13 @@ export default function CreateSongV2Page() {
     setError(null);
     if (!requesterName.trim() || !recipientName.trim() || !languages.trim()) {
       setError("Please fill in all required fields (Your Name, To/For, and Languages).");
+      return;
+    }
+    
+    // Validate recipient name format
+    const namePattern = /^[A-Za-z\s]+,\s*my\s+[A-Za-z\s]+$/i;
+    if (!namePattern.test(recipientName.trim())) {
+      setError("Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother').");
       return;
     }
 
@@ -613,15 +690,18 @@ export default function CreateSongV2Page() {
                 To / For
               </label>
               <p className="text-sm text-melodia-teal opacity-70 mb-3">
-                Who is this song for?
+                Who is this song for? Enter their name and relationship.
               </p>
               <input
                 id="to-for"
-                placeholder="My best friend, Rohan"
+                placeholder="Sarah, my best friend"
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
                 className="form-input w-full"
               />
+              <p className="text-xs text-melodia-teal opacity-60 mt-2">
+                Format: "Name, my relationship" (e.g., "Sarah, my best friend" or "Rohan, my brother")
+              </p>
             </div>
             <div>
               <label className="block text-lg font-semibold text-melodia-teal mb-3">
@@ -810,6 +890,38 @@ export default function CreateSongV2Page() {
                     Try Again
                   </button>
                 </div>
+              ) : songCreationError ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-red-600 mb-2">Song Creation Failed</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">{songCreationError}</p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={handleRetrySongCreation}
+                      disabled={isRetrying}
+                      className="px-6 py-2 bg-melodia-coral text-white rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isRetrying ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Retrying...
+                        </>
+                      ) : (
+                        'Try Again'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setSongCreationError(null)}
+                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               ) : editedLyrics ? (
                 <div className="space-y-4">
                   <div className="bg-blue-100 p-2 rounded mb-2">
@@ -868,7 +980,7 @@ export default function CreateSongV2Page() {
       </div>
 
       {/* Bottom Action Bar - Only show on step 3 */}
-      {step === 3 && !isGeneratingLyrics && !isUpdatingLyrics && (
+      {step === 3 && !isGeneratingLyrics && !isUpdatingLyrics && !songCreationError && (
         <div className="p-6 sticky bottom-0 bg-white pt-4 pb-6">
           {isEditingLyrics ? (
             <>
@@ -894,8 +1006,9 @@ export default function CreateSongV2Page() {
               <Button
                 className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200 mb-3"
                 onClick={handleCreateSong}
+                disabled={isRetrying}
               >
-                Create Song
+                {isRetrying ? "Creating Song..." : "Create Song"}
               </Button>
               <button
                 className="w-full text-melodia-teal font-semibold text-center py-2"

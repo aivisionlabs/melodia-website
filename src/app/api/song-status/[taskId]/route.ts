@@ -128,7 +128,13 @@ export async function GET(
     const { status, response } = statusResponse.data
     console.log('Suno API status:', status, 'Response:', response)
 
-    if (status === 'SUCCESS' && response?.sunoData?.length > 0) {
+    // Check if we have valid sunoData with complete variants
+    if (response?.sunoData?.length > 0) {
+      const hasCompleteVariants = response.sunoData.every((variant: any) => 
+        variant.audioUrl && variant.streamAudioUrl && variant.imageUrl
+      )
+      
+      if (hasCompleteVariants) {
       // Update database with completed song
       try {
         // Find song by task ID
@@ -194,6 +200,15 @@ export async function GET(
         audioUrl,
         variants: response.sunoData
       })
+      } else {
+        // Variants exist but are not complete yet
+        console.log('Song variants exist but are not complete yet')
+        return NextResponse.json({
+          success: true,
+          status: 'processing',
+          message: 'Song variants are being generated'
+        })
+      }
     } else if (status === 'FAILED' || status === 'failed') {
       // Update database with failed status
       try {
