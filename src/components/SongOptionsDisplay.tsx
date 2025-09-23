@@ -24,7 +24,6 @@ interface SongOptionsDisplayProps {
 export default function SongOptionsDisplay({
   variants,
   onBack,
-  onSelectVariant,
   onBackupWithGoogle
 }: SongOptionsDisplayProps) {
   const [playingVariant, setPlayingVariant] = useState<string | null>(null);
@@ -57,7 +56,7 @@ export default function SongOptionsDisplay({
     }
   
     // Stop any currently playing audio and reset their currentTime
-    Object.entries(audioElements).forEach(([id, audio]) => {
+    Object.entries(audioElements).forEach(([, audio]) => {
       audio.pause();
       audio.currentTime = 0;
     });
@@ -170,7 +169,7 @@ export default function SongOptionsDisplay({
         audio.currentTime = 0;
       });
     };
-  }, []);
+  }, [audioElements]);
 
   // Loading dots animation component
   const LoadingDots = () => (

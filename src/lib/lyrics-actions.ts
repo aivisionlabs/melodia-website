@@ -462,6 +462,8 @@ export async function createSongFromLyricsAction(requestId: number) {
     const [song] = await db
       .insert(songsTable)
       .values({
+        song_request_id: requestId,
+        user_id: request[0].user_id || 1, // Use request user_id or default to 1
         title: `Song for ${request[0].recipient_name}`,
         lyrics: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
         music_style: request[0].song_type || 'Personal',

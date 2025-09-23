@@ -160,6 +160,8 @@ export async function createSong(songData: {
   tags?: string[];
   negative_tags?: string;
   prompt?: string;
+  song_request_id: number;
+  user_id: number;
 }): Promise<{ success: boolean; songId?: number; error?: string }> {
   try {
     // Validate title
@@ -187,6 +189,8 @@ export async function createSong(songData: {
       slug,
       status: 'draft',
       is_active: false,
+      song_request_id: songData.song_request_id,
+      user_id: songData.user_id,
     };
 
     const song = await createSongQuery(newSong);

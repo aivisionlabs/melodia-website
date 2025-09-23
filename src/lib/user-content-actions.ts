@@ -51,7 +51,7 @@ export async function getUserContent(
       .where(
         userId
           ? eq(songRequestsTable.user_id, userId)
-          : eq(songRequestsTable.anonymous_user_id, anonymousUserId)
+          : anonymousUserId ? eq(songRequestsTable.anonymous_user_id, anonymousUserId) : undefined
       )
       .orderBy(desc(songRequestsTable.created_at));
 

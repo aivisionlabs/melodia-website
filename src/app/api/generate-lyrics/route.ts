@@ -60,11 +60,12 @@ export async function POST(request: NextRequest) {
       // Check payment status only if payment is required (skip for anonymous users)
       // Note: payment_required column was removed from database, so skip payment check for now
       if (false && currentUser.id !== null) {
-        if (songRequest[0].payment_id) {
+        const paymentId = songRequest[0].payment_id;
+        if (paymentId !== null && paymentId !== undefined) {
           const payment = await db
             .select()
             .from(paymentsTable)
-            .where(eq(paymentsTable.id, songRequest[0].payment_id))
+            .where(eq(paymentsTable.id, paymentId as number))
             .limit(1);
 
           if (payment.length === 0 || payment[0].status !== 'completed') {

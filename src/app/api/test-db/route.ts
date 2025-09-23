@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      columns: result.rows
+      columns: result
     });
 
   } catch (error) {
