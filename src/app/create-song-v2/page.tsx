@@ -417,6 +417,7 @@ export default function CreateSongV2Page() {
         id: 'mock_variant_1',
         title: `${baseTitle} - Version 1 (DEMO)`,
         audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
+        streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant1',
         duration: 180,
         downloadStatus: 'Download in 2 minutes',
@@ -426,6 +427,7 @@ export default function CreateSongV2Page() {
         id: 'mock_variant_2', 
         title: `${baseTitle} - Version 2 (DEMO)`,
         audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
+        streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
         imageUrl: 'https://picsum.photos/400/400?random=variant2',
         duration: 195,
         downloadStatus: 'Download in 2 minutes',
@@ -478,6 +480,7 @@ export default function CreateSongV2Page() {
               id: variant.id,
               title: variant.title || `${generatedTitle || `${recipientName}'s Song`} - Version ${index + 1}`,
               audioUrl: variant.audioUrl || variant.streamAudioUrl,
+              streamAudioUrl: variant.streamAudioUrl,
               imageUrl: variant.imageUrl,
               duration: variant.duration || 180,
               downloadStatus: "Download now",
@@ -647,6 +650,11 @@ export default function CreateSongV2Page() {
         onBack={() => setStep(3)}
         onSelectVariant={handleSelectVariant}
         onBackupWithGoogle={handleBackupWithGoogle}
+        songData={{
+          suno_task_id: taskId || undefined,
+          title: generatedTitle || `${recipientName}'s Song`,
+          artist: 'Melodia'
+        }}
       />
     );
   }
