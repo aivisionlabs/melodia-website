@@ -6,7 +6,7 @@ import { songRequestsTable, songsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { sanitizeInput } from './security'
-import { shouldRequirePayment } from './payment-config'
+// import { shouldRequirePayment } from './payment-config'
 
 // Input validation functions
 function validateSongRequestForm(formData: SongRequestFormData): { isValid: boolean; errors: Record<string, string> } {

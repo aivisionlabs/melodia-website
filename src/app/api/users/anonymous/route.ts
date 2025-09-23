@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { anonymousUsersTable } from '@/lib/db/schema'
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     // Create anonymous user in database (UUID will be auto-generated)
     const [anonymousUser] = await db

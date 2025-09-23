@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { lyricsDraftsTable } from '@/lib/db/schema';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get all lyrics drafts
     const result = await db

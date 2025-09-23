@@ -212,13 +212,16 @@ class MockSunoAPI {
     };
   }
 
-  async getTimestampedLyrics(request: SunoTimestampedLyricsRequest): Promise<SunoTimestampedLyricsResponse> {
+  async getTimestampedLyrics(_: SunoTimestampedLyricsRequest): Promise<SunoTimestampedLyricsResponse> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
+
 
     // Generate mock aligned words based on the variant
     const mockAlignedWords = this.generateMockAlignedWords();
 
+
+    console.log('Mock aligned words:', _);
     return {
       code: 0,
       msg: 'success',

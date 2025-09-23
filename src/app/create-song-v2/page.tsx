@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, ChevronDown, Edit } from "lucide-react";
+import { Sparkles, ChevronDown } from "lucide-react";
 import { getCurrentUser } from "@/lib/user-actions";
 import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
 import SongOptionsDisplay from "@/components/SongOptionsDisplay";
@@ -15,7 +15,7 @@ export default function CreateSongV2Page() {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReviewPopup, setShowReviewPopup] = useState(false);
 
@@ -27,7 +27,7 @@ export default function CreateSongV2Page() {
   const [story, setStory] = useState("");
   const [moods, setMoods] = useState<string[]>(["Sentimental"]);
   const [customMood, setCustomMood] = useState("");
-  const [generatedLyrics, setGeneratedLyrics] = useState("");
+  const [, setGeneratedLyrics] = useState("");
   const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
   const [generatedTitle, setGeneratedTitle] = useState("");
   const [generatedStyle, setGeneratedStyle] = useState("");
@@ -45,7 +45,7 @@ export default function CreateSongV2Page() {
   const [isRetrying, setIsRetrying] = useState(false);
   
   // Anonymous user hook
-  const { anonymousUserId, loading: anonymousUserLoading } = useAnonymousUser();
+  const { anonymousUserId } = useAnonymousUser();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -71,7 +71,7 @@ export default function CreateSongV2Page() {
     };
 
     fetchCurrentUser();
-  }, []);
+  }, [requesterName]);
 
   const toggleMood = (m: string) => {
     if (m === "Other") {
@@ -708,7 +708,7 @@ export default function CreateSongV2Page() {
                 className="form-input w-full"
               />
               <p className="text-xs text-melodia-teal opacity-60 mt-2">
-                Format: "Name, my relationship" (e.g., "Sarah, my best friend" or "Rohan, my brother")
+                Format: &quot;Name, my relationship&quot; (e.g., &quot;Sarah, my best friend&quot; or &quot;Rohan, my brother&quot;)
               </p>
             </div>
             <div>

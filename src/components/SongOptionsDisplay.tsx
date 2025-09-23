@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Download, ArrowLeft, BookOpen, Share2 } from 'lucide-react';
 import { MediaPlayer } from '@/components/MediaPlayer';
+import Image from 'next/image';
 
 interface SongVariant {
   id: string;
@@ -281,9 +282,11 @@ export default function SongOptionsDisplay({
                 {/* Album Art with Wood Frame */}
                 <div className="w-20 h-20 bg-amber-100 p-1 rounded-lg border-2 border-amber-300">
                   <div className="w-full h-full bg-white rounded overflow-hidden">
-                    <img
+                    <Image
                       src={variant.imageUrl}
                       alt={`${variant.title} album art`}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to a placeholder if image fails to load
