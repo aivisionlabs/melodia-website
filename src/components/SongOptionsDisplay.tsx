@@ -3,11 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Download, ArrowLeft, BookOpen, Share2 } from 'lucide-react';
+import { MediaPlayer } from '@/components/MediaPlayer';
+import Image from 'next/image';
 
 interface SongVariant {
   id: string;
   title: string;
   audioUrl: string;
+  streamAudioUrl?: string;
   imageUrl: string;
   duration: number;
   downloadStatus: string;
@@ -19,16 +22,23 @@ interface SongOptionsDisplayProps {
   onBack: () => void;
   onSelectVariant: (variantId: string) => void;
   onBackupWithGoogle: () => void;
+  songData?: {
+    suno_task_id?: string;
+    title: string;
+    artist?: string;
+  };
 }
 
 export default function SongOptionsDisplay({
   variants,
   onBack,
-  onSelectVariant,
-  onBackupWithGoogle
+  onBackupWithGoogle,
+  songData
 }: SongOptionsDisplayProps) {
   const [playingVariant, setPlayingVariant] = useState<string | null>(null);
   const [initializedVariants, setInitializedVariants] = useState<{ [key: string]: boolean }>({});
+  const [showMediaPlayer, setShowMediaPlayer] = useState(false);
+  const [selectedVariantForLyrics, setSelectedVariantForLyrics] = useState<SongVariant | null>(null);
   const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
   const [currentTime, setCurrentTime] = useState<{ [key: string]: number }>({});
   const [duration, setDuration] = useState<{ [key: string]: number }>({});
@@ -57,7 +67,7 @@ export default function SongOptionsDisplay({
     }
   
     // Stop any currently playing audio and reset their currentTime
-    Object.entries(audioElements).forEach(([id, audio]) => {
+    Object.entries(audioElements).forEach(([, audio]) => {
       audio.pause();
       audio.currentTime = 0;
     });
@@ -158,6 +168,48 @@ export default function SongOptionsDisplay({
     }
   };
 
+  const handleLyricsClick = (variant: SongVariant) => {
+    if (!variant.audioUrl && !variant.streamAudioUrl) {
+      alert('Audio is not ready yet. Please wait for the song to finish generating.');
+      return;
+    }
+    
+    // Stop all currently playing audio elements to prevent conflicts
+    Object.entries(audioElements).forEach(([, audio]) => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {
+        console.warn('Error stopping audio:', error);
+      }
+    });
+    
+    // Stop any other audio elements on the page
+    const allAudioElements = document.querySelectorAll('audio');
+    allAudioElements.forEach(audio => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {
+        console.warn('Error stopping page audio:', error);
+      }
+    });
+    
+    // Clear any existing progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    // Reset playing state
+    setPlayingVariant(null);
+    
+    // Small delay to ensure audio is stopped before opening MediaPlayer
+    setTimeout(() => {
+      setSelectedVariantForLyrics(variant);
+      setShowMediaPlayer(true);
+    }, 100);
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -170,7 +222,7 @@ export default function SongOptionsDisplay({
         audio.currentTime = 0;
       });
     };
-  }, []);
+  }, [audioElements]);
 
   // Loading dots animation component
   const LoadingDots = () => (
@@ -230,9 +282,11 @@ export default function SongOptionsDisplay({
                 {/* Album Art with Wood Frame */}
                 <div className="w-20 h-20 bg-amber-100 p-1 rounded-lg border-2 border-amber-300">
                   <div className="w-full h-full bg-white rounded overflow-hidden">
-                    <img
+                    <Image
                       src={variant.imageUrl}
                       alt={`${variant.title} album art`}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to a placeholder if image fails to load
@@ -284,7 +338,7 @@ export default function SongOptionsDisplay({
 
                     {/* Lyrics Button */}
                     <button
-                      onClick={() => alert('Lyrics feature coming soon!')}
+                      onClick={() => handleLyricsClick(variant)}
                       className="flex-1 h-12 bg-white border-2 border-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/10 transition-colors flex items-center justify-center gap-2"
                     >
                       <BookOpen className="w-4 h-4" />
@@ -403,6 +457,32 @@ export default function SongOptionsDisplay({
           </div>
         </div>
       </div>
+
+      {/* Full-screen MediaPlayer for Lyrics */}
+      {showMediaPlayer && selectedVariantForLyrics && songData && (
+        <MediaPlayer
+          song={{
+            title: songData.title,
+            artist: songData.artist || 'Melodia',
+            audioUrl: selectedVariantForLyrics.audioUrl,
+            song_url: selectedVariantForLyrics.streamAudioUrl || selectedVariantForLyrics.audioUrl,
+            suno_task_id: songData.suno_task_id,
+            suno_audio_id: selectedVariantForLyrics.id,
+            selected_variant: variants.findIndex(v => v.id === selectedVariantForLyrics.id)
+          }}
+          onClose={() => {
+            // Stop any audio that might be playing in MediaPlayer
+            const mediaPlayerAudio = document.querySelector('audio');
+            if (mediaPlayerAudio) {
+              mediaPlayerAudio.pause();
+              mediaPlayerAudio.currentTime = 0;
+            }
+            
+            setShowMediaPlayer(false);
+            setSelectedVariantForLyrics(null);
+          }}
+        />
+      )}
     </div>
   );
 }

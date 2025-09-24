@@ -233,7 +233,7 @@ export async function getCurrentUser(): Promise<User | null> {
       if (parsed && typeof parsed.id === 'number' && typeof parsed.email === 'string') {
         return parsed as User
       }
-    } catch (e) {
+    } catch {
       return null
     }
 

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { songsTable } from '@/lib/db/schema'
 import { and, eq, desc } from 'drizzle-orm'
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const songs = await db
       .select({

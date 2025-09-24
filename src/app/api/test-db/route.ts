@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Try to insert a minimal record to see what columns exist
     const result = await db.execute(`
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      columns: result.rows
+      columns: result
     });
 
   } catch (error) {

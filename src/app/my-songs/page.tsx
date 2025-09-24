@@ -27,7 +27,6 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { pollSongStatus } from "@/lib/song-status-client";
 import { VariantSelectionModal } from "@/components/VariantSelectionModal";
-import { MediaPlayer } from "@/components/MediaPlayer";
 import { MiniPlayer } from "@/components/MiniPlayer";
 
 export default function MySongsPage() {
@@ -50,7 +49,7 @@ export default function MySongsPage() {
 
   // Media player state
   const [selectedSong, setSelectedSong] = useState<any>(null);
-  const [songLyrics, setSongLyrics] = useState<any[]>([]);
+  const [, setSongLyrics] = useState<any[]>([]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");

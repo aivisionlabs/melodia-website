@@ -7,7 +7,7 @@ import { getCurrentUser } from '@/lib/user-actions'
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, lyrics, style, recipient_name, requestId, demoMode, userId } = await request.json()
+    const { title, lyrics, style, recipient_name, requestId, demoMode, userId, anonymousUserId } = await request.json()
 
     console.log('Received request:', { title, lyrics: lyrics?.substring(0, 100) + '...', style, recipient_name, demoMode })
 
@@ -25,17 +25,15 @@ export async function POST(request: NextRequest) {
       let currentUser = null;
       
       if (userId) {
-        // Use provided userId
+        // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
+      } else if (demoMode) {
+        // For demo mode, use a default user ID
+        currentUser = { id: 1 } as any;
       } else {
         // Try to get from authentication
         currentUser = await getCurrentUser();
-        if (!currentUser) {
-          return NextResponse.json(
-            { error: true, message: 'User ID or authentication required' },
-            { status: 401 }
-          );
-        }
+        // If no authenticated user, we'll handle anonymous users below
       }
 
       // Get song request
@@ -52,15 +50,45 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (songRequest[0].user_id !== currentUser.id) {
-        return NextResponse.json(
-          { error: true, message: 'Unauthorized access' },
-          { status: 403 }
-        );
+      // Handle authorization for different user types
+      if (!demoMode) {
+        // Check if this is an anonymous user request
+        console.log('Authorization check:', {
+        anonymousUserId,
+        dbAnonymousUserId: songRequest[0].anonymous_user_id,
+        currentUser,
+        dbUserId: songRequest[0].user_id
+      });
+        
+        if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
+          // Anonymous user owns this request - allow access
+          currentUser = { id: null, anonymousUserId } as any;
+        }
+        // Check if this is a registered user request
+        else if (currentUser && songRequest[0].user_id === currentUser.id) {
+          // Registered user owns this request - allow access
+        }
+        // Check if no user is logged in but the song request exists with user_id
+        else if (!currentUser && songRequest[0].user_id) {
+          // Use the user_id from the song request as the current user
+          currentUser = { id: songRequest[0].user_id } as any;
+        }
+        // Check if no user is logged in but the song request exists with anonymous_user_id
+        else if (!currentUser && songRequest[0].anonymous_user_id) {
+          // Use the anonymous_user_id from the song request
+          currentUser = { id: null, anonymousUserId: songRequest[0].anonymous_user_id } as any;
+        }
+        else {
+          // No valid ownership found
+          return NextResponse.json(
+            { error: true, message: 'Unauthorized access' },
+            { status: 403 }
+          );
+        }
       }
 
-      // Check payment status only if payment is required
-      if (songRequest[0].payment_required) {
+      // Check payment status only if payment is required and not in demo mode
+      if (!demoMode && songRequest[0].payment_required) {
         if (songRequest[0].payment_id) {
           const payment = await db
             .select()
@@ -91,17 +119,15 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-    }
 
-    // Demo mode - return mock response without hitting real APIs
-    if (demoMode) {
-      console.log('🎭 DEMO MODE: Using mock response instead of real Suno API')
-      
-      const mockTaskId = `demo-task-${Date.now()}`
-      
-      // Still create song record in database for testing
-      let songId: number | null = null
-      if (requestId) {
+      // Demo mode - return mock response without hitting real APIs
+      if (demoMode) {
+        console.log('🎭 DEMO MODE: Using mock response instead of real Suno API')
+        
+        const mockTaskId = `demo-task-${Date.now()}`
+        
+        // Still create song record in database for testing
+        let songId: number | null = null
         try {
           const timestamp = Date.now()
           const randomSuffix = Math.random().toString(36).substring(2, 8)
@@ -110,6 +136,8 @@ export async function POST(request: NextRequest) {
           const [song] = await db
             .insert(songsTable)
             .values({
+              song_request_id: requestId,
+              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
               title,
               lyrics,
               music_style: style,
@@ -121,7 +149,8 @@ export async function POST(request: NextRequest) {
               suno_task_id: mockTaskId,
               metadata: {
                 original_request_id: requestId,
-                demo_mode: true
+                demo_mode: true,
+                anonymous_user_id: currentUser.anonymousUserId || null
               }
             })
             .returning({ id: songsTable.id })
@@ -141,112 +170,113 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error('Database error in demo mode:', dbError)
         }
+
+        return NextResponse.json({
+          success: true,
+          taskId: mockTaskId,
+          songId,
+          message: 'Demo song generation started successfully',
+          demoMode: true
+        })
+      }
+
+      // If not demo mode, proceed with real API call
+      // Create the prompt for Suno API
+      const prompt = `Title: ${title}\n\nLyrics:\n${lyrics}\n\nStyle: ${style}`
+
+      // Initialize Suno API
+      const sunoAPI = SunoAPIFactory.getAPI()
+      console.log('SunoAPI initialized:', typeof sunoAPI)
+
+      // Generate song
+      const generateRequest = {
+        prompt,
+        style,
+        title,
+        customMode: true,
+        instrumental: false,
+        model: 'V4',  
+        callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
+      }
+      
+      console.log('Sending request to Suno API:', generateRequest)
+      
+      let generateResponse;
+      try {
+        generateResponse = await sunoAPI.generateSong(generateRequest)
+        console.log('Suno API response:', generateResponse)
+      } catch (apiError) {
+        console.error('Suno API error:', apiError)
+        return NextResponse.json(
+          { error: true, message: 'Failed to generate song with Suno API' },
+          { status: 500 }
+        )
+      }
+
+      const taskId = generateResponse.data.taskId
+      console.log('Generated task ID:', taskId)
+
+      // Create song record in database
+      let songId: number | null = null
+      if (requestId) {
+        try {
+          const timestamp = Date.now()
+          const randomSuffix = Math.random().toString(36).substring(2, 8)
+          const slug = `${recipient_name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+
+          const [song] = await db
+            .insert(songsTable)
+            .values({
+              song_request_id: requestId,
+              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
+              title,
+              lyrics,
+              music_style: style,
+              service_provider: 'Suno',
+              song_requester: recipient_name,
+              prompt: `Personalized song for ${recipient_name}`,
+              slug,
+              status: 'processing',
+              suno_task_id: taskId,
+              metadata: {
+                original_request_id: requestId,
+                demo_mode: false,
+                anonymous_user_id: currentUser.anonymousUserId || null
+              }
+            })
+            .returning({ id: songsTable.id })
+
+          songId = song.id
+
+          await db
+            .update(songRequestsTable)
+            .set({
+              status: 'processing',
+              suno_task_id: taskId,
+              generated_song_id: songId
+            })
+            .where(eq(songRequestsTable.id, requestId))
+
+          console.log('Song created in database:', { songId, taskId })
+        } catch (dbError) {
+          console.error('Database error:', dbError)
+          // Continue with response even if DB update fails
+        }
       }
 
       return NextResponse.json({
         success: true,
-        taskId: mockTaskId,
+        taskId,
         songId,
-        message: 'Demo song generation started successfully',
-        demoMode: true
+        message: 'Song generation started successfully'
       })
     }
 
-    // Create the prompt for Suno API
-    const prompt = `Title: ${title}\n\nLyrics:\n${lyrics}\n\nStyle: ${style}`
-
-    // Initialize Suno API
-    const sunoAPI = SunoAPIFactory.getAPI()
-    console.log('SunoAPI initialized:', typeof sunoAPI)
-
-    // Generate song
-    const generateRequest = {
-      prompt,
-      style,
-      title,
-      customMode: true,
-      instrumental: false,
-      model: 'V4',  
-      callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
-    }
-    
-    console.log('Sending request to Suno API:', generateRequest)
-    
-    let generateResponse;
-    try {
-      generateResponse = await sunoAPI.generateSong(generateRequest)
-      console.log('Suno API response:', generateResponse)
-    } catch (apiError) {
-      console.error('Suno API call failed:', apiError)
-      return NextResponse.json(
-        { error: true, message: `Suno API call failed: ${apiError instanceof Error ? apiError.message : 'Unknown error'}` },
-        { status: 500 }
-      )
-    }
-
-    if (generateResponse.code !== 200) {
-      console.log('Suno API error:', generateResponse.msg)
-      return NextResponse.json(
-        { error: true, message: `Suno API error: ${generateResponse.msg}` },
-        { status: 400 }
-      )
-    }
-
-    const taskId = generateResponse.data.taskId
-
-    // Create song record in database
-    let songId: number | null = null
-    if (requestId) {
-      try {
-        // Generate slug
-        const timestamp = Date.now()
-        const randomSuffix = Math.random().toString(36).substring(2, 8)
-        const slug = `${recipient_name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
-
-        // Create song record
-        const [song] = await db
-          .insert(songsTable)
-          .values({
-            title,
-            lyrics,
-            music_style: style,
-            service_provider: 'Suno',
-            song_requester: recipient_name,
-            prompt: `Personalized song for ${recipient_name}`,
-            slug,
-            status: 'processing',
-            suno_task_id: taskId,
-            metadata: {
-              original_request_id: requestId
-            }
-          })
-          .returning({ id: songsTable.id })
-
-        songId = song.id
-
-        // Update song request with generated song ID
-        await db
-          .update(songRequestsTable)
-          .set({
-            status: 'processing',
-            suno_task_id: taskId,
-            generated_song_id: songId
-          })
-          .where(eq(songRequestsTable.id, requestId))
-
-        console.log('Song created in database:', { songId, taskId })
-      } catch (dbError) {
-        console.error('Database error:', dbError)
-        // Continue with response even if DB update fails
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      taskId,
-      songId,
-      message: 'Song generation started successfully'
-    })
+    // If no requestId, return error
+    return NextResponse.json(
+      { error: true, message: 'Request ID is required' },
+      { status: 400 }
+    )
 
   } catch (error) {
     console.error('Error generating song:', error)

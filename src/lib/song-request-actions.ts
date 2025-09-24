@@ -6,7 +6,7 @@ import { songRequestsTable, songsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { sanitizeInput } from './security'
-import { shouldRequirePayment } from './payment-config'
+// import { shouldRequirePayment } from './payment-config'
 
 // Input validation functions
 function validateSongRequestForm(formData: SongRequestFormData): { isValid: boolean; errors: Record<string, string> } {
@@ -119,6 +119,7 @@ export async function createSongRequest(
     // Insert song request - minimal fields only
     const insertData: any = {
       user_id: userId || null,
+      anonymous_user_id: anonymousUserId || null,
       requester_name: sanitizedData.requester_name,
       phone_number: sanitizedData.phone_number || null,
       email: sanitizedData.email || null,
@@ -131,7 +132,8 @@ export async function createSongRequest(
       emotions: sanitizedData.emotions || null,
       additional_details: sanitizedData.additional_details,
       status: 'pending',
-      lyrics_status: 'pending'
+      lyrics_status: 'pending',
+      payment_required: false
     };
 
     const [newRequest] = await db
