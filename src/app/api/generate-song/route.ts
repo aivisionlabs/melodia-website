@@ -188,10 +188,15 @@ export async function POST(request: NextRequest) {
       const sunoAPI = SunoAPIFactory.getAPI()
       console.log('SunoAPI initialized:', typeof sunoAPI)
 
+      // Truncate style to max 200 characters for Suno API
+      const truncatedStyle = style.length > 200 ? style.substring(0, 197) + '...' : style
+      console.log('Original style length:', style.length)
+      console.log('Truncated style length:', truncatedStyle.length)
+
       // Generate song
       const generateRequest = {
         prompt,
-        style,
+        style: truncatedStyle,
         title,
         customMode: true,
         instrumental: false,
@@ -209,6 +214,28 @@ export async function POST(request: NextRequest) {
         console.error('Suno API error:', apiError)
         return NextResponse.json(
           { error: true, message: 'Failed to generate song with Suno API' },
+          { status: 500 }
+        )
+      }
+
+      // Check if the response has an error
+      if (generateResponse.code !== 0 && generateResponse.code !== 200) {
+        console.error('Suno API returned error:', generateResponse)
+        return NextResponse.json(
+          { 
+            error: true, 
+            message: generateResponse.msg || 'Suno API returned an error',
+            code: generateResponse.code 
+          },
+          { status: 400 }
+        )
+      }
+
+      // Check if we have valid data
+      if (!generateResponse.data || !generateResponse.data.taskId) {
+        console.error('Invalid response from Suno API:', generateResponse)
+        return NextResponse.json(
+          { error: true, message: 'Invalid response from Suno API - no task ID received' },
           { status: 500 }
         )
       }
