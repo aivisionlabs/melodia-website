@@ -22,16 +22,11 @@ export default function CreateSongPage() {
   // Form state
   const [formData, setFormData] = useState<SongRequestFormData>({
     requester_name: "",
-    phone_number: "",
-    email: "",
-    delivery_preference: undefined,
     recipient_name: "",
     recipient_relationship: "",
     languages: ["English"],
-    person_description: "",
-    song_type: "",
-    emotions: [],
-    additional_details: "",
+    mood: [],
+    song_story: "",
   });
 
   // Validation state

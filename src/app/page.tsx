@@ -3,16 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ChevronDown } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { getCurrentUser } from "@/lib/user-actions";
-import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
-import SongOptionsDisplay from "@/components/SongOptionsDisplay";
 import { useAnonymousUser } from "@/hooks/use-anonymous-user";
-import { pollSongStatus } from "@/lib/song-status-client";
 
-type Step = 1 | 2 | 3 | 'loading' | 'song-options';
+type Step = 1 | 2;
 
-export default function CreateSongV2Page() {
+export default function CreateSongPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>(1);
@@ -28,36 +25,10 @@ export default function CreateSongV2Page() {
   const [story, setStory] = useState("");
   const [moods, setMoods] = useState<string[]>(["Sentimental"]);
   const [customMood, setCustomMood] = useState("");
-  const [, setGeneratedLyrics] = useState("");
-  const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
-  const [generatedTitle, setGeneratedTitle] = useState("");
-  const [generatedStyle, setGeneratedStyle] = useState("");
-  const [isMusicStyleExpanded, setIsMusicStyleExpanded] = useState(false);
-  const [isEditingLyrics, setIsEditingLyrics] = useState(false);
-  const [editedLyrics, setEditedLyrics] = useState("");
-  const [lyricsError, setLyricsError] = useState("");
-  const [userEditInput, setUserEditInput] = useState("");
-  const [isUpdatingLyrics, setIsUpdatingLyrics] = useState(false);
-  const [requestId, setRequestId] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [songVariants, setSongVariants] = useState<any[]>([]);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [songCreationError, setSongCreationError] = useState<string | null>(null);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [pollingCleanup, setPollingCleanup] = useState<(() => void) | null>(null);
 
   // Anonymous user hook
   const { anonymousUserId } = useAnonymousUser();
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingCleanup) {
-        console.log('🧹 Cleaning up polling on component unmount');
-        pollingCleanup();
-      }
-    };
-  }, [pollingCleanup]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -65,6 +36,11 @@ export default function CreateSongV2Page() {
       if (done !== "true") router.replace("/onboarding");
     }
   }, [router]);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   // Get current user on component mount
   useEffect(() => {
@@ -111,16 +87,23 @@ export default function CreateSongV2Page() {
     }
   };
 
+  const handleBack = () => {
+    setStep((prevStep) => Math.max(1, (prevStep as number) - 1) as Step);
+  };
+
   const handleNext = () => {
     if (!recipientName.trim()) {
       setError("Please enter who this song is for.");
       return;
     }
 
+    console.log("recipientName", recipientName);
     // Validate recipient name format
-    const namePattern = /^[A-Za-z\s]+,\s*my\s+[A-Za-z\s]+$/i;
+    const namePattern = /\b[A-Za-z\s,]+\b/;
     if (!namePattern.test(recipientName.trim())) {
-      setError("Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother').");
+      setError(
+        "Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother')."
+      );
       return;
     }
 
@@ -128,13 +111,18 @@ export default function CreateSongV2Page() {
     setStep(2);
   };
 
-  const handleCreateLyrics = async () => {
+  const handleCreateSongRequest = async () => {
     setShowReviewPopup(false);
-    setIsGeneratingLyrics(true);
-    setStep(3);
 
     try {
-      // Step 1: Create song request in database
+      // Parse recipient name to extract name and relationship
+      const recipientParts = recipientName
+        .split(",")
+        .map((part) => part.trim());
+      const extractedName = recipientParts[0] || recipientName;
+      const extractedRelationship = recipientParts[1] || "friend";
+
+      // Create song request in database
       const createRequestResponse = await fetch("/api/create-song-request", {
         method: "POST",
         headers: {
@@ -142,12 +130,18 @@ export default function CreateSongV2Page() {
         },
         body: JSON.stringify({
           requester_name: requesterName || currentUser?.name || "Anonymous",
-          email: currentUser?.email || null,
-          recipient_name: recipientName,
-          recipient_relationship: occasion === "Other" ? customOccasion : occasion,
-          languages: languages.split(",").map(lang => lang.trim()).filter(Boolean),
-          additional_details: `${moods.includes("Other") && customMood ? customMood : moods.join(", ")} style song. ${story ? `Story: ${story}` : ""}`,
-          delivery_preference: "email",
+          recipient_name: extractedName,
+          recipient_relationship: extractedRelationship,
+          occasion: occasion === "Other" ? customOccasion : occasion,
+          languages: languages
+            .split(",")
+            .map((lang) => lang.trim())
+            .filter(Boolean),
+          song_story: `${
+            moods.includes("Other") && customMood
+              ? customMood
+              : moods.join(", ")
+          } style song. ${story ? `Story: ${story}` : ""}`,
           user_id: currentUser?.id || null,
           anonymous_user_id: anonymousUserId || undefined,
         }),
@@ -159,429 +153,23 @@ export default function CreateSongV2Page() {
 
       const createRequestData = await createRequestResponse.json();
       const newRequestId = createRequestData.requestId;
-      setRequestId(newRequestId);
 
-      // Step 2: Generate lyrics using the API with database storage and demo mode support
-      const response = await fetch("/api/generate-lyrics-with-storage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipient_name: `${recipientName}, my ${occasion === "Other" ? customOccasion : occasion.toLowerCase()}`,
-          languages: languages.split(",").map(lang => lang.trim()).filter(Boolean),
-          additional_details: `${moods.includes("Other") && customMood ? customMood : moods.join(", ")} style song. ${story ? `Story: ${story}` : ""}`,
-          requestId: newRequestId, // Add back for database storage
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to generate lyrics");
-      }
-
-      const data = await response.json();
-      console.log("API Response:", data);
-
-      if (data.success && data.lyrics) {
-        console.log('🎵 Lyrics generated successfully, title:', data.title, 'style:', data.styleOfMusic);
-        setGeneratedLyrics(data.lyrics);
-        setEditedLyrics(data.lyrics); // Initialize edited lyrics with generated lyrics
-        setGeneratedTitle(data.title || `${recipientName}'s Song`);
-        setGeneratedStyle(data.styleOfMusic || "Personalized song style");
-        setLyricsError(""); // Clear any previous errors
-      } else {
-        const errorMessage = data.error || "Failed to generate lyrics. Please try again.";
-        setLyricsError(errorMessage);
-        setGeneratedLyrics("");
-        setEditedLyrics("");
-        setGeneratedTitle("");
-        setGeneratedStyle("");
-      }
-      setIsGeneratingLyrics(false);
-    } catch (error) {
-      console.error("Error generating lyrics:", error);
-      const errorMessage = "Sorry, there was an error generating your lyrics. Please check your connection and try again.";
-      setLyricsError(errorMessage);
-      setGeneratedLyrics("");
-      setEditedLyrics("");
-      setGeneratedTitle("");
-      setGeneratedStyle("");
-      setIsGeneratingLyrics(false);
-    }
-  };
-
-  const handleUpdateLyrics = async () => {
-    if (!userEditInput.trim()) {
-      alert("Please enter your changes in the text field below.");
-      return;
-    }
-
-    if (!requestId) {
-      alert("No request ID found. Please try generating lyrics again.");
-      return;
-    }
-
-    setIsUpdatingLyrics(true);
-    setLyricsError("");
-    console.log("Starting lyrics update with requestId:", requestId, "and refineText:", userEditInput.trim());
-
-    try {
-      // Use the existing refine lyrics API with requestId
-      const response = await fetch("/api/refine-lyrics", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestId: requestId,
-          refineText: userEditInput.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to update lyrics");
-      }
-
-      const data = await response.json();
-      console.log("Updated lyrics response:", data);
-
-      if (data.success && data.draft) {
-        // The refine lyrics API returns a draft object with generated_text
-        console.log("Successfully updated lyrics:", data.draft.generated_text);
-        setGeneratedLyrics(data.draft.generated_text);
-        setEditedLyrics(data.draft.generated_text);
-        setGeneratedTitle(`${recipientName}'s Song`);
-        setGeneratedStyle("Personalized song style");
-        setUserEditInput(""); // Clear the input field
-        setIsEditingLyrics(false); // Exit edit mode
-        setLyricsError(""); // Clear any previous errors
-        console.log("Lyrics updated successfully, cleared error state");
-      } else {
-        const errorMessage = data.error || "Failed to update lyrics. Please try again.";
-        console.error("Failed to update lyrics:", errorMessage);
-        setLyricsError(errorMessage);
-      }
-      setIsUpdatingLyrics(false);
-    } catch (error) {
-      console.error("Error updating lyrics:", error);
-      const errorMessage = "Sorry, there was an error updating your lyrics. Please try again.";
-      setLyricsError(errorMessage);
-      setIsUpdatingLyrics(false);
-    }
-  };
-
-  const handleCreateSong = async () => {
-    if (!requestId || !editedLyrics) {
-      alert("No request ID or lyrics found. Please try generating lyrics again.");
-      return;
-    }
-
-    // Clear any previous errors and set retry state
-    setSongCreationError(null);
-    setIsRetrying(false);
-
-    try {
-      // Step 1: Fetch lyrics draft
-      console.log('🎵 Fetching lyrics draft for requestId:', requestId);
-      const drafts = await fetch(`/api/lyrics-display?requestId=${requestId}`);
-
-      if (!drafts.ok) {
-        throw new Error(`Failed to fetch lyrics draft: ${drafts.status} ${drafts.statusText}`);
-      }
-
-      const draftsData = await drafts.json();
-      console.log('🎵 Lyrics draft response:', draftsData);
-
-      if (!draftsData.success || !draftsData.data || !draftsData.data.lyricsDraft) {
-        throw new Error("No lyrics draft found. Please try generating lyrics again.");
-      }
-
-      // Step 2: Approve the current draft
-      const approveResponse = await fetch("/api/approve-lyrics", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          draftId: draftsData.data.lyricsDraft.id,
-          requestId: requestId,
-        }),
-      });
-
-      if (!approveResponse.ok) {
-        const errorData = await approveResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to approve lyrics: ${approveResponse.status}`);
-      }
-
-      // Step 3: Create the song
-      const createResponse = await fetch("/api/generate-song", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: generatedTitle || `${recipientName}'s Song`,
-          lyrics: editedLyrics,
-          style: generatedStyle || "Personal",
-          recipient_name: recipientName,
-          requestId: requestId,
-          userId: currentUser?.id || null,
-          anonymousUserId: anonymousUserId || null,
-        }),
-      });
-
-      if (!createResponse.ok) {
-        const errorData = await createResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to create song: ${createResponse.status}`);
-      }
-
-      const createData = await createResponse.json();
-      console.log("Song creation response:", createData);
-
-      if (!createData.success || !createData.taskId) {
-        throw new Error(createData.message || "Song creation failed. Please try again.");
-      }
-
-      // Success! Set taskId and proceed to loading screen
-      console.log('🎵 Song creation successful, taskId:', createData.taskId, 'generatedTitle:', generatedTitle);
-      
-      // Clean up any existing polling before starting new song
-      if (pollingCleanup) {
-        console.log('🧹 Cleaning up existing polling for new song');
-        pollingCleanup();
-        setPollingCleanup(null);
-      }
-      
-      setTaskId(createData.taskId);
-      setStep('loading');
-
-    } catch (error) {
-      console.error("Error creating song:", error);
-
-      // Set error message and stay on current step
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while creating your song. Please try again.";
-      setSongCreationError(errorMessage);
-
-      // Don't proceed to loading screen on error
-      // Stay on step 3 to show error message
-    }
-  };
-
-  const handleRetrySongCreation = async () => {
-    setIsRetrying(true);
-    await handleCreateSong();
-    setIsRetrying(false);
-  };
-
-  const handleLoadingComplete = () => {
-    // After 45 seconds, show song options screen
-    if (taskId) {
-      pollForSongVariants();
-    } else {
-      // Only show mock data in development mode
-      if (process.env.NODE_ENV === 'development') {
-        showMockSongOptions();
-      } else {
-        // In production, show error if no taskId
-        setSongCreationError("Song generation failed. Please try again.");
-        setStep(3); // Go back to lyrics step
-      }
-    }
-  };
-
-  const showLoadingSongOptions = () => {
-    // Create loading song variants with placeholder data
-    const baseTitle = generatedTitle || `${recipientName}'s Song`;
-    console.log('🔄 showLoadingSongOptions - baseTitle:', baseTitle, 'generatedTitle:', generatedTitle, 'recipientName:', recipientName);
-
-    const loadingVariants = [
-      {
-        id: 'loading_variant_1',
-        title: `${baseTitle} - Version 1`,
-        audioUrl: '', // Empty = loading
-        imageUrl: 'https://picsum.photos/200/300',
-        duration: 180,
-        downloadStatus: 'Generating...',
-        isLoading: true // No real audio URL = loading
-      },
-      {
-        id: 'loading_variant_2',
-        title: `${baseTitle} - Version 2`,
-        audioUrl: '', // Empty = loading
-        imageUrl: 'https://picsum.photos/200/300',
-        duration: 195,
-        downloadStatus: 'Generating...',
-        isLoading: true // No real audio URL = loading
-      }
-    ];
-
-    setSongVariants(loadingVariants);
-    setStep('song-options');
-  };
-
-  const showMockSongOptions = () => {
-    // Only show mock data in development mode
-    if (process.env.NODE_ENV !== 'development') {
-      console.warn('Mock song options should only be shown in development mode');
-      setSongCreationError("Song generation failed. Please try again.");
-      setStep(3);
-      return;
-    }
-
-    // Create mock song variants using the actual generated title and lyrics
-    const baseTitle = generatedTitle || `${recipientName}'s Song`;
-    console.log('🎭 Mock song options - baseTitle:', baseTitle, 'generatedTitle:', generatedTitle, 'recipientName:', recipientName);
-
-    const mockVariants = [
-      {
-        id: 'mock_variant_1',
-        title: `${baseTitle} - Version 1 (DEMO)`,
-        audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
-        streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
-        imageUrl: 'https://picsum.photos/400/400?random=variant1',
-        duration: 180,
-        downloadStatus: 'Download in 2 minutes',
-        isLoading: true // Initially loading
-      },
-      {
-        id: 'mock_variant_2',
-        title: `${baseTitle} - Version 2 (DEMO)`,
-        audioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
-        streamAudioUrl: 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3',
-        imageUrl: 'https://picsum.photos/400/400?random=variant2',
-        duration: 195,
-        downloadStatus: 'Download in 2 minutes',
-        isLoading: true // Initially loading
-      }
-    ];
-
-    console.log('🎭 Setting mock variants:', mockVariants);
-    setSongVariants(mockVariants);
-    setStep('song-options');
-
-    // Simulate loading completion after 3 seconds for demo
-    setTimeout(() => {
-      setSongVariants(prevVariants =>
-        prevVariants.map(variant => ({
-          ...variant,
-          isLoading: false,
-          downloadStatus: 'Download now (DEMO)'
-        }))
+      // Redirect to lyrics generation page
+      console.log(
+        "🎵 Song request created successfully, redirecting to lyrics generation"
       );
-    }, 3000);
-  };
-
-  const pollForSongVariants = () => {
-    console.log('🔄 pollForSongVariants called with taskId:', taskId);
-    if (!taskId) {
-      console.log('❌ No taskId, falling back to mock options');
-      // Only show mock data in development mode
-      if (process.env.NODE_ENV === 'development') {
-        showMockSongOptions();
-      } else {
-        setSongCreationError("Song generation failed. Please try again.");
-        setStep(3);
-      }
-      return;
+      router.push(`/generate-lyrics/${newRequestId}`);
+    } catch (error) {
+      console.error("Error creating song request:", error);
+      const errorMessage =
+        "Sorry, there was an error creating your song request. Please check your connection and try again.";
+      setError(errorMessage);
     }
-
-    console.log('✅ taskId exists, showing loading options first');
-    // Always show the song options screen first with loading state
-    showLoadingSongOptions();
-
-    // Clean up any existing polling
-    if (pollingCleanup) {
-      console.log('🧹 Cleaning up existing polling');
-      pollingCleanup();
-    }
-
-    // Start centralized polling
-    const cleanup = pollSongStatus(
-      taskId,
-      (status) => {
-        console.log('🎵 Song status update:', status);
-        
-        if (status.status === 'completed' && status.variants && status.variants.length > 0) {
-          console.log('✅ Song completed with variants, formatting...');
-          // Convert Suno variants to our format
-          const formattedVariants = status.variants.map((variant: any, index: number) => ({
-            id: variant.id || `variant-${index + 1}`,
-            title: variant.title || `${generatedTitle || `${recipientName}'s Song`} - Version ${index + 1}`,
-            audioUrl: variant.audioUrl || variant.streamAudioUrl,
-            streamAudioUrl: variant.streamAudioUrl,
-            imageUrl: variant.imageUrl || `https://picsum.photos/400/400?random=variant${index + 1}`,
-            duration: variant.duration || 180,
-            downloadStatus: "Download now",
-            isLoading: false // Real audio URLs = not loading
-          }));
-
-          console.log('Formatted variants:', formattedVariants);
-          setSongVariants(formattedVariants);
-          // Polling will automatically stop when completed
-        } else if (status.status === 'processing') {
-          console.log('Song still processing...');
-          // Keep showing loading state
-        } else if (status.status === 'failed') {
-          console.log('Song generation failed');
-          // Show error state or fallback based on environment
-          if (process.env.NODE_ENV === 'development') {
-            showMockSongOptions();
-          } else {
-            setSongCreationError("Song generation failed. Please try again.");
-            setStep(3);
-          }
-        }
-      },
-      (error) => {
-        console.error("❌ Error polling for song variants:", error);
-        // Show error state or fallback based on environment
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 Falling back to mock options due to polling error');
-          showMockSongOptions();
-        } else {
-          setSongCreationError("Song generation failed. Please try again.");
-          setStep(3);
-        }
-      },
-      10000 // Poll every 10 seconds
-    );
-
-    // Store cleanup function
-    setPollingCleanup(() => cleanup);
-  };
-
-  const handleSelectVariant = (variantId: string) => {
-    console.log("Selected variant:", variantId);
-    // Here you would typically save the selected variant and redirect
-    // For now, just redirect to home
-    router.push('/');
-  };
-
-  const handleBackupWithGoogle = () => {
-    console.log("Backup with Google clicked");
-    // Implement Google backup functionality
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
-    setError(null);
-    if (!requesterName.trim() || !recipientName.trim() || !languages.trim()) {
-      setError("Please fill in all required fields (Your Name, To/For, and Languages).");
-      return;
-    }
-
-    // Validate recipient name format
-    const namePattern = /^[A-Za-z\s]+,\s*my\s+[A-Za-z\s]+$/i;
-    if (!namePattern.test(recipientName.trim())) {
-      setError("Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother').");
-      return;
-    }
-
     // Show review popup instead of submitting
+    setError(null);
     setShowReviewPopup(true);
 
     // setIsSubmitting(true);
@@ -653,49 +241,12 @@ export default function CreateSongV2Page() {
     // }
   };
 
-  // Handle loading screen
-  if (step === 'loading') {
-    return (
-      <SongCreationLoadingScreen
-        onComplete={handleLoadingComplete}
-        duration={45}
-      />
-    );
-  }
-
-  // Handle song options display
-  if (step === 'song-options') {
-    console.log('🎵 Rendering SongOptionsDisplay with variants:', songVariants);
-    console.log('🎵 Song data:', {
-      suno_task_id: taskId || undefined,
-      title: generatedTitle || `${recipientName}'s Song`,
-      artist: 'Melodia'
-    });
-    return (
-      <SongOptionsDisplay
-        variants={songVariants}
-        onBack={() => {
-          // Clean up polling when going back
-          if (pollingCleanup) {
-            console.log('🧹 Cleaning up polling when going back');
-            pollingCleanup();
-            setPollingCleanup(null);
-          }
-          setStep(3);
-        }}
-        onSelectVariant={handleSelectVariant}
-        onBackupWithGoogle={handleBackupWithGoogle}
-        songData={{
-          suno_task_id: taskId || undefined,
-          title: generatedTitle || `${recipientName}'s Song`,
-          artist: 'Melodia'
-        }}
-      />
-    );
-  }
-
   return (
-    <div className={`min-h-screen ${showReviewPopup || step === 3 ? 'bg-melodia-yellow' : 'bg-melodia-cream'} text-melodia-teal flex flex-col font-body pt-16 pb-20`}>
+    <div
+      className={`min-h-screen ${
+        showReviewPopup ? "bg-melodia-yellow" : "bg-melodia-cream"
+      } text-melodia-teal flex flex-col font-body pt-16 pb-20`}
+    >
       <div className="p-6 space-y-8 flex-grow">
         {step === 1 && (
           <div className="space-y-8">
@@ -743,7 +294,8 @@ export default function CreateSongV2Page() {
                 className="form-input w-full"
               />
               <p className="text-xs text-melodia-teal opacity-60 mt-2">
-                Format: &quot;Name, my relationship&quot; (e.g., &quot;Sarah, my best friend&quot; or &quot;Rohan, my brother&quot;)
+                Format: &quot;Name, my relationship&quot; (e.g., &quot;Sarah, my
+                best friend&quot; or &quot;Rohan, my brother&quot;)
               </p>
             </div>
             <div>
@@ -799,9 +351,29 @@ export default function CreateSongV2Page() {
         {step === 2 && (
           <div className="space-y-8">
             <header className="text-center">
-              <h1 className="text-3xl font-bold font-heading text-melodia-teal">
-                Add your personal touch
-              </h1>
+              <div className="flex items-start justify-center gap-4 mb-4">
+                <button
+                  onClick={handleBack}
+                  className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2 mt-1"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+                <h1 className="text-3xl font-bold font-heading text-melodia-teal">
+                  Add your personal touch
+                </h1>
+              </div>
               <p className="text-base text-gray-500">
                 This step is optional, but it makes the song truly unique!
               </p>
@@ -843,10 +415,11 @@ export default function CreateSongV2Page() {
                     key={m}
                     type="button"
                     onClick={() => toggleMood(m)}
-                    className={`px-5 h-10 rounded-full border-2 transition-all duration-200 font-semibold text-sm ${moods.includes(m)
-                      ? "bg-melodia-coral text-white border-[var(--accent-vibrant-coral)] shadow-lg shadow-coral-500/30"
-                      : "bg-white text-melodia-teal border-gray-200 hover:bg-gray-50 hover:transform hover:-translate-y-0.5 hover:shadow-md"
-                      }`}
+                    className={`px-5 h-10 rounded-full border-2 transition-all duration-200 font-semibold text-sm ${
+                      moods.includes(m)
+                        ? "bg-melodia-coral text-white border-[var(--accent-vibrant-coral)] shadow-lg shadow-coral-500/30"
+                        : "bg-white text-melodia-teal border-gray-200 hover:bg-gray-50 hover:transform hover:-translate-y-0.5 hover:shadow-md"
+                    }`}
                   >
                     {m}
                   </button>
@@ -866,235 +439,27 @@ export default function CreateSongV2Page() {
           </div>
         )}
 
-        {step === 3 && (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setStep(2)}
-                className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <h1 className="text-2xl font-bold text-melodia-teal">Your Lyrics</h1>
-            </div>
-
-            {/* Main Content Card */}
-            <div className="bg-white rounded-3xl p-6">
-              {/* Generated Title */}
-              <h2 className="text-xl font-bold text-melodia-teal text-center mb-4">
-                {generatedTitle || `For ${recipientName}`}
-              </h2>
-
-              {/* Music Style Dropdown */}
-              <div
-                className="flex items-center justify-between py-3 border-b border-gray-200 mb-4 cursor-pointer"
-                onClick={() => setIsMusicStyleExpanded(!isMusicStyleExpanded)}
-              >
-                <span className="text-melodia-teal font-medium">Music Style</span>
-                <ChevronDown
-                  className={`w-5 h-5 text-gray-400 transition-transform ${isMusicStyleExpanded ? 'rotate-180' : ''}`}
-                />
-              </div>
-
-              {/* Music Style Content */}
-              {isMusicStyleExpanded && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-700">{generatedStyle}</p>
-                </div>
-              )}
-
-              {/* Lyrics Content */}
-              {isGeneratingLyrics || isUpdatingLyrics ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-melodia-coral mx-auto mb-4"></div>
-                  <p className="text-melodia-teal">
-                    {isGeneratingLyrics ? "Generating your lyrics..." : "Updating your lyrics..."}
-                  </p>
-                </div>
-              ) : lyricsError ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-red-600 mb-2">Generation Failed</h3>
-                  <p className="text-gray-600 mb-4">{lyricsError}</p>
-                  <button
-                    onClick={() => {
-                      setLyricsError("");
-                      handleCreateLyrics();
-                    }}
-                    className="px-6 py-2 bg-melodia-coral text-white rounded-full hover:bg-opacity-90 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : songCreationError ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-red-600 mb-2">Song Creation Failed</h3>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">{songCreationError}</p>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={handleRetrySongCreation}
-                      disabled={isRetrying}
-                      className="px-6 py-2 bg-melodia-coral text-white rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {isRetrying ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Retrying...
-                        </>
-                      ) : (
-                        'Try Again'
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setSongCreationError(null)}
-                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : editedLyrics ? (
-                <div className="space-y-4">
-                  <div className="bg-blue-100 p-2 rounded mb-2">
-                    <p className="text-sm text-blue-800">📝 Lyrics loaded! Click Edit button below to modify.</p>
-                  </div>
-                  {editedLyrics.split('\n').map((line, index) => {
-                    if (line.startsWith('[') && line.endsWith(']')) {
-                      return (
-                        <div key={index} className="font-semibold text-melodia-teal mt-6 mb-2">
-                          {line}
-                        </div>
-                      );
-                    }
-                    return (
-                      <p key={index} className="text-gray-600 leading-relaxed">
-                        {line}
-                      </p>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500">No lyrics generated yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Edit Input Field - Show when in edit mode, outside the lyrics card */}
-        {step === 3 && isEditingLyrics && editedLyrics && (
-          <div className="mt-6">
-            <div className="bg-white rounded-3xl p-6">
-              <label className="block text-lg font-semibold text-melodia-teal mb-3">
-                What changes would you like to make?
-              </label>
-              <textarea
-                value={userEditInput}
-                onChange={(e) => setUserEditInput(e.target.value)}
-                className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-melodia-coral focus:border-transparent"
-                placeholder="Type your changes here... (e.g., 'Make it more romantic', 'Add more Hindi lyrics', 'Change the chorus')"
-              />
-              <p className="text-sm text-gray-500 mt-3">
-                Your input will be added to the existing details and new lyrics will be generated.
-              </p>
-            </div>
-          </div>
-        )}
-
         {error && <div className="text-red-600 text-sm">{error}</div>}
       </div>
 
-      {/* Bottom Action Bar - Only show on step 3 */}
-      {step === 3 && !isGeneratingLyrics && !isUpdatingLyrics && !songCreationError && (
-        <div className="p-6 sticky bottom-0 bg-white pt-4 pb-6">
-          {isEditingLyrics ? (
-            <>
-              <Button
-                className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200 mb-3"
-                onClick={handleUpdateLyrics}
-                disabled={isUpdatingLyrics}
-              >
-                {isUpdatingLyrics ? "Updating Lyrics..." : "Submit Changes"}
-              </Button>
-              <button
-                className="w-full text-melodia-teal font-semibold text-center py-2"
-                onClick={() => {
-                  setIsEditingLyrics(false);
-                  setUserEditInput("");
-                }}
-              >
-                Cancel
-              </button>
-            </>
-          ) : editedLyrics ? (
-            <>
-              <Button
-                className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200 mb-3"
-                onClick={handleCreateSong}
-                disabled={isRetrying}
-              >
-                {isRetrying ? "Creating Song..." : "Create Song"}
-              </Button>
-              <button
-                className="w-full text-melodia-teal font-semibold text-center py-2"
-                onClick={() => {
-                  console.log("Edit clicked - current editedLyrics:", editedLyrics);
-                  console.log("Setting isEditingLyrics to true");
-                  setIsEditingLyrics(true);
-                }}
-              >
-                Edit
-              </button>
-            </>
-          ) : (
-            <Button
-              className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
-              onClick={handleCreateLyrics}
-            >
-              Generate Lyrics
-            </Button>
-          )}
-        </div>
-      )}
-
-      {step !== 3 && (
-        <div className="p-6 sticky bottom-0 bg-white pt-4 pb-6">
-          {step === 1 ? (
-            <Button
-              className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
-              onClick={handleNext}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              className="w-full h-14 bg-melodia-yellow text-melodia-teal text-lg font-bold rounded-full shadow-lg shadow-yellow-500/30 hover:scale-105 transition-all duration-200"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Review inputs"}
-            </Button>
-          )}
-        </div>
-      )}
+      <div className="p-6 sticky bottom-0 bg-white pt-4 pb-6">
+        {step === 1 ? (
+          <Button
+            className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
+            onClick={handleNext}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button
+            className="w-full h-14 bg-melodia-yellow text-melodia-teal text-lg font-bold rounded-full shadow-lg shadow-yellow-500/30 hover:scale-105 transition-all duration-200"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating..." : "Review inputs"}
+          </Button>
+        )}
+      </div>
 
       {/* Review Popup Modal - Full Screen Design */}
       {showReviewPopup && (
@@ -1105,8 +470,18 @@ export default function CreateSongV2Page() {
               onClick={() => setShowReviewPopup(false)}
               className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
           </div>
@@ -1128,23 +503,29 @@ export default function CreateSongV2Page() {
 
               {/* Summary Text */}
               <p className="text-melodia-teal text-base leading-relaxed mb-8">
-                Okay <span className="font-bold">{requesterName || currentUser?.name || "there"}</span>! We&apos;re creating a <span className="font-bold">{moods.join(", ")}</span> song in{" "}
+                Okay{" "}
+                <span className="font-bold">
+                  {requesterName || currentUser?.name || "there"}
+                </span>
+                ! We&apos;re creating a{" "}
+                <span className="font-bold">{moods.join(", ")}</span> song in{" "}
                 <span className="font-bold">{languages}</span> for your{" "}
                 <span className="font-bold">{recipientName}</span>, for your{" "}
-                <span className="font-bold">{occasion === "Other" ? customOccasion : occasion}</span>.
-                Ready to see the magic?
+                <span className="font-bold">
+                  {occasion === "Other" ? customOccasion : occasion}
+                </span>
+                . Ready to see the magic?
               </p>
 
               {/* Create Button */}
               <Button
-                onClick={handleCreateLyrics}
+                onClick={handleCreateSongRequest}
                 className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
               >
                 Create My Lyrics
               </Button>
             </div>
           </div>
-
         </div>
       )}
     </div>

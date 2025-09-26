@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateLyrics } from '@/lib/llm-integration';
 import { db } from '@/lib/db';
-import { lyricsDraftsTable, songRequestsTable } from '@/lib/db/schema';
+import { lyricsDraftsTable } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipient_name, languages, additional_details, demoMode } = await request.json();
+    const { requestId, recipient_name, languages, additional_details, demoMode, requester_name, recipient_relationship, song_story, mood } = await request.json();
 
     if (!requestId || !recipient_name || !languages) {
       return NextResponse.json(
@@ -32,15 +32,18 @@ export async function POST(request: NextRequest) {
         generatedResponse = await generateLyrics({
           recipient_name,
           languages,
-          additional_details
+          requester_name: requester_name || 'Anonymous',
+          recipient_relationship: recipient_relationship || 'friend',
+          song_story: song_story || additional_details || '',
+          mood: mood || []
         });
       } catch (apiError) {
         console.error('Gemini API failed:', apiError);
-        
+
         // Return proper error instead of fake lyrics
         return NextResponse.json(
-          { 
-            error: true, 
+          {
+            error: true,
             message: 'Lyrics generation service is temporarily unavailable. Please try again in a few minutes.',
             details: 'The AI service is currently experiencing issues. We apologize for the inconvenience.'
           },
@@ -74,22 +77,24 @@ export async function POST(request: NextRequest) {
         version: newVersion,
         language: languages,
         structure: null,
-        prompt_input: { 
-          recipient_name, 
-          languages, 
+        prompt_input: {
+          recipient_name,
+          languages,
           additional_details,
-          refineText: null 
+          refineText: null
         },
         generated_text: generatedResponse.lyrics || '',
         status: 'draft'
       })
       .returning();
 
-    // Update song request status
-    await db
-      .update(songRequestsTable)
-      .set({ lyrics_status: 'needs_review' })
-      .where(eq(songRequestsTable.id, requestId));
+    // Update lyrics draft status (lyrics_status moved to lyrics_drafts table)
+    if (draft) {
+      await db
+        .update(lyricsDraftsTable)
+        .set({ status: 'needs_review' })
+        .where(eq(lyricsDraftsTable.id, draft.id));
+    }
 
     return NextResponse.json({
       success: true,

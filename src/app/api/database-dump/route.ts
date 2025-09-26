@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { 
-  songRequestsTable, 
-  songsTable, 
-  lyricsDraftsTable, 
-  usersTable, 
+import {
+  songRequestsTable,
+  songsTable,
+  lyricsDraftsTable,
+  usersTable,
   adminUsersTable,
   anonymousUsersTable,
   paymentsTable,
@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tables = searchParams.get('tables')?.split(',') || null;
     const format = searchParams.get('format') || 'sql'; // sql, json, csv
-    
+
     console.log('🗄️ Starting database dump...', { tables, format });
 
     // Get all table data
     const dumpData = await generateDatabaseDump(tables);
-    
+
     if (format === 'json') {
       return NextResponse.json({
         success: true,
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-    
+
     if (format === 'csv') {
       const csvContent = generateCSVDump(dumpData);
       return new NextResponse(csvContent, {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Default: SQL format
     const sqlContent = generateSQLDump(dumpData);
-    
+
     return new NextResponse(sqlContent, {
       headers: {
         'Content-Type': 'application/sql',
@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Database dump error:', error);
     return NextResponse.json(
-      { 
-        error: true, 
+      {
+        error: true,
         message: 'Failed to generate database dump',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -79,7 +79,7 @@ async function generateDatabaseDump(requestedTables: string[] | null) {
     payment_webhooks: paymentWebhooksTable
   };
 
-  const tablesToDump = requestedTables 
+  const tablesToDump = requestedTables
     ? requestedTables.filter(table => table in allTables)
     : Object.keys(allTables);
 
@@ -90,13 +90,13 @@ async function generateDatabaseDump(requestedTables: string[] | null) {
       console.log(`📊 Dumping table: ${tableName}`);
       const table = allTables[tableName as keyof typeof allTables];
       const data = await db.select().from(table);
-      
+
       dumpData[tableName] = {
         schema: getTableSchema(tableName),
         data: data,
         count: data.length
       };
-      
+
       console.log(`✅ ${tableName}: ${data.length} records`);
     } catch (error) {
       console.error(`❌ Error dumping ${tableName}:`, error);
@@ -119,27 +119,16 @@ function getTableSchema(tableName: string): string {
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         requester_name TEXT NOT NULL,
-        phone_number TEXT,
-        email TEXT,
-        delivery_preference TEXT,
         recipient_name TEXT NOT NULL,
         recipient_relationship TEXT NOT NULL,
+        occasion TEXT,
         languages TEXT[] NOT NULL,
-        person_description TEXT,
-        song_type TEXT,
-        emotions TEXT[],
-        additional_details TEXT,
+        mood TEXT[],
+        song_story TEXT,
         status TEXT DEFAULT 'pending',
-        suno_task_id TEXT,
         generated_song_id INTEGER,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        lyrics_status TEXT DEFAULT 'pending',
-        approved_lyrics_id INTEGER,
-        lyrics_locked_at TIMESTAMP WITH TIME ZONE,
-        payment_id INTEGER,
-        payment_status TEXT DEFAULT 'pending',
-        payment_required BOOLEAN DEFAULT true,
         anonymous_user_id UUID
       );`,
     songs: `
@@ -156,6 +145,7 @@ function getTableSchema(tableName: string): string {
         slug TEXT UNIQUE,
         status TEXT DEFAULT 'pending',
         suno_task_id TEXT,
+        approved_lyrics_id INTEGER,
         duration INTEGER,
         audio_url TEXT,
         image_url TEXT,
@@ -254,9 +244,9 @@ SET session_replication_role = replica;
     if (tableData.data && tableData.data.length > 0) {
       const columns = Object.keys(tableData.data[0]);
       const columnList = columns.join(', ');
-      
+
       sql += `-- Data for ${tableName}\n`;
-      
+
       for (const row of tableData.data) {
         const values = columns.map(col => {
           const value = row[col];
@@ -265,7 +255,7 @@ SET session_replication_role = replica;
           if (typeof value === 'object') return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
           return value;
         }).join(', ');
-        
+
         sql += `INSERT INTO ${tableName} (${columnList}) VALUES (${values});\n`;
       }
       sql += '\n';
@@ -283,15 +273,15 @@ SET session_replication_role = DEFAULT;
 
 function generateCSVDump(dumpData: Record<string, any>): string {
   let csv = 'Table,Record_Count,Data\n';
-  
+
   for (const [tableName, tableData] of Object.entries(dumpData)) {
     if (tableData.error) {
       csv += `${tableName},0,"Error: ${tableData.error}"\n`;
       continue;
     }
-    
+
     csv += `${tableName},${tableData.count},"${JSON.stringify(tableData.data).replace(/"/g, '""')}"\n`;
   }
-  
+
   return csv;
 }

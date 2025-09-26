@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/user-actions';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient_name, languages, additional_details, requestId, userId, requester_name } = body;
+    const { recipient_name, languages, song_story, requestId, userId, requester_name, mood, recipient_relationship } = body;
 
     // Validate required fields
     if (!recipient_name || !languages || languages.length === 0) {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (requestId) {
       // Get user ID from request body or try authentication
       let currentUser = null;
-      
+
       if (userId) {
         // Use provided userId
         currentUser = { id: userId } as any;
@@ -58,54 +58,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Check payment status only if payment is required (skip for anonymous users)
-      // Note: payment_required column was removed from database, so skip payment check for now
-      if (false && currentUser.id !== null) {
-        const paymentId = songRequest[0].payment_id;
-        if (paymentId !== null && paymentId !== undefined) {
-          const payment = await db
-            .select()
-            .from(paymentsTable)
-            .where(eq(paymentsTable.id, paymentId as number))
-            .limit(1);
 
-          if (payment.length === 0 || payment[0].status !== 'completed') {
-            return NextResponse.json(
-              { 
-                error: true, 
-                message: 'Payment required',
-                requiresPayment: true,
-                paymentStatus: payment[0]?.status || 'pending'
-              },
-              { status: 402 }
-            );
-          }
-        } else {
-          return NextResponse.json(
-            { 
-              error: true, 
-              message: 'Payment required',
-              requiresPayment: true
-            },
-            { status: 402 }
-          );
-        }
-      }
     }
 
     // Generate lyrics using Gemini API
     const result = await generateLyrics({
       recipient_name,
+      recipient_relationship,
       languages,
-      additional_details: additional_details || '',
-      requester_name: requester_name || 'Anonymous'
+      song_story: song_story || '',
+      mood,
+      requester_name: requester_name || 'Anonymous',
     });
 
     if (result.error) {
       return NextResponse.json(
-        { 
-          error: true, 
+        {
+          error: true,
           message: result.message || 'Failed to generate lyrics',
-          example: result.example 
+          example: result.example
         },
         { status: 503 }
       );
@@ -136,11 +107,13 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
-        // Update song request status
-        await db
-          .update(songRequestsTable)
-          .set({ lyrics_status: 'needs_review' })
-          .where(eq(songRequestsTable.id, requestId));
+        // Update lyrics draft status (lyrics_status moved to lyrics_drafts table)
+        if (draft) {
+          await db
+            .update(lyricsDraftsTable)
+            .set({ status: 'needs_review' })
+            .where(eq(lyricsDraftsTable.id, draft.id));
+        }
 
         return NextResponse.json({
           success: true,

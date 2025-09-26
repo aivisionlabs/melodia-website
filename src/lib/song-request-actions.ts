@@ -33,37 +33,6 @@ function validateSongRequestForm(formData: SongRequestFormData): { isValid: bool
     errors.languages = 'Please select at least one language'
   }
 
-  // // Contact validation
-  // if (!formData.phone_number && !formData.email) {
-  //   errors.contact = 'Please provide either phone number or email'
-  // }
-
-  // if (formData.phone_number && !isValidPhone(formData.phone_number)) {
-  //   errors.phone_number = 'Please enter a valid phone number'
-  // }
-
-  // if (formData.email && !isValidEmail(formData.email)) {
-  //   errors.email = 'Please enter a valid email address'
-  // }
-
-  // Delivery preference validation
-  // if ((formData.phone_number || formData.email) && !formData.delivery_preference) {
-  //   errors.delivery_preference = 'Please select delivery preference'
-  // }
-
-  // Optional fields length validation
-  // if (formData.person_description && formData.person_description.length > 500) {
-  //   errors.person_description = 'Person description must be 500 characters or less'
-  // }
-
-  if (formData.song_type && formData.song_type.length > 300) {
-    errors.song_type = 'Song type must be 300 characters or less'
-  }
-
-  // if (formData.additional_details && formData.additional_details.length > 1000) {
-  //   errors.additional_details = 'Additional details must be 1000 characters or less'
-  // }
-
   return {
     isValid: Object.keys(errors).length === 0,
     errors
@@ -104,16 +73,12 @@ export async function createSongRequest(
     // Sanitize inputs
     const sanitizedData = {
       requester_name: sanitizeInput(formData.requester_name),
-      phone_number: formData.phone_number ? sanitizeInput(formData.phone_number) : null,
-      email: formData.email ? sanitizeInput(formData.email) : null,
-      delivery_preference: formData.delivery_preference,
       recipient_name: sanitizeInput(formData.recipient_name),
       recipient_relationship: sanitizeInput(formData.recipient_relationship),
+      occasion: formData.occasion ? sanitizeInput(formData.occasion) : null,
       languages: formData.languages,
-      person_description: formData.person_description ? sanitizeInput(formData.person_description) : null,
-      song_type: formData.song_type ? sanitizeInput(formData.song_type) : null,
-      emotions: formData.emotions || null,
-      additional_details: formData.additional_details ? sanitizeInput(formData.additional_details) : null
+      mood: formData.mood || null,
+      song_story: formData.song_story ? sanitizeInput(formData.song_story) : null
     }
 
     // Insert song request - minimal fields only
@@ -121,19 +86,13 @@ export async function createSongRequest(
       user_id: userId || null,
       anonymous_user_id: anonymousUserId || null,
       requester_name: sanitizedData.requester_name,
-      phone_number: sanitizedData.phone_number || null,
-      email: sanitizedData.email || null,
-      delivery_preference: sanitizedData.delivery_preference || null,
       recipient_name: sanitizedData.recipient_name,
       recipient_relationship: sanitizedData.recipient_relationship,
+      occasion: sanitizedData.occasion || null,
       languages: sanitizedData.languages,
-      person_description: sanitizedData.person_description || null,
-      song_type: sanitizedData.song_type || null,
-      emotions: sanitizedData.emotions || null,
-      additional_details: sanitizedData.additional_details,
-      status: 'pending',
-      lyrics_status: 'pending',
-      payment_required: false
+      mood: sanitizedData.mood || null,
+      song_story: sanitizedData.song_story,
+      status: 'pending'
     };
 
     const [newRequest] = await db
@@ -201,29 +160,16 @@ export async function getUserSongRequests(
       id: request.id,
       user_id: request.user_id,
       requester_name: request.requester_name,
-      phone_number: request.phone_number,
-      email: request.email,
-      delivery_preference: request.delivery_preference as 'email' | 'whatsapp' | 'both' | null,
       recipient_name: request.recipient_name,
       recipient_relationship: request.recipient_relationship,
+      occasion: request.occasion || undefined,
       languages: request.languages,
-      person_description: request.person_description,
-      song_type: request.song_type,
-      emotions: request.emotions,
-      additional_details: request.additional_details,
+      mood: request.mood,
+      song_story: request.song_story,
       status: request.status as 'pending' | 'processing' | 'completed' | 'failed',
-      suno_task_id: request.suno_task_id,
       generated_song_id: request.generated_song_id,
       created_at: request.created_at.toISOString(),
-      updated_at: request.updated_at.toISOString(),
-      // Phase 6: Lyrics workflow fields
-      lyrics_status: request.lyrics_status as 'pending' | 'generating' | 'needs_review' | 'approved',
-      approved_lyrics_id: request.approved_lyrics_id,
-      lyrics_locked_at: request.lyrics_locked_at?.toISOString() || null,
-      // Payment integration fields
-      payment_id: request.payment_id,
-      payment_status: request.payment_status as 'pending' | 'paid' | 'failed' | 'refunded',
-      payment_required: request.payment_required || false
+      updated_at: request.updated_at.toISOString()
     }))
 
     return {
@@ -320,9 +266,7 @@ export async function updateSongRequestStatus(
       updated_at: new Date()
     }
 
-    if (sunoTaskId) {
-      updateData.suno_task_id = sunoTaskId
-    }
+    // suno_task_id moved to songs table - no longer update here
 
     if (generatedSongId) {
       updateData.generated_song_id = generatedSongId

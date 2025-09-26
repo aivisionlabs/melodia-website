@@ -88,7 +88,7 @@ export async function getUserContent(
             audio_url: song[0].song_url || undefined,
             request_id: request.id,
             song_id: song[0].id,
-            suno_task_id: song[0].suno_task_id || undefined,
+            suno_task_id: song[0].suno_task_id || undefined, // suno_task_id is now in songs table
             variants: Array.isArray(song[0].suno_variants) ? song[0].suno_variants : undefined,
             selected_variant: song[0].selected_variant || 0,
             timestamped_lyrics_variants: song[0].timestamped_lyrics_variants as { [variantIndex: number]: any[] } | undefined,

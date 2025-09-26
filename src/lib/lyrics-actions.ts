@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from './db'
 import { lyricsDraftsTable, songsTable, songRequestsTable } from './db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and } from 'drizzle-orm'
 import { GenerateLyricsParams, LyricsDraft } from '@/types'
 import { config } from './config'
 
@@ -15,10 +15,9 @@ function buildLyricsPrompt(params: GenerateLyricsParams, songRequest: any): stri
 
 Recipient: ${songRequest.recipient_name}
 Relationship: ${songRequest.recipient_relationship}
-Person Description: ${songRequest.person_description || 'Not specified'}
-Song Type: ${songRequest.song_type || 'Personal'}
-Emotions: ${songRequest.emotions?.join(', ') || 'Not specified'}
-Additional Details: ${songRequest.additional_details || 'None'}
+Song Style: Personal
+Mood: ${songRequest.mood?.join(', ') || 'Not specified'}
+Song Story: ${songRequest.song_story || 'None'}
 
 Requirements:
 - Language(s): ${language.join(', ')}
@@ -36,7 +35,7 @@ Please create heartfelt, personalized lyrics that capture the essence of the rel
 // Helper function to build refinement prompt with version history context
 function buildRefinementPromptWithHistory(currentLyrics: string, refineText: string, songRequest: any, allDrafts: any[]): string {
   let versionHistory = '';
-  
+
   // Build version history context
   if (allDrafts.length > 1) {
     versionHistory = '\n\nVersion History Context:\n';
@@ -48,7 +47,7 @@ function buildRefinementPromptWithHistory(currentLyrics: string, refineText: str
     versionHistory += '\nThis shows the evolution of the lyrics. Please maintain the context and improvements from all previous versions.';
   }
 
-  return `Please improve and refine the following lyrics based on the user's feedback. 
+  return `Please improve and refine the following lyrics based on the user's feedback.
 
 IMPORTANT: This is version ${allDrafts.length + 1} of the lyrics. You have access to the full version history to understand the context and evolution of the lyrics.
 
@@ -61,10 +60,9 @@ ${refineText}
 Song Context:
 Recipient: ${songRequest.recipient_name}
 Relationship: ${songRequest.recipient_relationship}
-Person Description: ${songRequest.person_description || 'Not specified'}
-Song Type: ${songRequest.song_type || 'Personal'}
-Emotions: ${songRequest.emotions?.join(', ') || 'Not specified'}
-Additional Details: ${songRequest.additional_details || 'None'}
+Song Style: Personal
+Mood: ${songRequest.mood?.join(', ') || 'Not specified'}
+Song Story: ${songRequest.song_story || 'None'}
 ${versionHistory}
 
 Instructions:
@@ -126,29 +124,29 @@ export async function generateLyricsAction(params: GenerateLyricsParams, request
 
     const data = await response.json()
     console.log('Gemini API Response:', JSON.stringify(data, null, 2))
-    
+
     // Check if the response was truncated due to token limit
     if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
       console.log('Response was truncated due to token limit. Increasing maxOutputTokens...');
       // You might want to retry with higher token limit or handle this case
     }
-    
+
     // Try different possible response structures
     let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text
-    
+
     // If the above doesn't work, try alternative structures
     if (!generatedText) {
       generatedText = data.candidates?.[0]?.content?.text
     }
-    
+
     if (!generatedText) {
       generatedText = data.text
     }
-    
+
     if (!generatedText) {
       generatedText = data.response?.text
     }
-    
+
     // If still no text, try to get any text from the response
     if (!generatedText) {
       console.log('Trying to extract text from response structure:', data)
@@ -198,11 +196,13 @@ export async function generateLyricsAction(params: GenerateLyricsParams, request
       })
       .returning()
 
-    // Update song request status
-    await db
-      .update(songRequestsTable)
-      .set({ lyrics_status: 'needs_review' })
-      .where(eq(songRequestsTable.id, requestId))
+    // Update lyrics draft status (lyrics_status moved to lyrics_drafts table)
+    if (draft) {
+      await db
+        .update(lyricsDraftsTable)
+        .set({ status: 'needs_review' })
+        .where(eq(lyricsDraftsTable.id, draft.id))
+    }
 
     revalidatePath(`/create-lyrics/${requestId}`)
     return { success: true, draft }
@@ -274,23 +274,23 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
     const data = await response.json()
     console.log('=== REFINE LYRICS RESPONSE ===');
     console.log('Gemini API Response:', JSON.stringify(data, null, 2));
-    
+
     // Try different possible response structures
     let refinedText = data.candidates?.[0]?.content?.parts?.[0]?.text
-    
+
     // If the above doesn't work, try alternative structures
     if (!refinedText) {
       refinedText = data.candidates?.[0]?.content?.text
     }
-    
+
     if (!refinedText) {
       refinedText = data.text
     }
-    
+
     if (!refinedText) {
       refinedText = data.response?.text
     }
-    
+
     // If still no text, try to get any text from the response
     if (!refinedText) {
       console.log('Trying to extract text from response structure:', data)
@@ -368,15 +368,8 @@ export async function approveLyricsAction(draftId: number, requestId: number) {
       .set({ status: 'approved' })
       .where(eq(lyricsDraftsTable.id, draftId))
 
-    // Update song request
-    await db
-      .update(songRequestsTable)
-      .set({
-        lyrics_status: 'approved',
-        approved_lyrics_id: draftId,
-        lyrics_locked_at: new Date()
-      })
-      .where(eq(songRequestsTable.id, requestId))
+    // No need to update song_requests table - lyrics_status and approved_lyrics_id moved to other tables
+    // The lyrics draft status is already updated above
 
     revalidatePath(`/create-lyrics/${requestId}`)
     revalidatePath('/')
@@ -438,19 +431,20 @@ export async function createSongFromLyricsAction(requestId: number) {
       .where(eq(songRequestsTable.id, requestId))
       .limit(1)
 
-    if (!request[0] || !request[0].approved_lyrics_id) {
-      throw new Error('No approved lyrics found')
-    }
-
+    // Find approved lyrics draft for this request
     const approvedLyrics = await db
       .select()
       .from(lyricsDraftsTable)
-      .where(eq(lyricsDraftsTable.id, request[0].approved_lyrics_id))
+      .where(
+        and(
+          eq(lyricsDraftsTable.song_request_id, requestId),
+          eq(lyricsDraftsTable.status, 'approved')
+        )
+      )
       .limit(1)
 
-      
     if (!approvedLyrics[0]) {
-      throw new Error('Approved lyrics not found')
+      throw new Error('No approved lyrics found')
     }
 
     // Generate slug
@@ -466,15 +460,15 @@ export async function createSongFromLyricsAction(requestId: number) {
         user_id: request[0].user_id || 1, // Use request user_id or default to 1
         title: `Song for ${request[0].recipient_name}`,
         lyrics: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
-        music_style: request[0].song_type || 'Personal',
+        music_style: 'Personal',
         service_provider: 'Suno',
         song_requester: request[0].requester_name,
         prompt: `Personalized song for ${request[0].recipient_name} - ${request[0].recipient_relationship}`,
         slug,
         status: 'processing',
+        approved_lyrics_id: approvedLyrics[0].id,
         metadata: {
-          original_request_id: requestId,
-          approved_lyrics_id: approvedLyrics[0].id
+          original_request_id: requestId
         }
       })
       .returning()
@@ -487,7 +481,7 @@ export async function createSongFromLyricsAction(requestId: number) {
 
     const sunoResponse = await sunoAPI.generateSong({
       prompt: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
-      style: request[0].song_type || 'Personal',
+      style: 'Personal',
       title: `Song for ${request[0].recipient_name}`,
       customMode: true,
       instrumental: false,
@@ -510,12 +504,11 @@ export async function createSongFromLyricsAction(requestId: number) {
       .set({ suno_task_id: taskId })
       .where(eq(songsTable.id, song.id))
 
-    // Update song request
+    // Update song request (suno_task_id moved to songs table)
     await db
       .update(songRequestsTable)
       .set({
         status: 'processing',
-        suno_task_id: taskId,
         generated_song_id: song.id
       })
       .where(eq(songRequestsTable.id, requestId))

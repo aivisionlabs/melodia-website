@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (requestId) {
       // Get user ID from request body or try authentication
       let currentUser = null;
-      
+
       if (userId) {
         // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
       if (!demoMode) {
         // Check if this is an anonymous user request
         console.log('Authorization check:', {
-        anonymousUserId,
-        dbAnonymousUserId: songRequest[0].anonymous_user_id,
-        currentUser,
-        dbUserId: songRequest[0].user_id
-      });
-        
+          anonymousUserId,
+          dbAnonymousUserId: songRequest[0].anonymous_user_id,
+          currentUser,
+          dbUserId: songRequest[0].user_id
+        });
+
         if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
           // Anonymous user owns this request - allow access
           currentUser = { id: null, anonymousUserId } as any;
@@ -88,32 +88,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Check payment status only if payment is required and not in demo mode
-      if (!demoMode && songRequest[0].payment_required) {
-        if (songRequest[0].payment_id) {
-          const payment = await db
-            .select()
-            .from(paymentsTable)
-            .where(eq(paymentsTable.id, songRequest[0].payment_id))
-            .limit(1);
+      if (!demoMode) {
+        // Check if there's a completed payment for this song request
+        const payment = await db
+          .select()
+          .from(paymentsTable)
+          .where(eq(paymentsTable.song_request_id, requestId))
+          .limit(1);
 
-          if (payment.length === 0 || payment[0].status !== 'completed') {
-            return NextResponse.json(
-              { 
-                error: true, 
-                message: 'Payment required',
-                requiresPayment: true,
-                paymentStatus: payment[0]?.status || 'pending'
-              },
-              { status: 402 }
-            );
-          }
-        } else {
-          // No payment associated with this request
+        if (payment.length === 0 || payment[0].status !== 'completed') {
           return NextResponse.json(
-            { 
-              error: true, 
+            {
+              error: true,
               message: 'Payment required',
-              requiresPayment: true
+              requiresPayment: true,
+              paymentStatus: payment[0]?.status || 'pending'
             },
             { status: 402 }
           );
@@ -123,9 +112,9 @@ export async function POST(request: NextRequest) {
       // Demo mode - return mock response without hitting real APIs
       if (demoMode) {
         console.log('🎭 DEMO MODE: Using mock response instead of real Suno API')
-        
+
         const mockTaskId = `demo-task-${Date.now()}`
-        
+
         // Still create song record in database for testing
         let songId: number | null = null
         try {
@@ -161,7 +150,6 @@ export async function POST(request: NextRequest) {
             .update(songRequestsTable)
             .set({
               status: 'processing',
-              suno_task_id: mockTaskId,
               generated_song_id: songId
             })
             .where(eq(songRequestsTable.id, requestId))
@@ -200,12 +188,12 @@ export async function POST(request: NextRequest) {
         title,
         customMode: true,
         instrumental: false,
-        model: 'V4',  
+        model: 'V4',
         callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
       }
-      
+
       console.log('Sending request to Suno API:', generateRequest)
-      
+
       let generateResponse;
       try {
         generateResponse = await sunoAPI.generateSong(generateRequest)
@@ -222,10 +210,10 @@ export async function POST(request: NextRequest) {
       if (generateResponse.code !== 0 && generateResponse.code !== 200) {
         console.error('Suno API returned error:', generateResponse)
         return NextResponse.json(
-          { 
-            error: true, 
+          {
+            error: true,
             message: generateResponse.msg || 'Suno API returned an error',
-            code: generateResponse.code 
+            code: generateResponse.code
           },
           { status: 400 }
         )
@@ -279,7 +267,6 @@ export async function POST(request: NextRequest) {
             .update(songRequestsTable)
             .set({
               status: 'processing',
-              suno_task_id: taskId,
               generated_song_id: songId
             })
             .where(eq(songRequestsTable.id, requestId))

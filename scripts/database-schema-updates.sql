@@ -10,7 +10,7 @@
 -- Add anonymous_user_id to song_requests table
 ALTER TABLE song_requests ADD COLUMN IF NOT EXISTS anonymous_user_id UUID;
 
--- Add is_approved to lyrics_drafts table  
+-- Add is_approved to lyrics_drafts table
 ALTER TABLE lyrics_drafts ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false;
 
 -- Add missing columns to songs table
@@ -18,6 +18,7 @@ ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_request_id INTEGER UNIQUE;
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_url_variant_1 TEXT;
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_url_variant_2 TEXT;
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS approved_lyrics_id INTEGER;
 
 -- 2. Create missing tables
 -- =====================================================
@@ -74,49 +75,49 @@ CREATE TABLE IF NOT EXISTS payment_webhooks (
 -- =====================================================
 
 -- Add foreign key for songs.song_request_id
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints
                    WHERE constraint_name = 'songs_song_request_id_fkey') THEN
-        ALTER TABLE songs ADD CONSTRAINT songs_song_request_id_fkey 
+        ALTER TABLE songs ADD CONSTRAINT songs_song_request_id_fkey
             FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
     END IF;
 END $$;
 
 -- Add foreign keys for payments table
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints
                    WHERE constraint_name = 'payments_song_request_id_fkey') THEN
-        ALTER TABLE payments ADD CONSTRAINT payments_song_request_id_fkey 
+        ALTER TABLE payments ADD CONSTRAINT payments_song_request_id_fkey
             FOREIGN KEY (song_request_id) REFERENCES song_requests(id);
     END IF;
 END $$;
 
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints
                    WHERE constraint_name = 'payments_user_id_fkey') THEN
-        ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey 
+        ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey
             FOREIGN KEY (user_id) REFERENCES users(id);
     END IF;
 END $$;
 
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints
                    WHERE constraint_name = 'payments_anonymous_user_id_fkey') THEN
-        ALTER TABLE payments ADD CONSTRAINT payments_anonymous_user_id_fkey 
+        ALTER TABLE payments ADD CONSTRAINT payments_anonymous_user_id_fkey
             FOREIGN KEY (anonymous_user_id) REFERENCES anonymous_users(id);
     END IF;
 END $$;
 
 -- Add foreign key for payment_webhooks table
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints
                    WHERE constraint_name = 'payment_webhooks_payment_id_fkey') THEN
-        ALTER TABLE payment_webhooks ADD CONSTRAINT payment_webhooks_payment_id_fkey 
+        ALTER TABLE payment_webhooks ADD CONSTRAINT payment_webhooks_payment_id_fkey
             FOREIGN KEY (payment_id) REFERENCES payments(id);
     END IF;
 END $$;
@@ -154,24 +155,24 @@ ON CONFLICT (id) DO NOTHING;
 -- =====================================================
 
 -- Check if all columns exist
-SELECT 
+SELECT
     table_name,
     column_name,
     data_type,
     is_nullable
-FROM information_schema.columns 
+FROM information_schema.columns
 WHERE table_name IN ('song_requests', 'lyrics_drafts', 'songs', 'anonymous_users', 'payments', 'pricing_plans', 'payment_webhooks')
 ORDER BY table_name, ordinal_position;
 
 -- Check if all tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
 AND table_name IN ('song_requests', 'lyrics_drafts', 'songs', 'anonymous_users', 'payments', 'pricing_plans', 'payment_webhooks')
 ORDER BY table_name;
 
 -- Check foreign key constraints
-SELECT 
+SELECT
     tc.table_name,
     kcu.column_name,
     ccu.table_name AS foreign_table_name,

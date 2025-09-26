@@ -11,7 +11,7 @@ export interface UserContentItem {
   request_id?: number;
   song_id?: number;
   lyrics_draft_id?: number;
-  suno_task_id?: string;
+  suno_task_id?: string; // suno_task_id is now in songs table
   variants?: Array<{
     id: string;
     audioUrl: string;
@@ -42,7 +42,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Lyrics', action: 'view', variant: 'outline' as const };
       }
-    
+
     case 'song_request':
       switch (item.status) {
         case 'pending':
@@ -52,7 +52,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Details', action: 'view', variant: 'outline' as const };
       }
-    
+
     case 'song':
       switch (item.status) {
         case 'ready':
@@ -66,7 +66,7 @@ export function getButtonForContent(item: UserContentItem) {
         default:
           return { text: 'View Song', action: 'view', variant: 'outline' as const };
       }
-    
+
     default:
       return { text: 'View', action: 'view', variant: 'outline' as const };
   }

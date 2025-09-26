@@ -5,40 +5,62 @@
 -- Run this after creating the database and connecting to it
 -- =====================================================
 
+-- Step 0: Drop existing tables if they exist to ensure a clean slate
+-- =====================================================
+DROP TABLE IF EXISTS payment_webhooks CASCADE;
+DROP TABLE IF EXISTS pricing_plans CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS lyrics_drafts CASCADE;
+DROP TABLE IF EXISTS song_requests CASCADE;
+DROP TABLE IF EXISTS songs CASCADE;
+DROP TABLE IF EXISTS admin_users CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS anonymous_users CASCADE;
+
 -- Step 1: Create base tables
 -- =====================================================
 
 -- Create songs table (base structure)
 CREATE TABLE IF NOT EXISTS songs (
   id SERIAL PRIMARY KEY,
+  song_request_id INTEGER NOT NULL UNIQUE, -- Each request generates one song record
+  user_id INTEGER NOT NULL, -- Which user ultimately owns this song
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   title TEXT NOT NULL,
-  lyrics TEXT,
+  lyrics TEXT NOT NULL,
+  duration INTEGER,
+  slug TEXT UNIQUE NOT NULL,
+  status TEXT DEFAULT 'processing', -- e.g., 'processing', 'complete', 'failed'
+  is_featured BOOLEAN DEFAULT FALSE, -- For the "Best Songs" gallery
+
+  -- Store the two generated audio files
+  song_url_variant_1 TEXT,
+  song_url_variant_2 TEXT,
+  metadata JSONB, -- For storing provider-specific data like suno_task_id, etc.
+  approved_lyrics_id INTEGER, -- Reference to the approved lyrics draft
+
+  -- Legacy fields for backward compatibility (to be removed in future migration)
   timestamp_lyrics JSONB,
-  music_style TEXT,
+  timestamped_lyrics_variants JSONB NOT NULL DEFAULT '{}',
+  timestamped_lyrics_api_responses JSONB NOT NULL DEFAULT '{}',
   service_provider TEXT DEFAULT 'SU',
   song_requester TEXT,
   prompt TEXT,
   song_url TEXT,
-  duration NUMERIC(10,2),
-  slug TEXT UNIQUE NOT NULL,
-  add_to_library BOOLEAN DEFAULT true,
-  is_deleted BOOLEAN DEFAULT FALSE,
-  status TEXT DEFAULT 'draft',
+  music_style TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
   categories TEXT[],
   tags TEXT[],
   suno_task_id TEXT,
-  metadata JSONB,
-  user_id INTEGER,
-  sequence INTEGER,
+  add_to_library BOOLEAN,
+  is_deleted BOOLEAN,
   negative_tags TEXT,
   suno_variants JSONB,
   selected_variant INTEGER,
-  timestamped_lyrics_api_responses JSONB DEFAULT '{}'::jsonb,
-  timestamped_lyrics_variants JSONB DEFAULT '{}'::jsonb,
   status_checked_at TIMESTAMP,
   last_status_check TIMESTAMP,
-  status_check_count INTEGER DEFAULT 0
+  status_check_count INTEGER DEFAULT 0,
+  payment_id INTEGER -- Will be properly referenced later
 );
 
 -- Create admin_users table
@@ -59,27 +81,26 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create anonymous users table to track anonymous sessions
+CREATE TABLE IF NOT EXISTS anonymous_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Use UUID
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create song_requests table for form submissions
 CREATE TABLE IF NOT EXISTS song_requests (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
+  user_id INTEGER,
+  anonymous_user_id UUID,
   requester_name TEXT NOT NULL,
-  phone_number TEXT,
-  email TEXT,
-  delivery_preference TEXT CHECK (delivery_preference IN ('email', 'whatsapp', 'both')),
   recipient_name TEXT NOT NULL,
   recipient_relationship TEXT NOT NULL,
+  occasion TEXT,
   languages TEXT[] NOT NULL,
-  person_description TEXT,
-  song_type TEXT,
-  emotions TEXT[],
-  additional_details TEXT,
+  mood TEXT[],
+  song_story TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-  suno_task_id TEXT,
-  generated_song_id INTEGER REFERENCES songs(id),
-  lyrics_status TEXT DEFAULT 'pending',
-  approved_lyrics_id INTEGER,
-  lyrics_locked_at TIMESTAMPTZ,
+  generated_song_id INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -87,7 +108,7 @@ CREATE TABLE IF NOT EXISTS song_requests (
 -- Create lyrics_drafts table for Phase 6 workflow
 CREATE TABLE IF NOT EXISTS lyrics_drafts (
   id SERIAL PRIMARY KEY,
-  song_request_id INTEGER NOT NULL REFERENCES song_requests(id) ON DELETE CASCADE,
+  song_request_id INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
   language TEXT[],
   tone TEXT[],
@@ -97,51 +118,61 @@ CREATE TABLE IF NOT EXISTS lyrics_drafts (
   generated_text TEXT NOT NULL,
   edited_text TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
-  created_by INTEGER REFERENCES users(id),
+  is_approved BOOLEAN DEFAULT FALSE, -- A clear flag for the final version
+  created_by INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Step 2: Create indexes for better performance
--- =====================================================
+-- Payments table - supports both registered and anonymous users
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
 
--- Songs table indexes
-CREATE INDEX IF NOT EXISTS idx_songs_slug ON songs(slug);
-CREATE INDEX IF NOT EXISTS idx_songs_status ON songs(status);
-CREATE INDEX IF NOT EXISTS idx_songs_add_to_library ON songs(add_to_library);
-CREATE INDEX IF NOT EXISTS idx_songs_created_at ON songs(created_at);
-CREATE INDEX IF NOT EXISTS idx_songs_user_id ON songs(user_id);
-CREATE INDEX IF NOT EXISTS idx_songs_sequence ON songs(sequence);
-CREATE INDEX IF NOT EXISTS idx_songs_suno_task_id ON songs(suno_task_id);
-CREATE INDEX IF NOT EXISTS idx_songs_last_status_check ON songs(last_status_check);
+  -- The song_request is the primary link
+  song_request_id INTEGER,
 
--- Users table indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  -- --- Ownership fields ---
+  user_id INTEGER, -- Nullable for anonymous payments
+  anonymous_user_id UUID, -- For anonymous users
 
--- Song requests table indexes
-CREATE INDEX IF NOT EXISTS idx_song_requests_user_id ON song_requests(user_id);
-CREATE INDEX IF NOT EXISTS idx_song_requests_status ON song_requests(status);
-CREATE INDEX IF NOT EXISTS idx_song_requests_created_at ON song_requests(created_at);
+  -- Payment provider fields
+  razorpay_payment_id TEXT UNIQUE,
+  razorpay_order_id TEXT,
+  amount NUMERIC(10, 2) NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  status TEXT NOT NULL DEFAULT 'pending',
+  payment_method TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  metadata JSONB
+);
 
--- Lyrics drafts table indexes
-CREATE INDEX IF NOT EXISTS idx_lyrics_drafts_req ON lyrics_drafts(song_request_id);
-CREATE INDEX IF NOT EXISTS idx_lyrics_drafts_status ON lyrics_drafts(status);
-CREATE INDEX IF NOT EXISTS idx_lyrics_drafts_version ON lyrics_drafts(version DESC);
+-- Pricing plans table
+CREATE TABLE IF NOT EXISTS pricing_plans (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  price NUMERIC(10, 2) NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  features JSONB,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Step 3: Add foreign key constraints
--- =====================================================
+-- Payment webhooks table
+CREATE TABLE IF NOT EXISTS payment_webhooks (
+  id SERIAL PRIMARY KEY,
+  razorpay_event_id TEXT UNIQUE,
+  event_type TEXT NOT NULL,
+  payment_id INTEGER,
+  webhook_data JSONB NOT NULL,
+  processed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  processed_at TIMESTAMP WITH TIME ZONE
+);
 
--- Add foreign key for songs.user_id
-ALTER TABLE songs 
-ADD CONSTRAINT IF NOT EXISTS fk_songs_user_id 
-FOREIGN KEY (user_id) REFERENCES users(id);
-
--- Add foreign key for song_requests.approved_lyrics_id
-ALTER TABLE song_requests 
-ADD CONSTRAINT IF NOT EXISTS fk_song_requests_approved_lyrics 
-FOREIGN KEY (approved_lyrics_id) REFERENCES lyrics_drafts(id);
-
--- Step 4: Create functions and triggers
+-- Step 2: Create functions and triggers (keeping these as they are not FKs or indexes)
 -- =====================================================
 
 -- Function to update the updated_at timestamp
@@ -155,12 +186,12 @@ $$ language 'plpgsql';
 
 -- Create trigger for lyrics_drafts table
 DROP TRIGGER IF EXISTS update_lyrics_drafts_updated_at ON lyrics_drafts;
-CREATE TRIGGER update_lyrics_drafts_updated_at 
-    BEFORE UPDATE ON lyrics_drafts 
-    FOR EACH ROW 
+CREATE TRIGGER update_lyrics_drafts_updated_at
+    BEFORE UPDATE ON lyrics_drafts
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Step 5: Insert initial data
+-- Step 3: Insert initial data
 -- =====================================================
 
 -- Insert sample admin users
@@ -170,7 +201,7 @@ INSERT INTO admin_users (username, password_hash) VALUES
   ('admin3', 'melodia2024!')
 ON CONFLICT (username) DO NOTHING;
 
--- Step 6: Update existing data and set defaults
+-- Step 4: Update existing data and set defaults
 -- =====================================================
 
 -- Set sequence values for existing songs
@@ -179,8 +210,8 @@ SET sequence = id
 WHERE sequence IS NULL;
 
 -- Set default values for new fields
-UPDATE songs 
-SET status_check_count = 0 
+UPDATE songs
+SET status_check_count = 0
 WHERE status_check_count IS NULL;
 
 UPDATE songs
@@ -191,12 +222,9 @@ UPDATE songs
 SET timestamped_lyrics_variants = '{}'::jsonb
 WHERE timestamped_lyrics_variants IS NULL;
 
--- Update existing song requests to have pending lyrics status
-UPDATE song_requests 
-SET lyrics_status = 'pending' 
-WHERE lyrics_status IS NULL;
+-- No longer needed - lyrics_status moved to lyrics_drafts table
 
--- Step 7: Add column comments for documentation
+-- Step 5: Add column comments for documentation
 -- =====================================================
 
 -- Songs table comments
@@ -213,15 +241,17 @@ COMMENT ON COLUMN songs.timestamped_lyrics_variants IS 'Stores synchronized lyri
 COMMENT ON COLUMN songs.status_checked_at IS 'Timestamp when the song status was last checked';
 COMMENT ON COLUMN songs.last_status_check IS 'Timestamp of the most recent status check';
 COMMENT ON COLUMN songs.status_check_count IS 'Number of times the song status has been checked';
+COMMENT ON COLUMN songs.approved_lyrics_id IS 'Reference to the approved lyrics draft used for this song';
 
 -- Users table comments
 COMMENT ON TABLE users IS 'Regular user accounts for authentication';
 
+-- Anonymous users table comments
+COMMENT ON TABLE anonymous_users IS 'Anonymous users table to track anonymous sessions';
+
 -- Song requests table comments
 COMMENT ON TABLE song_requests IS 'Song creation requests from users';
-COMMENT ON COLUMN song_requests.lyrics_status IS 'Status of lyrics workflow: pending, generating, needs_review, approved';
-COMMENT ON COLUMN song_requests.approved_lyrics_id IS 'Reference to the approved lyrics draft';
-COMMENT ON COLUMN song_requests.lyrics_locked_at IS 'Timestamp when lyrics were locked for song generation';
+COMMENT ON COLUMN song_requests.generated_song_id IS 'Reference to the generated song (if any)';
 
 -- Lyrics drafts table comments
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in Phase 6 workflow';
@@ -235,27 +265,44 @@ COMMENT ON COLUMN lyrics_drafts.prompt_input IS 'JSON snapshot of the generation
 COMMENT ON COLUMN lyrics_drafts.generated_text IS 'The original AI-generated lyrics text';
 COMMENT ON COLUMN lyrics_drafts.edited_text IS 'User-edited version of the lyrics';
 COMMENT ON COLUMN lyrics_drafts.status IS 'Current status: draft, needs_review, approved, archived';
+COMMENT ON COLUMN lyrics_drafts.is_approved IS 'A clear flag for the final version';
 
--- Step 8: Verification
+-- Payments table comments
+COMMENT ON TABLE payments IS 'Payments table - supports both registered and anonymous users';
+COMMENT ON COLUMN payments.song_request_id IS 'The song_request is the primary link';
+COMMENT ON COLUMN payments.user_id IS 'For registered users (nullable for anonymous payments)';
+COMMENT ON COLUMN payments.anonymous_user_id IS 'For anonymous users';
+
+-- Pricing plans table comments
+COMMENT ON TABLE pricing_plans IS 'Pricing plans for different song generation tiers';
+
+-- Payment webhooks table comments
+COMMENT ON TABLE payment_webhooks IS 'Stores payment webhook events for processing';
+
+-- Step 6: Verification
 -- =====================================================
 
 -- Verify the setup
-SELECT 
+SELECT
     'Database setup completed successfully' as status,
     (SELECT COUNT(*) FROM songs) as total_songs,
     (SELECT COUNT(*) FROM admin_users) as total_admin_users,
     (SELECT COUNT(*) FROM users) as total_users,
+    (SELECT COUNT(*) FROM anonymous_users) as total_anonymous_users,
     (SELECT COUNT(*) FROM song_requests) as total_song_requests,
-    (SELECT COUNT(*) FROM lyrics_drafts) as total_lyrics_drafts;
+    (SELECT COUNT(*) FROM lyrics_drafts) as total_lyrics_drafts,
+    (SELECT COUNT(*) FROM payments) as total_payments,
+    (SELECT COUNT(*) FROM pricing_plans) as total_pricing_plans,
+    (SELECT COUNT(*) FROM payment_webhooks) as total_payment_webhooks;
 
 -- Show table structure
-SELECT 
+SELECT
     table_name,
     column_name,
     data_type,
     is_nullable,
     column_default
-FROM information_schema.columns 
-WHERE table_schema = 'public' 
-AND table_name IN ('songs', 'admin_users', 'users', 'song_requests', 'lyrics_drafts')
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name IN ('songs', 'admin_users', 'users', 'anonymous_users', 'song_requests', 'lyrics_drafts', 'payments', 'pricing_plans', 'payment_webhooks')
 ORDER BY table_name, ordinal_position;

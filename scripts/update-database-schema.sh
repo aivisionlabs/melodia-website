@@ -18,16 +18,29 @@ fi
 
 echo "✅ Database container is running"
 
-# Check if the SQL file exists
+# --- New: Run the complete setup script first to ensure base tables exist ---
+echo "📝 Applying complete database setup (base tables)..."
+if [ ! -f "scripts/essential/setup-complete-database.sql" ]; then
+    echo "❌ Error: scripts/essential/setup-complete-database.sql file not found!"
+    exit 1
+fi
+docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/essential/setup-complete-database.sql
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Base database setup failed!"
+    exit 1
+fi
+echo "✅ Base database setup applied successfully"
+
+# Check if the SQL file exists (for schema updates)
 if [ ! -f "scripts/database-schema-updates.sql" ]; then
     echo "❌ Error: database-schema-updates.sql file not found!"
     exit 1
 fi
 
-echo "✅ SQL script found"
+echo "✅ SQL script for schema updates found"
 
-# Run the SQL script
-echo "📝 Applying database schema updates..."
+# Run the schema update
+echo "📝 Applying additional database schema updates..."
 docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/database-schema-updates.sql
 
 if [ $? -eq 0 ]; then
@@ -36,7 +49,7 @@ if [ $? -eq 0 ]; then
     echo "📊 Summary of changes:"
     echo "  • Added anonymous_user_id to song_requests table"
     echo "  • Added is_approved to lyrics_drafts table"
-    echo "  • Added song_request_id, song_url_variant_1, song_url_variant_2, is_featured to songs table"
+    echo "  • Added song_request_id, song_url_variant_1, song_url_variant_2, is_featured, approved_lyrics_id to songs table"
     echo "  • Created anonymous_users table"
     echo "  • Created payments table"
     echo "  • Created pricing_plans table"

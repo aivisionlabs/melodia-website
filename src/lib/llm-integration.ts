@@ -11,13 +11,15 @@ export interface LLMResponse {
 export interface SongFormData {
   recipient_name: string;
   languages: string[];
-  additional_details: string;
   requester_name?: string;
+  recipient_relationship: string;
+  song_story: string;
+  mood: string[];
 }
 
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
   // Validate inputs first
-  if (!formData || !formData.recipient_name || !formData.languages || formData.additional_details === undefined) {
+  if (!formData || !formData.recipient_name || !formData.languages) {
     return {
       error: true,
       missingField: 'System',
@@ -76,18 +78,19 @@ SONGWRITING GUIDELINES:
 - Keep it simple and direct based on the 4 inputs only
 
 EXACT USER INPUTS TO USE:
-Requester Name: ${formData.requester_name || 'Anonymous'}
-Recipient Name & Relationship: ${formData.recipient_name}
+${formData.requester_name || 'Requester Name: ' + formData.requester_name}
+Recipient Name & Relationship: ${formData.recipient_name}, ${formData.recipient_relationship}
 Language(s): ${Array.isArray(formData.languages) ? formData.languages.join(', ') : formData.languages}
-Specific Details & Style: ${formData.additional_details}
+Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}
+Song Story: ${formData.song_story}
 
-Create a song using ONLY these 4 inputs. Do not add extra words or descriptions.`;
+Create a song using ONLY these inputs. Do not add extra words or descriptions.`;
 
   try {
     // Call Gemini API directly
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
     const GEMINI_API_TOKEN = 'AIzaSyDDDsLgpJhrlq5ok7kJ6PHQbjsrkSmJoy0';
-    
+
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_TOKEN}`, {
       method: 'POST',
       headers: {
@@ -110,26 +113,26 @@ Create a song using ONLY these 4 inputs. Do not add extra words or descriptions.
 
     if (!response.ok) {
       console.log(await response.json());
-      
+
       throw new Error(`Gemini API request failed with status: ${response.status}`);
     }
 
     const data = await response.json();
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
+
     if (!generatedText) {
       throw new Error('No generated text found in Gemini response');
     }
-    
+
     // Clean up markdown formatting if present
-    let cleanText = generatedText; 
+    let cleanText = generatedText;
     if (cleanText.includes('```json')) {
       cleanText = cleanText.replace(/```json\s*/, '').replace(/\s*```$/, '');
     }
     if (cleanText.includes('```')) {
       cleanText = cleanText.replace(/```\s*/, '').replace(/\s*```$/, '');
     }
-    
+
     try {
       const result = JSON.parse(cleanText);
       return result;
