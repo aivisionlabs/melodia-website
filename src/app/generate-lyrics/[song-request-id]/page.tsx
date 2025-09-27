@@ -70,6 +70,10 @@ export default function GenerateLyricsPage({
     getParams();
   }, [params]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [showLoadingScreen]);
+
   // Check for existing lyrics
   const checkExistingLyrics = async (requestId: number) => {
     try {
