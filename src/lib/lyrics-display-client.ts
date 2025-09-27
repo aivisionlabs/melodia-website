@@ -2,8 +2,8 @@
 export interface LyricsDisplayData {
   songRequest: {
     id: number;
-    recipient_name: string;
-    languages: string[];
+    recipient_details: string;
+    languages: string;
     additional_details: string;
     requester_name: string;
     created_at: string;
@@ -11,7 +11,6 @@ export interface LyricsDisplayData {
   lyricsDraft: {
     id: number;
     generated_text: string;
-    edited_text: string | null;
     status: string;
     version: number;
     created_at: string;

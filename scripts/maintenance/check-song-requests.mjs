@@ -32,8 +32,7 @@ async function checkSongRequests() {
     const requests = await client`
       SELECT
         id,
-        recipient_name,
-        recipient_relationship,
+        recipient_details,
         languages,
         status,
         lyrics_status,
@@ -51,7 +50,6 @@ async function checkSongRequests() {
 
     requests.forEach((request, index) => {
       console.log(`${index + 1}. Song for ${request.recipient_name}`);
-      console.log(`   Relationship: ${request.recipient_relationship}`);
       console.log(
         `   Languages: ${request.languages?.join(", ") || "Not specified"}`
       );

@@ -83,10 +83,9 @@ export interface SongRequest {
   id: number
   user_id: number | null
   requester_name: string
-  recipient_name: string
-  recipient_relationship: string
+  recipient_details: string
   occasion?: string
-  languages: string[]
+  languages: string
   mood: string[] | null
   song_story: string | null
   status: 'pending' | 'processing' | 'completed' | 'failed'
@@ -100,13 +99,8 @@ export interface LyricsDraft {
   id: number
   song_request_id: number
   version: number
-  language: string[]
-  tone: string[]
-  length_hint: 'short' | 'standard' | 'long'
-  structure?: any
-  prompt_input?: any
+  lyrics_edit_prompt?: any
   generated_text: string
-  edited_text?: string
   status: 'draft' | 'needs_review' | 'approved' | 'archived'
   created_by?: number
   created_at: string
@@ -115,17 +109,15 @@ export interface LyricsDraft {
 
 export interface GenerateLyricsParams {
   language: string[]
-  structure?: any
   refineText?: string
 }
 
 // Form data interfaces
 export interface SongRequestFormData {
   requester_name: string
-  recipient_name: string
-  recipient_relationship: string
+  recipient_details: string
   occasion?: string
-  languages: string[]
+  languages: string
   mood?: string[]
   song_story?: string
 }

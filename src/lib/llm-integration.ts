@@ -9,17 +9,16 @@ export interface LLMResponse {
 }
 
 export interface SongFormData {
-  recipient_name: string;
-  languages: string[];
+  languages: string;
   requester_name?: string;
-  recipient_relationship: string;
+  recipient_details: string;
   song_story: string;
   mood: string[];
 }
 
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
   // Validate inputs first
-  if (!formData || !formData.recipient_name || !formData.languages) {
+  if (!formData || !formData.recipient_details || !formData.languages || formData.languages.trim().length === 0) {
     return {
       error: true,
       missingField: 'System',
@@ -33,7 +32,7 @@ export async function generateLyrics(formData: SongFormData): Promise<LLMRespons
 CRITICAL: Return ONLY valid JSON. Never include instructional text, arrows (→), or formatting symbols in the actual lyrics.
 
 🚨 NAME TRANSLITERATION RULE - MOST IMPORTANT 🚨
-- The recipient name MUST appear EXACTLY as provided in the recipient_name field
+- The recipient name MUST appear EXACTLY as provided in the recipient_details field
 - Use the name exactly as it appears - do not change, translate, or transliterate it
 - NEVER convert names to different scripts or languages
 - KEEP THE NAME EXACTLY AS PROVIDED IN THE FIELD
@@ -78,9 +77,9 @@ SONGWRITING GUIDELINES:
 - Keep it simple and direct based on the 4 inputs only
 
 EXACT USER INPUTS TO USE:
-${formData.requester_name || 'Requester Name: ' + formData.requester_name}
-Recipient Name & Relationship: ${formData.recipient_name}, ${formData.recipient_relationship}
-Language(s): ${Array.isArray(formData.languages) ? formData.languages.join(', ') : formData.languages}
+${formData.requester_name && 'Requester Name: ' + formData.requester_name}
+Recipient Name & Relationship: ${formData.recipient_details}
+Language(s): ${formData.languages}
 Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}
 Song Story: ${formData.song_story}
 
@@ -89,7 +88,7 @@ Create a song using ONLY these inputs. Do not add extra words or descriptions.`;
   try {
     // Call Gemini API directly
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-    const GEMINI_API_TOKEN = 'AIzaSyA86q8wbENrjMIB7Ufyqxgi9nZ20AKoObw';
+    const GEMINI_API_TOKEN = process.env.LYRICS_GENERATION_API_KEY;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_TOKEN}`, {
       method: 'POST',

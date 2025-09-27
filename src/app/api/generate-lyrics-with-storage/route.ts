@@ -6,11 +6,11 @@ import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipient_name, languages, additional_details, demoMode, requester_name, recipient_relationship, song_story, mood } = await request.json();
+    const { requestId, recipient_details, languages, requester_name, song_story, mood } = await request.json();
 
-    if (!requestId || !recipient_name || !languages) {
+    if (!requestId || !recipient_details || !languages) {
       return NextResponse.json(
-        { error: true, message: 'Missing required fields: requestId, recipient_name, languages' },
+        { error: true, message: 'Missing required fields: requestId, recipient_details, languages' },
         { status: 400 }
       );
     }
@@ -18,23 +18,22 @@ export async function POST(request: NextRequest) {
     let generatedResponse;
 
     // Demo mode - use mock lyrics instead of real API
-    if (demoMode) {
+    if (process.env.DEMO_MODE === 'true') {
       console.log('🎭 DEMO MODE: Using mock lyrics instead of Gemini API');
       generatedResponse = {
-        title: `Demo Song for ${recipient_name}`,
+        title: `Demo Song for ${recipient_details}`,
         styleOfMusic: 'Personal',
-        lyrics: `Demo lyrics for ${recipient_name}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipient_name}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`,
+        lyrics: `Demo lyrics for ${recipient_details}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipient_details}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`,
         error: false
       };
     } else {
       // Try to generate lyrics using the existing LLM integration
       try {
         generatedResponse = await generateLyrics({
-          recipient_name,
+          recipient_details: recipient_details,
           languages,
           requester_name: requester_name || 'Anonymous',
-          recipient_relationship: recipient_relationship || 'friend',
-          song_story: song_story || additional_details || '',
+          song_story: song_story,
           mood: mood || []
         });
       } catch (apiError) {
@@ -75,12 +74,9 @@ export async function POST(request: NextRequest) {
       .values({
         song_request_id: requestId,
         version: newVersion,
-        language: languages,
-        structure: null,
-        prompt_input: {
-          recipient_name,
+        lyrics_edit_prompt: {
+          recipient_name: recipient_details,
           languages,
-          additional_details,
           refineText: null
         },
         generated_text: generatedResponse.lyrics || '',
@@ -98,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      title: generatedResponse.title || `Song for ${recipient_name}`,
+      title: generatedResponse.title || `Song for ${recipient_details}`,
       styleOfMusic: generatedResponse.styleOfMusic || 'Personal',
       lyrics: generatedResponse.lyrics || '',
       draftId: draft.id,

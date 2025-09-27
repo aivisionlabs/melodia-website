@@ -26,7 +26,8 @@ export async function GET(
         duration: songsTable.duration,
         suno_variants: songsTable.suno_variants,
         selected_variant: songsTable.selected_variant,
-        status: songsTable.status
+        status: songsTable.status,
+        suno_task_id: songsTable.suno_task_id
       })
       .from(songsTable)
       .where(eq(songsTable.id, parseInt(songId)))
@@ -51,11 +52,19 @@ export async function GET(
         primaryUrl: song.song_url,
         duration: song.duration,
         selectedVariant,
-        variants: Array.isArray(variants) ? variants.map((variant: any, index: number) => ({
-          ...variant,
-          isSelected: index === selectedVariant
-        })) : []
-      }
+        suno_task_id: song.suno_task_id
+      },
+      variants: Array.isArray(variants) ? variants.map((variant: any, index: number) => ({
+        id: variant.id || `variant-${index}`,
+        title: variant.title || `${song.title} - Variant ${index + 1}`,
+        audioUrl: variant.audioUrl || variant.streamAudioUrl || "",
+        streamAudioUrl: variant.streamAudioUrl,
+        imageUrl: variant.imageUrl || "/images/melodia-logo.png",
+        duration: variant.duration || song.duration || 180,
+        downloadStatus: variant.audioUrl ? "ready" : "generating",
+        isLoading: !variant.audioUrl,
+        isSelected: index === selectedVariant
+      })) : []
     })
 
   } catch (error) {

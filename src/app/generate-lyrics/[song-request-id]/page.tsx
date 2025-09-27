@@ -3,18 +3,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
-import { getSongRequestDataAction } from "@/lib/lyrics-actions";
+import { ChevronDown, ArrowLeft, X } from "lucide-react";
+import {
+  getSongRequestDataAction,
+  createSongFromLyricsAction,
+} from "@/lib/lyrics-actions";
+import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
 
 interface SongRequest {
   id: number;
   requester_name: string;
-  recipient_name: string;
-  recipient_relationship: string;
-  languages: string[];
+  recipient_details: string;
+  languages: string;
   song_story: string;
   status: string;
-  // lyrics_status moved to lyrics_drafts table
   created_at: string;
   updated_at: string;
   user_id: number | null;
@@ -42,10 +44,22 @@ export default function GenerateLyricsPage({
   const [lyricsError, setLyricsError] = useState("");
   const [isMusicStyleExpanded, setIsMusicStyleExpanded] = useState(false);
 
+  // Existing lyrics state
+  const [isLyricsApproved, setIsLyricsApproved] = useState(false);
+
   // Editing state
   const [isEditingLyrics, setIsEditingLyrics] = useState(false);
   const [userEditInput, setUserEditInput] = useState("");
   const [isUpdatingLyrics, setIsUpdatingLyrics] = useState(false);
+
+  // Song creation state
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+  const [createdSongId, setCreatedSongId] = useState<number | null>(null);
+  const [isCreatingSong, setIsCreatingSong] = useState(false);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   // Resolve params
   useEffect(() => {
@@ -55,6 +69,46 @@ export default function GenerateLyricsPage({
     };
     getParams();
   }, [params]);
+
+  // Check for existing lyrics
+  const checkExistingLyrics = async (requestId: number) => {
+    try {
+      const response = await fetch(
+        `/api/lyrics-display?requestId=${requestId}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setIsLyricsApproved(data.data.lyricsDraft.status === "approved");
+
+          // If lyrics exist, populate the form with existing lyrics
+          if (data.data.lyricsDraft) {
+            const lyricsText = data.data.lyricsDraft.generated_text;
+            setEditedLyrics(lyricsText);
+            setGeneratedTitle(`For ${data.data.songRequest.recipient_details}`);
+            setGeneratedStyle("Personalized song style");
+          }
+        }
+      } else if (response.status === 404) {
+        // No lyrics exist yet - this is expected for new requests
+        console.log(
+          "No existing lyrics found for request",
+          requestId,
+          "- this is normal for new requests"
+        );
+      } else {
+        // Handle other error cases
+        console.error(
+          "Error checking existing lyrics:",
+          response.status,
+          response.statusText
+        );
+      }
+    } catch (error) {
+      console.error("Error checking existing lyrics:", error);
+    }
+  };
 
   // Load song request data
   useEffect(() => {
@@ -82,6 +136,9 @@ export default function GenerateLyricsPage({
             updated_at: request.updated_at.toISOString(),
           } as SongRequest;
           setSongRequest(songRequest);
+
+          // Check for existing lyrics
+          await checkExistingLyrics(requestId);
         } else {
           setError("Song request not found");
         }
@@ -109,7 +166,7 @@ export default function GenerateLyricsPage({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipient_name: songRequest.recipient_name,
+          recipient_details: songRequest.recipient_details,
           languages: songRequest.languages,
           song_story: songRequest.song_story,
           requestId: songRequest.id,
@@ -133,7 +190,9 @@ export default function GenerateLyricsPage({
           data.styleOfMusic
         );
         setEditedLyrics(data.lyrics);
-        setGeneratedTitle(data.title || `${songRequest.recipient_name}'s Song`);
+        setGeneratedTitle(
+          data.title || `${songRequest.recipient_details}'s Song`
+        );
         setGeneratedStyle(data.styleOfMusic || "Personalized song style");
         setLyricsError("");
       } else {
@@ -195,7 +254,7 @@ export default function GenerateLyricsPage({
       if (data.success && data.draft) {
         console.log("Successfully updated lyrics:", data.draft.generated_text);
         setEditedLyrics(data.draft.generated_text);
-        setGeneratedTitle(`${songRequest.recipient_name}'s Song`);
+        setGeneratedTitle(`${songRequest.recipient_details}'s Song`);
         setGeneratedStyle("Personalized song style");
         setUserEditInput("");
         setIsEditingLyrics(false);
@@ -225,6 +284,9 @@ export default function GenerateLyricsPage({
     }
 
     try {
+      setIsCreatingSong(true);
+      setLyricsError("");
+
       // Step 1: Fetch lyrics draft
       console.log("🎵 Fetching lyrics draft for requestId:", songRequest.id);
       const drafts = await fetch(
@@ -270,18 +332,69 @@ export default function GenerateLyricsPage({
         );
       }
 
-      // Success! Redirect to song creation page
-      console.log("🎵 Lyrics approved successfully");
-      router.push(`/create-song-from-lyrics/${songRequest.id}`);
+      // Step 3: Create song from approved lyrics
+      console.log("🎵 Lyrics approved successfully, creating song...");
+      const result = await createSongFromLyricsAction(songRequest.id);
+
+      if (result.success) {
+        // Get the song ID from the created song
+        const songResponse = await fetch(
+          `/api/song-by-request/${songRequest.id}`
+        );
+        if (songResponse.ok) {
+          const songData = await songResponse.json();
+          if (songData.success && songData.song) {
+            setCreatedSongId(songData.song.id);
+            setShowLoadingScreen(true);
+          } else {
+            throw new Error("Failed to get song ID");
+          }
+        } else {
+          throw new Error("Failed to get song ID");
+        }
+      } else {
+        throw new Error(result.error || "Failed to create song");
+      }
     } catch (error) {
-      console.error("Error approving lyrics:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred while approving lyrics. Please try again.";
-      setLyricsError(errorMessage);
+      console.error("Error in approve lyrics flow:", error);
+      showErrorToast(
+        "Something went wrong while creating your song. Please try again."
+      );
+    } finally {
+      setIsCreatingSong(false);
     }
   };
+
+  const handleLoadingComplete = () => {
+    if (createdSongId) {
+      router.push(`/song-options/${createdSongId}`);
+    } else {
+      router.push("/");
+    }
+  };
+
+  const showErrorToast = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setShowToast(false);
+    }, 5000);
+  };
+
+  const hideToast = () => {
+    setShowToast(false);
+  };
+
+  // Show loading screen if song creation is in progress
+  if (showLoadingScreen && !lyricsError) {
+    return (
+      <SongCreationLoadingScreen
+        onComplete={handleLoadingComplete}
+        duration={45}
+      />
+    );
+  }
 
   // Loading state
   if (loading) {
@@ -343,19 +456,7 @@ export default function GenerateLyricsPage({
             onClick={() => router.back()}
             className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-2xl font-bold text-melodia-teal">
             Generate Lyrics
@@ -366,7 +467,7 @@ export default function GenerateLyricsPage({
         <div className="bg-white rounded-3xl p-6">
           {/* Generated Title */}
           <h2 className="text-xl font-bold text-melodia-teal text-center mb-4">
-            {generatedTitle || `For ${songRequest.recipient_name}`}
+            {generatedTitle || `For ${songRequest.recipient_details}`}
           </h2>
 
           {/* Music Style Dropdown */}
@@ -401,44 +502,36 @@ export default function GenerateLyricsPage({
                   : "Updating your lyrics..."}
               </p>
             </div>
-          ) : lyricsError ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-red-600 mb-2">
-                Generation Failed
-              </h3>
-              <p className="text-gray-600 mb-4">{lyricsError}</p>
-              <button
-                onClick={() => {
-                  setLyricsError("");
-                  handleGenerateLyrics();
-                }}
-                className="px-6 py-2 bg-melodia-coral text-white rounded-full hover:bg-opacity-90 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
           ) : editedLyrics ? (
             <div className="space-y-4">
-              <div className="bg-blue-100 p-2 rounded mb-2">
-                <p className="text-sm text-blue-800">
-                  📝 Lyrics loaded! Click Edit button below to modify.
-                </p>
-              </div>
+              {/* Show approval status if lyrics are approved */}
+              {isLyricsApproved && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <p className="text-green-800 font-medium">
+                      Lyrics Approved
+                    </p>
+                  </div>
+                  <p className="text-green-700 text-sm mt-1">
+                    These lyrics have been approved and cannot be modified. You
+                    can proceed to create your song.
+                  </p>
+                </div>
+              )}
+
               {editedLyrics.split("\n").map((line, index) => {
                 if (line.startsWith("[") && line.endsWith("]")) {
                   return (
@@ -479,8 +572,8 @@ export default function GenerateLyricsPage({
           )}
         </div>
 
-        {/* Edit Input Field - Show when in edit mode */}
-        {isEditingLyrics && editedLyrics && (
+        {/* Edit Input Field - Show when in edit mode and lyrics are not approved */}
+        {isEditingLyrics && editedLyrics && !isLyricsApproved && (
           <div className="mt-6">
             <div className="bg-white rounded-3xl p-6">
               <label className="block text-lg font-semibold text-melodia-teal mb-3">
@@ -528,22 +621,26 @@ export default function GenerateLyricsPage({
               <Button
                 className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200 mb-3"
                 onClick={handleApproveLyrics}
+                disabled={isCreatingSong}
               >
-                Approve Lyrics
+                {isCreatingSong ? "Creating Song..." : "Create Song"}
               </Button>
-              <button
-                className="w-full text-melodia-teal font-semibold text-center py-2"
-                onClick={() => {
-                  console.log(
-                    "Edit clicked - current editedLyrics:",
-                    editedLyrics
-                  );
-                  console.log("Setting isEditingLyrics to true");
-                  setIsEditingLyrics(true);
-                }}
-              >
-                Edit
-              </button>
+              {/* Only show Edit button if lyrics are not approved */}
+              {!isLyricsApproved && (
+                <button
+                  className="w-full text-melodia-teal font-semibold text-center py-2"
+                  onClick={() => {
+                    console.log(
+                      "Edit clicked - current editedLyrics:",
+                      editedLyrics
+                    );
+                    console.log("Setting isEditingLyrics to true");
+                    setIsEditingLyrics(true);
+                  }}
+                >
+                  Edit
+                </button>
+              )}
             </>
           ) : (
             <Button
@@ -553,6 +650,50 @@ export default function GenerateLyricsPage({
               Generate Lyrics
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+          <div className="bg-white border border-orange-200 rounded-lg shadow-lg p-4 max-w-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg
+                  className="w-3 h-3 text-orange-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800 font-medium">
+                  {toastMessage}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={handleApproveLyrics}
+                    className="text-xs bg-melodia-coral text-white px-3 py-1 rounded-full hover:bg-opacity-90 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={hideToast}
+                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

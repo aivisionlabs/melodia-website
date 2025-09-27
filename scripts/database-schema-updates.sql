@@ -10,8 +10,7 @@
 -- Add anonymous_user_id to song_requests table
 ALTER TABLE song_requests ADD COLUMN IF NOT EXISTS anonymous_user_id UUID;
 
--- Add is_approved to lyrics_drafts table
-ALTER TABLE lyrics_drafts ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false;
+-- is_approved column removed - using status field instead
 
 -- Add missing columns to songs table
 ALTER TABLE songs ADD COLUMN IF NOT EXISTS song_request_id INTEGER UNIQUE;

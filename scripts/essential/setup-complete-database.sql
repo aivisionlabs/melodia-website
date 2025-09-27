@@ -93,10 +93,9 @@ CREATE TABLE IF NOT EXISTS song_requests (
   user_id INTEGER,
   anonymous_user_id UUID,
   requester_name TEXT NOT NULL,
-  recipient_name TEXT NOT NULL,
-  recipient_relationship TEXT NOT NULL,
+  recipient_details TEXT NOT NULL,
   occasion TEXT,
-  languages TEXT[] NOT NULL,
+  languages TEXT NOT NULL,
   mood TEXT[],
   song_story TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
@@ -110,15 +109,9 @@ CREATE TABLE IF NOT EXISTS lyrics_drafts (
   id SERIAL PRIMARY KEY,
   song_request_id INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
-  language TEXT[],
-  tone TEXT[],
-  length_hint TEXT,
-  structure JSONB,
-  prompt_input JSONB,
+  lyrics_edit_prompt JSONB,
   generated_text TEXT NOT NULL,
-  edited_text TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
-  is_approved BOOLEAN DEFAULT FALSE, -- A clear flag for the final version
   created_by INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -257,15 +250,9 @@ COMMENT ON COLUMN song_requests.generated_song_id IS 'Reference to the generated
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in Phase 6 workflow';
 COMMENT ON COLUMN lyrics_drafts.song_request_id IS 'Reference to the song request this draft belongs to';
 COMMENT ON COLUMN lyrics_drafts.version IS 'Version number of this draft (increments with each generation)';
-COMMENT ON COLUMN lyrics_drafts.language IS 'Array of languages used in the lyrics';
-COMMENT ON COLUMN lyrics_drafts.tone IS 'Array of tones/moods for the lyrics';
-COMMENT ON COLUMN lyrics_drafts.length_hint IS 'Target length: short, standard, or long';
-COMMENT ON COLUMN lyrics_drafts.structure IS 'JSON structure defining song sections (verse, chorus, etc.)';
-COMMENT ON COLUMN lyrics_drafts.prompt_input IS 'JSON snapshot of the generation request and parameters';
+COMMENT ON COLUMN lyrics_drafts.lyrics_edit_prompt IS 'JSON snapshot of the generation request and parameters';
 COMMENT ON COLUMN lyrics_drafts.generated_text IS 'The original AI-generated lyrics text';
-COMMENT ON COLUMN lyrics_drafts.edited_text IS 'User-edited version of the lyrics';
 COMMENT ON COLUMN lyrics_drafts.status IS 'Current status: draft, needs_review, approved, archived';
-COMMENT ON COLUMN lyrics_drafts.is_approved IS 'A clear flag for the final version';
 
 -- Payments table comments
 COMMENT ON TABLE payments IS 'Payments table - supports both registered and anonymous users';

@@ -22,9 +22,8 @@ export default function CreateSongPage() {
   // Form state
   const [formData, setFormData] = useState<SongRequestFormData>({
     requester_name: "",
-    recipient_name: "",
-    recipient_relationship: "",
-    languages: ["English"],
+    recipient_details: "",
+    languages: "English",
     mood: [],
     song_story: "",
   });
@@ -59,14 +58,10 @@ export default function CreateSongPage() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!formData.recipient_name.trim()) {
-      errors.recipient_name = "Who is this song for? (Required)";
-    } else if (formData.recipient_name.length < 3) {
+    if (!formData.recipient_details.trim()) {
+      errors.recipient_details = "Who is this song for? (Required)";
+    } else if (formData.recipient_details.length < 3) {
       errors.recipient_name = "Name must be at least 3 characters";
-    }
-
-    if (!formData.recipient_relationship.trim()) {
-      errors.recipient_relationship = "Relationship is required";
     }
 
     setValidationErrors(errors);
@@ -91,9 +86,7 @@ export default function CreateSongPage() {
   };
 
   const isFormValid = (): boolean => {
-    const hasRecipientName = formData.recipient_name.trim().length >= 3;
-    const hasRelationship = formData.recipient_relationship.trim().length > 0;
-    return hasRecipientName && hasRelationship;
+    return formData.recipient_details.trim().length >= 3;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -227,9 +220,9 @@ export default function CreateSongPage() {
             </p>
             <input
               id="recipient_name"
-              value={formData.recipient_name}
+              value={formData.recipient_details}
               onChange={(e) =>
-                handleInputChange("recipient_name", e.target.value)
+                handleInputChange("recipient_details", e.target.value)
               }
               placeholder="My best friend, Rohan"
               className={`form-input w-full ${
@@ -239,32 +232,6 @@ export default function CreateSongPage() {
             {validationErrors.recipient_name && (
               <p className="text-red-500 text-sm mt-2">
                 {validationErrors.recipient_name}
-              </p>
-            )}
-          </div>
-
-          {/* Relationship */}
-          <div>
-            <label
-              className="block text-lg font-semibold text-melodia-teal mb-2"
-              htmlFor="recipient_relationship"
-            >
-              Relationship
-            </label>
-            <input
-              id="recipient_relationship"
-              value={formData.recipient_relationship}
-              onChange={(e) =>
-                handleInputChange("recipient_relationship", e.target.value)
-              }
-              placeholder="e.g., my wife, my friend"
-              className={`form-input w-full ${
-                validationErrors.recipient_relationship ? "border-red-500" : ""
-              }`}
-            />
-            {validationErrors.recipient_relationship && (
-              <p className="text-red-500 text-sm mt-2">
-                {validationErrors.recipient_relationship}
               </p>
             )}
           </div>
@@ -279,7 +246,7 @@ export default function CreateSongPage() {
             </label>
             <input
               id="language"
-              value={formData.languages.join(", ")}
+              value={formData.languages}
               onChange={(e) =>
                 handleInputChange(
                   "languages",

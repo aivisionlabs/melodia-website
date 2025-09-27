@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Play, Pause, Download, ArrowLeft, BookOpen, Share2 } from 'lucide-react';
-import { MediaPlayer } from '@/components/MediaPlayer';
-import Image from 'next/image';
+import React, { useState, useEffect, useRef } from "react";
+import { Play, ArrowLeft, Home, Disc3, Music, User } from "lucide-react";
+import { MediaPlayer } from "@/components/MediaPlayer";
+import Image from "next/image";
 
 interface SongVariant {
   id: string;
@@ -34,26 +33,24 @@ export default function SongOptionsDisplay({
   variants,
   onBack,
   onBackupWithGoogle,
-  songData
+  songData,
 }: SongOptionsDisplayProps) {
   const [playingVariant, setPlayingVariant] = useState<string | null>(null);
-  const [initializedVariants, setInitializedVariants] = useState<{ [key: string]: boolean }>({});
   const [showMediaPlayer, setShowMediaPlayer] = useState(false);
-  const [selectedVariantForLyrics, setSelectedVariantForLyrics] = useState<SongVariant | null>(null);
-  const [audioElements, setAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
-  const [currentTime, setCurrentTime] = useState<{ [key: string]: number }>({});
-  const [duration, setDuration] = useState<{ [key: string]: number }>({});
-  const [sharePublicly, setSharePublicly] = useState<{ [key: string]: boolean }>({});
-  const [emailInput, setEmailInput] = useState<{ [key: string]: string }>({});
+  const [selectedVariantForLyrics, setSelectedVariantForLyrics] =
+    useState<SongVariant | null>(null);
+  const [audioElements, setAudioElements] = useState<{
+    [key: string]: HTMLAudioElement;
+  }>({});
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handlePlayPreview = (variantId: string, audioUrl: string) => {
     // Don't play if no audio URL (still loading)
-    if (!audioUrl || audioUrl === '') {
-      console.log('Audio not ready yet');
+    if (!audioUrl || audioUrl === "") {
+      console.log("Audio not ready yet");
       return;
     }
-  
+
     // If clicking the same song that's playing, pause it
     if (playingVariant === variantId) {
       const audio = audioElements[variantId];
@@ -66,41 +63,37 @@ export default function SongOptionsDisplay({
       }
       return;
     }
-  
+
     // Stop any currently playing audio and reset their currentTime
     Object.entries(audioElements).forEach(([, audio]) => {
       audio.pause();
       audio.currentTime = 0;
     });
-  
+
     // Clear any existing progress interval
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
-  
+
     let audio: HTMLAudioElement;
-  
+
     // Create new audio element if it doesn't exist
     if (!audioElements[variantId]) {
       audio = new Audio(audioUrl);
-      audio.preload = 'metadata';
-      
+      audio.preload = "metadata";
+
       // Update the audioElements state immediately
-      setAudioElements(prev => ({ ...prev, [variantId]: audio }));
-      
-      audio.addEventListener('loadedmetadata', () => {
-        setDuration(prev => ({ ...prev, [variantId]: audio.duration }));
-      });
-      
-      audio.addEventListener('ended', () => {
+      setAudioElements((prev) => ({ ...prev, [variantId]: audio }));
+
+      audio.addEventListener("ended", () => {
         setPlayingVariant(null);
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
         }
       });
-  
-      audio.addEventListener('error', (e) => {
-        console.error('Audio loading error:', e);
+
+      audio.addEventListener("error", (e) => {
+        console.error("Audio loading error:", e);
         setPlayingVariant(null);
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -109,140 +102,25 @@ export default function SongOptionsDisplay({
     } else {
       audio = audioElements[variantId];
     }
-    
+
     // Set playing state BEFORE starting playback
     setPlayingVariant(variantId);
-    
-    // Mark this variant as initialized (has been played at least once)
-    setInitializedVariants(prev => ({ ...prev, [variantId]: true }));
-    
+
     // Reset to beginning and play
     audio.currentTime = 0;
-    
-    audio.play()
+
+    audio
+      .play()
       .then(() => {
         // Start progress tracking only after successful play
         progressIntervalRef.current = setInterval(() => {
-          setCurrentTime(prev => ({ ...prev, [variantId]: audio.currentTime }));
+          // Progress tracking removed for simplified design
         }, 100);
       })
       .catch((error) => {
-        console.error('Error playing audio:', error);
+        console.error("Error playing audio:", error);
         setPlayingVariant(null);
       });
-  };
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60); // Round to whole number
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleDownload = (audioUrl: string, title: string) => {
-    const link = document.createElement('a');
-    link.href = audioUrl;
-    link.download = `${title}.mp3`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const updateAddToLibrary = async (addToLibrary: boolean) => {
-    if (!songData?.songId) {
-      console.warn('No song ID available to update add_to_library');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/song/update-library', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          songId: songData.songId,
-          addToLibrary: addToLibrary
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Successfully updated add_to_library:', result);
-      } else {
-        console.error('Failed to update add_to_library:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error updating add_to_library:', error);
-    }
-  };
-
-  const handleShareToggle = (variantId: string) => {
-    const newShareState = !sharePublicly[variantId];
-    
-    setSharePublicly(prev => ({
-      ...prev,
-      [variantId]: newShareState
-    }));
-
-    // Update add_to_library field in database
-    updateAddToLibrary(newShareState);
-  };
-
-  const handleEmailChange = (variantId: string, email: string) => {
-    setEmailInput(prev => ({
-      ...prev,
-      [variantId]: email
-    }));
-  };
-
-  const handleSendEmail = (variantId: string) => {
-    const email = emailInput[variantId];
-    if (email) {
-      // TODO: Implement email sending functionality
-      console.log(`Sending song link to ${email} for variant ${variantId}`);
-      alert(`Song link will be sent to ${email}`);
-    }
-  };
-
-  const handleLyricsClick = (variant: SongVariant) => {
-    if (!variant.audioUrl && !variant.streamAudioUrl) {
-      alert('Audio is not ready yet. Please wait for the song to finish generating.');
-      return;
-    }
-    
-    // Stop all currently playing audio elements to prevent conflicts
-    Object.entries(audioElements).forEach(([, audio]) => {
-      try {
-        audio.pause();
-        audio.currentTime = 0;
-      } catch (error) {
-        console.warn('Error stopping audio:', error);
-      }
-    });
-    
-    // Stop any other audio elements on the page
-    const allAudioElements = document.querySelectorAll('audio');
-    allAudioElements.forEach(audio => {
-      try {
-        audio.pause();
-        audio.currentTime = 0;
-      } catch (error) {
-        console.warn('Error stopping page audio:', error);
-      }
-    });
-    
-    // Clear any existing progress interval
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    
-    // Reset playing state
-    setPlayingVariant(null);
-    
-    // Small delay to ensure audio is stopped before opening MediaPlayer
-    setTimeout(() => {
-      setSelectedVariantForLyrics(variant);
-      setShowMediaPlayer(true);
-    }, 100);
   };
 
   // Cleanup on unmount
@@ -252,243 +130,123 @@ export default function SongOptionsDisplay({
         clearInterval(progressIntervalRef.current);
       }
       // Pause all audio elements
-      Object.values(audioElements).forEach(audio => {
+      Object.values(audioElements).forEach((audio) => {
         audio.pause();
         audio.currentTime = 0;
       });
     };
   }, [audioElements]);
 
-  // Loading dots animation component
-  const LoadingDots = () => (
-    <div className="flex items-center gap-1">
-      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-      <div className="w-2 h-2 bg-melodia-coral rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-20">
       {/* Header */}
-      <div className="p-6 pt-16">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="px-6 pt-24 pb-4">
+        <div className="flex items-center gap-4 mb-8">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2"
+            className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2 -ml-2"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold text-melodia-teal">
+          <h1 className="text-large font-heading text-melodia-teal">
             Your Song Options
           </h1>
         </div>
 
         {/* Song Options */}
-        <div className="space-y-6">
+        <div className="space-y-4 px-2">
           {variants.map((variant, index) => (
             <div
               key={variant.id}
-              className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm"
+              className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow"
             >
               {/* Song Info */}
-              <div className="flex items-start gap-4 mb-4">
+              <div className="flex items-start gap-4 mb-5">
                 <div className="flex-1">
-                  <p className="text-sm text-gray-500 mb-1">
+                  <p className="text-sm font-body text-neutral-500 mb-1">
                     Song Option {index + 1}
                   </p>
-                  <h3 className="text-xl font-bold text-melodia-teal mb-2">
+                  <h3 className="text-xl font-heading text-melodia-teal mb-2">
                     {variant.title}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    {(!variant.audioUrl || variant.audioUrl === '') ? (
-                      <>
-                        <LoadingDots />
-                        <span className="text-melodia-coral font-medium text-sm">Generating...</span>
-                      </>
-                    ) : !initializedVariants[variant.id] ? (
-                      <p className="text-melodia-coral font-medium">
-                        Download now
-                      </p>
-                    ) : null}
-                  </div>
+                  <p className="text-melodia-coral font-body font-medium text-sm">
+                    Download in 2 minutes
+                  </p>
                 </div>
 
                 {/* Album Art with Wood Frame */}
-                <div className="w-20 h-20 bg-amber-100 p-1 rounded-lg border-2 border-amber-300">
+                <div className="w-16 h-16 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
                   <div className="w-full h-full bg-white rounded overflow-hidden">
                     <Image
                       src={variant.imageUrl}
                       alt={`${variant.title} album art`}
-                      width={80}
-                      height={80}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = '/images/melodia-logo.png';
+                        e.currentTarget.src = "/images/melodia-logo.png";
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Play Preview Button or Player UI */}
-              {(!variant.audioUrl || variant.audioUrl === '') ? (
-                <div className="w-full h-12 bg-gray-100 text-gray-500 font-semibold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
-                  <LoadingDots />
-                  <span>Generating audio...</span>
-                </div>
-              ) : (playingVariant === variant.id || initializedVariants[variant.id]) ? (
-                // Player UI when playing
-                <div className="space-y-4">
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
-                        style={{ 
-                          width: `${duration[variant.id] ? (currentTime[variant.id] || 0) / duration[variant.id] * 100 : 0}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>{formatDuration(currentTime[variant.id] || 0)}</span>
-                      <span>{formatDuration(duration[variant.id] || 0)}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons Row */}
-                  <div className="flex gap-3">
-                    {/* Play/Pause Button */}
-                    <button
-                      onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
-                      className="w-12 h-12 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors"
-                    >
-                      {playingVariant === variant.id ? (
-                        <Pause className="w-5 h-5" />
-                      ) : (
-                        <Play className="w-5 h-5" />
-                      )}
-                    </button>
-
-                    {/* Lyrics Button */}
-                    <button
-                      onClick={() => handleLyricsClick(variant)}
-                      className="flex-1 h-12 bg-white border-2 border-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/10 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      Lyrics
-                    </button>
-
-                    {/* Download Button */}
-                    <button
-                      onClick={() => handleDownload(variant.audioUrl, variant.title)}
-                      className="flex-1 h-12 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
-
-                  {/* Sharing Section */}
-                  <div className="space-y-3">
-                    {/* Horizontal Divider */}
-                    <div className="w-full h-px bg-gray-200"></div>
-
-                    {/* Share Publicly Checkbox */}
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={sharePublicly[variant.id] || false}
-                          onChange={() => handleShareToggle(variant.id)}
-                          className="w-4 h-4 text-pink-500 bg-pink-500 border-pink-500 rounded focus:ring-pink-500 focus:ring-2"
-                        />
-                        <span className="text-sm text-gray-700">Share publicly</span>
-                      </label>
-                      <Share2 className="w-4 h-4 text-gray-400" />
-                    </div>
-
-                    {/* Email Input (Conditional) */}
-                    {sharePublicly[variant.id] && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-gray-600">Get your song link via email</p>
-                        <div className="flex gap-2">
-                          <input
-                            type="email"
-                            placeholder="Enter your email ID"
-                            value={emailInput[variant.id] || ''}
-                            onChange={(e) => handleEmailChange(variant.id, e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent"
-                          />
-                          <button
-                            onClick={() => handleSendEmail(variant.id)}
-                            className="px-4 py-2 bg-melodia-yellow text-melodia-teal font-semibold rounded-lg hover:bg-melodia-yellow/90 transition-colors"
-                          >
-                            Send
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // Play Button when not playing
-                <Button
-                  onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
-                  className="w-full h-12 bg-melodia-yellow text-melodia-teal font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Play className="w-5 h-5" />
-                  Play 15s Preview
-                </Button>
-              )}
+              {/* Play Preview Button */}
+              <button
+                onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
+                disabled={!variant.audioUrl || variant.audioUrl === ""}
+                className="w-full h-12 bg-melodia-yellow text-melodia-teal font-body font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed"
+              >
+                <Play className="w-5 h-5" />
+                Play 15s Preview
+              </button>
             </div>
           ))}
         </div>
 
         {/* Backup Option */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 px-4 text-center">
           <button
             onClick={onBackupWithGoogle}
-            className="flex items-center justify-center gap-3 text-gray-700 hover:text-gray-900 transition-colors mx-auto"
+            className="flex items-center justify-center gap-3 text-neutral-600 hover:text-neutral-800 transition-colors mx-auto py-2"
           >
+            {/* Google Logo */}
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
               <div className="w-4 h-4 bg-yellow-500 rounded-sm"></div>
               <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
               <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
             </div>
-            <span className="font-medium">Backup song with Google</span>
+            <span className="font-body font-medium text-melodia-teal">
+              Backup song with Google
+            </span>
           </button>
         </div>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 pb-6">
         <div className="flex justify-around items-center">
           <div className="flex flex-col items-center gap-1">
-            <svg className="w-6 h-6 text-melodia-teal" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-            </svg>
-            <span className="text-xs text-melodia-teal font-medium">Home</span>
+            <Home className="w-6 h-6 text-melodia-teal" />
+            <span className="text-xs font-body text-melodia-teal font-medium">
+              Home
+            </span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
-            <span className="text-xs text-gray-500">Best Songs</span>
+            <Disc3 className="w-6 h-6 text-neutral-400" />
+            <span className="text-xs font-body text-neutral-500">
+              Best Songs
+            </span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-            <span className="text-xs text-gray-500">My Songs</span>
+            <Music className="w-6 h-6 text-neutral-400" />
+            <span className="text-xs font-body text-neutral-500">My Songs</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-            <span className="text-xs text-gray-500">Profile</span>
+            <User className="w-6 h-6 text-neutral-400" />
+            <span className="text-xs font-body text-neutral-500">Profile</span>
           </div>
         </div>
       </div>
@@ -498,21 +256,25 @@ export default function SongOptionsDisplay({
         <MediaPlayer
           song={{
             title: songData.title,
-            artist: songData.artist || 'Melodia',
+            artist: songData.artist || "Melodia",
             audioUrl: selectedVariantForLyrics.audioUrl,
-            song_url: selectedVariantForLyrics.streamAudioUrl || selectedVariantForLyrics.audioUrl,
+            song_url:
+              selectedVariantForLyrics.streamAudioUrl ||
+              selectedVariantForLyrics.audioUrl,
             suno_task_id: songData.suno_task_id,
             suno_audio_id: selectedVariantForLyrics.id,
-            selected_variant: variants.findIndex(v => v.id === selectedVariantForLyrics.id)
+            selected_variant: variants.findIndex(
+              (v) => v.id === selectedVariantForLyrics.id
+            ),
           }}
           onClose={() => {
             // Stop any audio that might be playing in MediaPlayer
-            const mediaPlayerAudio = document.querySelector('audio');
+            const mediaPlayerAudio = document.querySelector("audio");
             if (mediaPlayerAudio) {
               mediaPlayerAudio.pause();
               mediaPlayerAudio.currentTime = 0;
             }
-            
+
             setShowMediaPlayer(false);
             setSelectedVariantForLyrics(null);
           }}

@@ -1,34 +1,11 @@
 'use server'
 
+import { GenerateLyricsParams } from '@/types'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { db } from './db'
-import { lyricsDraftsTable, songsTable, songRequestsTable } from './db/schema'
-import { eq, desc, and } from 'drizzle-orm'
-import { GenerateLyricsParams, LyricsDraft } from '@/types'
 import { config } from './config'
-
-// Helper function to build lyrics generation prompt
-function buildLyricsPrompt(params: GenerateLyricsParams, songRequest: any): string {
-  const { language, structure, refineText } = params
-
-  const prompt = `Create ${language.join(' and ')} lyrics for a personalized song with the following details:
-
-Recipient: ${songRequest.recipient_name}
-Relationship: ${songRequest.recipient_relationship}
-Song Style: Personal
-Mood: ${songRequest.mood?.join(', ') || 'Not specified'}
-Song Story: ${songRequest.song_story || 'None'}
-
-Requirements:
-- Language(s): ${language.join(', ')}
-${structure ? `- Structure: ${JSON.stringify(structure)}` : ''}
-
-${refineText ? `Refinement Request: ${refineText}` : ''}
-
-Please create heartfelt, personalized lyrics that capture the essence of the relationship and the person being celebrated. Make it emotional, meaningful, and suitable for the specified tone and language.`
-
-  return prompt
-}
+import { db } from './db'
+import { lyricsDraftsTable, songRequestsTable, songsTable } from './db/schema'
 
 // Helper function to build refinement prompt
 
@@ -41,7 +18,7 @@ function buildRefinementPromptWithHistory(currentLyrics: string, refineText: str
     versionHistory = '\n\nVersion History Context:\n';
     allDrafts.forEach((draft) => {
       const versionInfo = `Version ${draft.version}:`;
-      const promptInfo = draft.prompt_input?.refineText ? `Refinement: "${draft.prompt_input.refineText}"` : 'Initial generation';
+      const promptInfo = draft.lyrics_edit_prompt?.refineText ? `Refinement: "${draft.lyrics_edit_prompt.refineText}"` : 'Initial generation';
       versionHistory += `${versionInfo} ${promptInfo}\n`;
     });
     versionHistory += '\nThis shows the evolution of the lyrics. Please maintain the context and improvements from all previous versions.';
@@ -58,8 +35,7 @@ User's Refinement Request:
 ${refineText}
 
 Song Context:
-Recipient: ${songRequest.recipient_name}
-Relationship: ${songRequest.recipient_relationship}
+Recipient: ${songRequest.recipient_details}
 Song Style: Personal
 Mood: ${songRequest.mood?.join(', ') || 'Not specified'}
 Song Story: ${songRequest.song_story || 'None'}
@@ -76,141 +52,6 @@ Instructions:
 Please provide the refined lyrics that address the user's feedback while maintaining the complete context and personal connection.`
 }
 
-// Generate lyrics using Gemini API
-export async function generateLyricsAction(params: GenerateLyricsParams, requestId: number) {
-  try {
-    // Get song request data
-    const songRequest = await db
-      .select()
-      .from(songRequestsTable)
-      .where(eq(songRequestsTable.id, requestId))
-      .limit(1)
-
-    if (!songRequest[0]) {
-      throw new Error('Song request not found')
-    }
-
-    const prompt = buildLyricsPrompt(params, songRequest[0])
-    console.log(`${config.GEMINI_API_URL}?key=${config.GEMINI_API_TOKEN}`);
-    console.log(JSON.stringify({
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: config.LYRICS_GENERATION
-    }));
-
-    // Call Gemini API
-    console.log('Calling Gemini API...');
-    const response = await fetch(`${config.GEMINI_API_URL}?key=${config.GEMINI_API_TOKEN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: config.LYRICS_GENERATION
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log('Gemini API Response:', JSON.stringify(data, null, 2))
-
-    // Check if the response was truncated due to token limit
-    if (data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
-      console.log('Response was truncated due to token limit. Increasing maxOutputTokens...');
-      // You might want to retry with higher token limit or handle this case
-    }
-
-    // Try different possible response structures
-    let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-    // If the above doesn't work, try alternative structures
-    if (!generatedText) {
-      generatedText = data.candidates?.[0]?.content?.text
-    }
-
-    if (!generatedText) {
-      generatedText = data.text
-    }
-
-    if (!generatedText) {
-      generatedText = data.response?.text
-    }
-
-    // If still no text, try to get any text from the response
-    if (!generatedText) {
-      console.log('Trying to extract text from response structure:', data)
-      // Look for any text field in the response
-      const findTextInObject = (obj: any): string | null => {
-        if (typeof obj === 'string') return obj
-        if (typeof obj === 'object' && obj !== null) {
-          for (const key in obj) {
-            if (key.toLowerCase().includes('text') && typeof obj[key] === 'string') {
-              return obj[key]
-            }
-            const found = findTextInObject(obj[key])
-            if (found) return found
-          }
-        }
-        return null
-      }
-      generatedText = findTextInObject(data)
-    }
-
-    if (!generatedText) {
-      console.error('Could not extract text from API response:', data)
-      throw new Error('No lyrics generated from API')
-    }
-
-    // Get the latest version number for this request
-    const latestDraft = await db
-      .select({ version: lyricsDraftsTable.version })
-      .from(lyricsDraftsTable)
-      .where(eq(lyricsDraftsTable.song_request_id, requestId))
-      .orderBy(desc(lyricsDraftsTable.version))
-      .limit(1)
-
-    const newVersion = latestDraft[0] ? latestDraft[0].version + 1 : 1
-
-    // Save lyrics draft
-    const [draft] = await db
-      .insert(lyricsDraftsTable)
-      .values({
-        song_request_id: requestId,
-        version: newVersion,
-        language: params.language,
-        structure: params.structure || null,
-        prompt_input: { ...params, refineText: params.refineText },
-        generated_text: generatedText,
-        status: 'draft'
-      })
-      .returning()
-
-    // Update lyrics draft status (lyrics_status moved to lyrics_drafts table)
-    if (draft) {
-      await db
-        .update(lyricsDraftsTable)
-        .set({ status: 'needs_review' })
-        .where(eq(lyricsDraftsTable.id, draft.id))
-    }
-
-    revalidatePath(`/create-lyrics/${requestId}`)
-    return { success: true, draft }
-  } catch (error) {
-    console.error('Error generating lyrics:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to generate lyrics' }
-  }
-}
 
 // Refine lyrics using Gemini API
 export async function refineLyricsAction(refineText: string, requestId: number) {
@@ -237,6 +78,28 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
 
     if (!songRequest[0]) {
       throw new Error('Song request not found')
+    }
+
+    // Demo mode - use mock refined lyrics instead of real API
+    if (process.env.DEMO_MODE) {
+      console.log('🎭 DEMO MODE: Using mock refined lyrics instead of Gemini API')
+
+      const mockRefinedText = `Demo Refined Lyrics (Version ${latestDraft.version + 1}):\n\nBased on your refinement request: "${refineText}"\n\nVerse 1:\nThis is a refined demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${songRequest[0].recipient_details}\nOn this wonderful day\nMay happiness and joy\nAlways come your way\n\n[Refined based on: ${refineText}]`
+
+      // Create new version with mock refined lyrics
+      const [newDraft] = await db
+        .insert(lyricsDraftsTable)
+        .values({
+          song_request_id: requestId,
+          version: latestDraft.version + 1,
+          lyrics_edit_prompt: { refineText },
+          generated_text: mockRefinedText,
+          status: 'draft'
+        })
+        .returning()
+
+      revalidatePath(`/create-lyrics/${requestId}`)
+      return { success: true, draft: newDraft, demoMode: true }
     }
 
     const prompt = buildRefinementPromptWithHistory(latestDraft.generated_text, refineText, songRequest[0], allDrafts)
@@ -325,11 +188,7 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
       .values({
         song_request_id: requestId,
         version: latestDraft.version + 1,
-        language: latestDraft.language,
-        tone: latestDraft.tone,
-        length_hint: latestDraft.length_hint,
-        structure: latestDraft.structure,
-        prompt_input: { refineText },
+        lyrics_edit_prompt: { refineText },
         generated_text: refinedText,
         status: 'draft'
       })
@@ -343,21 +202,7 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
   }
 }
 
-// Save lyrics draft
-export async function saveLyricsDraftAction(draftId: number, editedText: string) {
-  try {
-    await db
-      .update(lyricsDraftsTable)
-      .set({ edited_text: editedText })
-      .where(eq(lyricsDraftsTable.id, draftId))
 
-    revalidatePath('/create-lyrics/[requestId]')
-    return { success: true }
-  } catch (error) {
-    console.error('Error saving lyrics draft:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to save draft' }
-  }
-}
 
 // Approve lyrics
 export async function approveLyricsAction(draftId: number, requestId: number) {
@@ -380,30 +225,7 @@ export async function approveLyricsAction(draftId: number, requestId: number) {
   }
 }
 
-// Get lyrics drafts for a request
-export async function getLyricsDraftsAction(requestId: number): Promise<LyricsDraft[]> {
-  try {
-    const drafts = await db
-      .select()
-      .from(lyricsDraftsTable)
-      .where(eq(lyricsDraftsTable.song_request_id, requestId))
-      .orderBy(desc(lyricsDraftsTable.version))
 
-    return drafts.map(draft => ({
-      ...draft,
-      language: draft.language || [],
-      tone: draft.tone || [],
-      length_hint: (draft.length_hint as 'short' | 'standard' | 'long') || 'standard',
-      edited_text: draft.edited_text || undefined,
-      status: draft.status as 'draft' | 'needs_review' | 'approved' | 'archived',
-      created_at: draft.created_at.toISOString(),
-      updated_at: draft.updated_at.toISOString()
-    })) as LyricsDraft[]
-  } catch (error) {
-    console.error('Error fetching lyrics drafts:', error)
-    return []
-  }
-}
 
 // Get song request data
 export async function getSongRequestDataAction(requestId: number) {
@@ -447,61 +269,227 @@ export async function createSongFromLyricsAction(requestId: number) {
       throw new Error('No approved lyrics found')
     }
 
-    // Generate slug
-    const timestamp = Date.now()
-    const randomSuffix = Math.random().toString(36).substring(2, 8)
-    const slug = `${request[0].recipient_name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+    // Check if song already exists for this request
+    const existingSongs = await db
+      .select()
+      .from(songsTable)
+      .where(eq(songsTable.song_request_id, requestId))
+      .limit(1)
 
-    // Create song record
-    const [song] = await db
-      .insert(songsTable)
-      .values({
-        song_request_id: requestId,
-        user_id: request[0].user_id || 1, // Use request user_id or default to 1
-        title: `Song for ${request[0].recipient_name}`,
-        lyrics: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
-        music_style: 'Personal',
-        service_provider: 'Suno',
-        song_requester: request[0].requester_name,
-        prompt: `Personalized song for ${request[0].recipient_name} - ${request[0].recipient_relationship}`,
-        slug,
-        status: 'processing',
-        approved_lyrics_id: approvedLyrics[0].id,
-        metadata: {
-          original_request_id: requestId
-        }
-      })
-      .returning()
+    let song
+    if (existingSongs.length > 0) {
+      // Update existing song
+      song = existingSongs[0]
+      console.log('🎵 Updating existing song:', song.id)
 
-    // Start Suno job
-    console.log('🎵 Starting Suno job for song creation...');
+      await db
+        .update(songsTable)
+        .set({
+          lyrics: approvedLyrics[0].generated_text,
+          music_style: 'Personal',
+          service_provider: 'Suno',
+          song_requester: request[0].requester_name,
+          prompt: `Personalized song for ${request[0].recipient_details}`,
+          status: 'processing',
+          approved_lyrics_id: approvedLyrics[0].id,
+          metadata: {
+            original_request_id: requestId
+          }
+        })
+        .where(eq(songsTable.id, song.id))
+    } else {
+      // Create new song record
+      const timestamp = Date.now()
+      const randomSuffix = Math.random().toString(36).substring(2, 8)
+      const slug = `${request[0].recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+
+      const [newSong] = await db
+        .insert(songsTable)
+        .values({
+          song_request_id: requestId,
+          user_id: request[0].user_id || 1, // Use request user_id or default to 1
+          title: `Song for ${request[0].recipient_details}`,
+          lyrics: approvedLyrics[0].generated_text,
+          music_style: 'Personal',
+          service_provider: 'Suno',
+          song_requester: request[0].requester_name,
+          prompt: `Personalized song for ${request[0].recipient_details}`,
+          slug,
+          status: 'processing',
+          approved_lyrics_id: approvedLyrics[0].id,
+          metadata: {
+            original_request_id: requestId
+          }
+        })
+        .returning()
+
+      song = newSong
+      console.log('🎵 Created new song:', song.id)
+    }
+
+    // Check for demo mode
+    const isDemoMode = process.env.DEMO_MODE === 'true';
+
+    if (isDemoMode) {
+      console.log('🎭 DEMO MODE: Using mock Suno responses instead of real API calls');
+
+      // Generate mock task IDs for demo mode
+      const mockTaskIds = [
+        `demo-task-${Date.now()}-1`,
+        `demo-task-${Date.now()}-2`
+      ];
+
+      const variants = [
+        { style: 'Personal', title: `${request[0].recipient_details}'s Song - Version 1` },
+        { style: 'Pop', title: `${request[0].recipient_details}'s Song - Version 2` }
+      ];
+
+      const variantsData = mockTaskIds.map((taskId, index) => ({
+        id: `variant-${index}`,
+        taskId,
+        title: variants[index].title,
+        style: variants[index].style,
+        status: 'processing'
+      }));
+
+      // Update song with mock task IDs and variants data
+      await db
+        .update(songsTable)
+        .set({
+          suno_task_id: mockTaskIds[0],
+          suno_variants: variantsData,
+          metadata: {
+            ...(song.metadata || {}),
+            demo_mode: true
+          }
+        })
+        .where(eq(songsTable.id, song.id))
+
+      // Update song request
+      await db
+        .update(songRequestsTable)
+        .set({
+          status: 'processing',
+          generated_song_id: song.id
+        })
+        .where(eq(songRequestsTable.id, requestId))
+
+      revalidatePath('/')
+      return { success: true, taskId: mockTaskIds[0], taskIds: mockTaskIds, demoMode: true }
+    }
+
+    // Start Suno job - Generate 2 variants
+    console.log('🎵 Starting Suno job for song creation with 2 variants...');
     const { SunoAPIFactory } = await import('./suno-api')
     const sunoAPI = SunoAPIFactory.getAPI()
     console.log('🎵 SunoAPI instance:', sunoAPI.constructor.name);
 
-    const sunoResponse = await sunoAPI.generateSong({
-      prompt: approvedLyrics[0].edited_text || approvedLyrics[0].generated_text,
-      style: 'Personal',
-      title: `Song for ${request[0].recipient_name}`,
-      customMode: true,
-      instrumental: false,
-      model: 'V4_5',
-      callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
-    })
+    // Generate 2 variants with different styles
+    const variants = [
+      { style: 'Personal', title: `${request[0].recipient_details}'s Song - Version 1` },
+      { style: 'Pop', title: `${request[0].recipient_details}'s Song - Version 2` }
+    ];
 
-    if (sunoResponse.code !== 0 && sunoResponse.code !== 200) {
-      if (sunoResponse.code === 429) {
-        throw new Error(`Suno API credits insufficient: ${sunoResponse.msg}. Please add credits to your Suno API account.`)
+    const sunoResponses = [];
+    const taskIds = [];
+
+    for (let i = 0; i < variants.length; i++) {
+      const variant = variants[i];
+      console.log(`🎵 Generating variant ${i + 1}: ${variant.style}`);
+
+      try {
+        const sunoResponse = await sunoAPI.generateSong({
+          prompt: approvedLyrics[0].generated_text,
+          style: variant.style,
+          title: variant.title,
+          customMode: true,
+          instrumental: false,
+          model: 'V4_5',
+          callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
+        });
+
+        if (sunoResponse.code !== 0 && sunoResponse.code !== 200) {
+          if (sunoResponse.code === 429) {
+            throw new Error(`Suno API credits insufficient: ${sunoResponse.msg}. Please add credits to your Suno API account.`)
+          }
+          throw new Error(`Suno API error: ${sunoResponse.msg}`)
+        }
+
+        sunoResponses.push(sunoResponse);
+        taskIds.push(sunoResponse.data.taskId);
+      } catch (apiError) {
+        // Check if this is a credit error and fallback to demo mode
+        const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
+        const isCreditError = errorMessage.includes("credits insufficient") ||
+          errorMessage.includes("top up") ||
+          errorMessage.includes("insufficient credits");
+
+        if (isCreditError) {
+          console.log('🎭 Suno API credits insufficient, falling back to demo mode');
+
+          // Fallback to demo mode
+          const mockTaskIds = [
+            `demo-task-${Date.now()}-1`,
+            `demo-task-${Date.now()}-2`
+          ];
+
+          const variantsData = mockTaskIds.map((taskId, index) => ({
+            id: `variant-${index}`,
+            taskId,
+            title: variants[index].title,
+            style: variants[index].style,
+            status: 'processing'
+          }));
+
+          // Update song with mock task IDs and variants data
+          await db
+            .update(songsTable)
+            .set({
+              suno_task_id: mockTaskIds[0],
+              suno_variants: variantsData,
+              metadata: {
+                ...(song.metadata || {}),
+                demo_mode: true,
+                fallback_reason: 'api_credits_insufficient'
+              }
+            })
+            .where(eq(songsTable.id, song.id))
+
+          // Update song request
+          await db
+            .update(songRequestsTable)
+            .set({
+              status: 'processing',
+              generated_song_id: song.id
+            })
+            .where(eq(songRequestsTable.id, requestId))
+
+          revalidatePath('/')
+          return { success: true, taskId: mockTaskIds[0], taskIds: mockTaskIds, demoMode: true, fallback: true }
+        }
+
+        // Re-throw non-credit errors
+        throw apiError;
       }
-      throw new Error(`Suno API error: ${sunoResponse.msg}`)
     }
 
-    const taskId = sunoResponse.data.taskId
+    // Store multiple task IDs and variants info
+    const primaryTaskId = taskIds[0];
+    const variantsData = taskIds.map((taskId, index) => ({
+      id: `variant-${index}`,
+      taskId,
+      title: variants[index].title,
+      style: variants[index].style,
+      status: 'processing'
+    }));
 
-    // Update song with task ID
+    // Update song with primary task ID and variants data
     await db
       .update(songsTable)
-      .set({ suno_task_id: taskId })
+      .set({
+        suno_task_id: primaryTaskId,
+        suno_variants: variantsData
+      })
       .where(eq(songsTable.id, song.id))
 
     // Update song request (suno_task_id moved to songs table)
@@ -514,7 +502,7 @@ export async function createSongFromLyricsAction(requestId: number) {
       .where(eq(songRequestsTable.id, requestId))
 
     revalidatePath('/')
-    return { success: true, taskId }
+    return { success: true, taskId: primaryTaskId, taskIds }
   } catch (error) {
     console.error('Error creating song from lyrics:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Failed to create song' }
@@ -540,11 +528,8 @@ export async function getSongSlugFromIdAction(songId: number): Promise<string | 
 // Check Suno job status
 export async function checkSunoJobStatusAction(taskId: string) {
   try {
-    const { SunoAPIFactory } = await import('./suno-api');
     const { getSongByTaskId, getSongRequestByTaskId } = await import('./db/queries/select');
     const { updateSong, updateSongRequest } = await import('./db/queries/update');
-
-    const sunoAPI = SunoAPIFactory.getAPI();
 
     const song = await getSongByTaskId(taskId);
     let songRequest = null;
@@ -556,6 +541,64 @@ export async function checkSunoJobStatusAction(taskId: string) {
     if (!song && !songRequest) {
       return { success: false, error: 'Song not found for task ID' };
     }
+
+    // Check for demo mode or demo task ID
+    const isDemoMode = process.env.DEMO_MODE === 'true';
+    const isDemoTask = taskId.startsWith('demo-task-');
+
+    if (isDemoMode || isDemoTask) {
+      console.log('🎭 DEMO MODE: Using mock status response for task:', taskId);
+
+      // Simulate processing time - return completed after 2 minutes
+      const taskTimestamp = parseInt(taskId.split('-')[2]);
+      const elapsedTime = Date.now() - taskTimestamp;
+      const isCompleted = elapsedTime > 120000; // 2 minutes
+
+      if (isCompleted) {
+        const demoAudioUrl = 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3';
+
+        if (song) {
+          await updateSong(song.id, {
+            status: 'completed',
+            song_url: demoAudioUrl,
+            duration: 180
+          });
+
+          if (song.metadata && typeof song.metadata === 'object' && 'original_request_id' in song.metadata) {
+            const originalRequestId = song.metadata.original_request_id;
+            if (originalRequestId) {
+              await updateSongRequest(parseInt(originalRequestId.toString()), {
+                status: 'completed'
+              });
+            }
+          }
+        } else if (songRequest) {
+          await updateSongRequest(songRequest.id, {
+            status: 'completed'
+          });
+        }
+
+        return {
+          success: true,
+          status: 'completed',
+          audioUrl: demoAudioUrl,
+          duration: 180,
+          message: 'Demo song generation completed successfully',
+          demoMode: true
+        };
+      } else {
+        return {
+          success: true,
+          status: 'processing',
+          message: 'Demo song is still being generated',
+          demoMode: true
+        };
+      }
+    }
+
+    // Real Suno API call
+    const { SunoAPIFactory } = await import('./suno-api');
+    const sunoAPI = SunoAPIFactory.getAPI();
 
     const statusResponse = await sunoAPI.getRecordInfo(taskId);
 

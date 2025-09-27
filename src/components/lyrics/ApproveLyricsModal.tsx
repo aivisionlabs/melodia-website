@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { LyricsDraft } from '@/types';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { LyricsDraft } from "@/types";
 
 interface ApproveLyricsModalProps {
   draft: LyricsDraft | null;
@@ -12,31 +12,31 @@ interface ApproveLyricsModalProps {
   loading?: boolean;
 }
 
-export function ApproveLyricsModal({ 
-  draft, 
-  isOpen, 
-  onClose, 
-  onApprove, 
-  loading = false 
+export function ApproveLyricsModal({
+  draft,
+  isOpen,
+  onClose,
+  onApprove,
+  loading = false,
 }: ApproveLyricsModalProps) {
   const [isApproving, setIsApproving] = useState(false);
-  
+
   if (!isOpen || !draft) return null;
-  
+
   const handleApprove = async () => {
     setIsApproving(true);
     try {
       await onApprove(draft.id);
       onClose();
     } catch (error) {
-      console.error('Failed to approve lyrics:', error);
+      console.error("Failed to approve lyrics:", error);
     } finally {
       setIsApproving(false);
     }
   };
-  
-  const lyricsText = draft.edited_text || draft.generated_text;
-  
+
+  const lyricsText = draft.generated_text;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
@@ -53,10 +53,11 @@ export function ApproveLyricsModal({
             </button>
           </div>
           <p className="text-gray-600 mt-2">
-            Review and approve the lyrics before creating your song. Once approved, lyrics cannot be changed.
+            Review and approve the lyrics before creating your song. Once
+            approved, lyrics cannot be changed.
           </p>
         </div>
-        
+
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-96">
           {/* Draft Info */}
@@ -69,20 +70,24 @@ export function ApproveLyricsModal({
                 <span className="font-medium">Status:</span> {draft.status}
               </div>
               <div>
-                <span className="font-medium">Languages:</span> {draft.language?.join(', ') || 'Not specified'}
+                <span className="font-medium">Languages:</span>{" "}
+                {draft.language?.join(", ") || "Not specified"}
               </div>
               <div>
-                <span className="font-medium">Tone:</span> {draft.tone?.join(', ') || 'Not specified'}
+                <span className="font-medium">Tone:</span>{" "}
+                {draft.tone?.join(", ") || "Not specified"}
               </div>
               <div>
-                <span className="font-medium">Length:</span> {draft.length_hint || 'Not specified'}
+                <span className="font-medium">Length:</span>{" "}
+                {draft.length_hint || "Not specified"}
               </div>
               <div>
-                <span className="font-medium">Created:</span> {new Date(draft.created_at).toLocaleDateString()}
+                <span className="font-medium">Created:</span>{" "}
+                {new Date(draft.created_at).toLocaleDateString()}
               </div>
             </div>
           </div>
-          
+
           {/* Lyrics Preview */}
           <div>
             <h3 className="font-medium mb-2">Lyrics Preview</h3>
@@ -90,7 +95,7 @@ export function ApproveLyricsModal({
               {lyricsText}
             </div>
           </div>
-          
+
           {/* Warning */}
           <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start">
@@ -106,7 +111,7 @@ export function ApproveLyricsModal({
             </div>
           </div>
         </div>
-        
+
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
           <Button
@@ -121,7 +126,7 @@ export function ApproveLyricsModal({
             disabled={loading || isApproving}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
-            {isApproving ? 'Approving...' : 'Approve Lyrics'}
+            {isApproving ? "Approving..." : "Approve Lyrics"}
           </Button>
         </div>
       </div>

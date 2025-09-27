@@ -18,7 +18,7 @@ export default function CreateSongPage() {
   const [showReviewPopup, setShowReviewPopup] = useState(false);
 
   const [requesterName, setRequesterName] = useState("");
-  const [recipientName, setRecipientName] = useState("");
+  const [recipientDetails, setRecipientDetails] = useState("");
   const [occasion, setOccasion] = useState<string>("Birthday");
   const [customOccasion, setCustomOccasion] = useState("");
   const [languages, setLanguages] = useState<string>("English");
@@ -92,15 +92,8 @@ export default function CreateSongPage() {
   };
 
   const handleNext = () => {
-    if (!recipientName.trim()) {
-      setError("Please enter who this song is for.");
-      return;
-    }
-
-    console.log("recipientName", recipientName);
     // Validate recipient name format
-    const namePattern = /\b[A-Za-z\s,]+\b/;
-    if (!namePattern.test(recipientName.trim())) {
+    if (!recipientDetails) {
       setError(
         "Please enter the recipient's name and relationship (e.g., 'Sarah, my best friend' or 'Rohan, my brother')."
       );
@@ -116,12 +109,6 @@ export default function CreateSongPage() {
 
     try {
       // Parse recipient name to extract name and relationship
-      const recipientParts = recipientName
-        .split(",")
-        .map((part) => part.trim());
-      const extractedName = recipientParts[0] || recipientName;
-      const extractedRelationship = recipientParts[1] || "friend";
-
       // Create song request in database
       const createRequestResponse = await fetch("/api/create-song-request", {
         method: "POST",
@@ -130,18 +117,11 @@ export default function CreateSongPage() {
         },
         body: JSON.stringify({
           requester_name: requesterName || currentUser?.name || "Anonymous",
-          recipient_name: extractedName,
-          recipient_relationship: extractedRelationship,
+          recipient_details: recipientDetails,
           occasion: occasion === "Other" ? customOccasion : occasion,
-          languages: languages
-            .split(",")
-            .map((lang) => lang.trim())
-            .filter(Boolean),
-          song_story: `${
-            moods.includes("Other") && customMood
-              ? customMood
-              : moods.join(", ")
-          } style song. ${story ? `Story: ${story}` : ""}`,
+          languages: languages,
+          song_story: story,
+          mood: moods.includes("Other") ? customMood : moods.join(", "),
           user_id: currentUser?.id || null,
           anonymous_user_id: anonymousUserId || undefined,
         }),
@@ -187,8 +167,6 @@ export default function CreateSongPage() {
     //       requester_name: user?.name || "Anonymous",
     //       email: user?.email || null,
     //       recipient_name: recipientName,
-    //       recipient_relationship:
-    //         occasion === "Other" ? customOccasion || "friend" : occasion,
     //       languages: languages
     //         .split(",")
     //         .map((l) => l.trim())
@@ -289,8 +267,8 @@ export default function CreateSongPage() {
               <input
                 id="to-for"
                 placeholder="Sarah, my best friend"
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
+                value={recipientDetails}
+                onChange={(e) => setRecipientDetails(e.target.value)}
                 className="form-input w-full"
               />
               <p className="text-xs text-melodia-teal opacity-60 mt-2">
@@ -510,7 +488,7 @@ export default function CreateSongPage() {
                 ! We&apos;re creating a{" "}
                 <span className="font-bold">{moods.join(", ")}</span> song in{" "}
                 <span className="font-bold">{languages}</span> for your{" "}
-                <span className="font-bold">{recipientName}</span>, for your{" "}
+                <span className="font-bold">{recipientDetails}</span>, for{" "}
                 <span className="font-bold">
                   {occasion === "Other" ? customOccasion : occasion}
                 </span>

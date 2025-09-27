@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateLyrics } from '@/lib/llm-integration';
 import { db } from '@/lib/db';
-import { songRequestsTable, paymentsTable, lyricsDraftsTable } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { lyricsDraftsTable, songRequestsTable } from '@/lib/db/schema';
+import { generateLyrics } from '@/lib/llm-integration';
 import { getCurrentUser } from '@/lib/user-actions';
+import { desc, eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient_name, languages, song_story, requestId, userId, requester_name, mood, recipient_relationship } = body;
+    const { recipient_details, languages, song_story, requestId, userId, requester_name, mood } = body;
 
     // Validate required fields
-    if (!recipient_name || !languages || languages.length === 0) {
+    if (!recipient_details || !languages || languages.trim().length === 0) {
       return NextResponse.json(
-        { error: true, message: 'Recipient name and languages are required' },
+        { error: true, message: 'Recipient details and languages are required' },
         { status: 400 }
       );
     }
@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Generate lyrics using Gemini API
     const result = await generateLyrics({
-      recipient_name,
-      recipient_relationship,
+      recipient_details: recipient_details,
       languages,
       song_story: song_story || '',
       mood,

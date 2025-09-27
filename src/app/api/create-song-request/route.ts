@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/user-actions';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requester_name, recipient_name, recipient_relationship, occasion, languages, song_story, user_id, anonymous_user_id } = body;
+    const { requester_name, recipient_details, occasion, languages, song_story, user_id, anonymous_user_id } = body;
 
     // Get user IP for rate limiting
     const ip = request.headers.get('x-forwarded-for') ||
@@ -19,8 +19,7 @@ export async function POST(request: NextRequest) {
     // Create song request
     const result = await createSongRequest({
       requester_name,
-      recipient_name,
-      recipient_relationship,
+      recipient_details,
       occasion: occasion || undefined,
       languages,
       mood: undefined,

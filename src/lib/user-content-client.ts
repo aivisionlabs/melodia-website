@@ -3,7 +3,7 @@ export interface UserContentItem {
   id: string;
   type: 'lyrics_draft' | 'song_request' | 'song';
   title: string;
-  recipient_name: string;
+  recipient_details: string;
   status: string;
   created_at: string;
   lyrics?: string;

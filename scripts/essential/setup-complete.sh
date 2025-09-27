@@ -180,18 +180,21 @@ build_project() {
     fi
 }
 
-# Function to run database migrations (if using Drizzle)
-run_migrations() {
-    if [ -f "drizzle.config.ts" ]; then
-        print_status "Running database migrations..."
+# Function to run lyrics_drafts schema migration
+run_lyrics_drafts_migration() {
+    print_status "Running lyrics_drafts schema migration..."
 
-        if npm run db:migrate 2>/dev/null || npm run db:push 2>/dev/null; then
-            print_success "Database migrations completed"
-        else
-            print_warning "Database migrations failed or not configured - continuing with manual setup"
-        fi
+    # Check if the migration file exists
+    if [ ! -f "scripts/maintenance/schema-migration-lyrics-drafts-cleanup.sql" ]; then
+        print_warning "Lyrics drafts migration file not found - skipping migration"
+        return 0
+    fi
+
+    # Execute the migration file
+    if docker exec -i melodia-postgres psql -U postgres -d melodia < scripts/maintenance/schema-migration-lyrics-drafts-cleanup.sql; then
+        print_success "Lyrics drafts schema migration completed"
     else
-        print_status "No Drizzle config found - skipping migrations"
+        print_warning "Lyrics drafts migration failed - continuing with existing schema"
     fi
 }
 
@@ -271,6 +274,9 @@ main() {
 
     # Setup database schema
     setup_database_schema
+
+    # Run lyrics_drafts schema migration
+    run_lyrics_drafts_migration
 
     # Install dependencies
     install_dependencies

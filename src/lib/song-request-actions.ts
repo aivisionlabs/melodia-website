@@ -19,18 +19,15 @@ function validateSongRequestForm(formData: SongRequestFormData): { isValid: bool
     errors.requester_name = 'Name must be at least 2 characters'
   }
 
-  if (!formData.recipient_name?.trim()) {
-    errors.recipient_name = 'Recipient name is required'
-  } else if (formData.recipient_name.length < 3) {
-    errors.recipient_name = 'Recipient name must be at least 3 characters'
+  if (!formData.recipient_details?.trim()) {
+    errors.recipient_details = 'Recipient details are required'
+  } else if (formData.recipient_details.length < 3) {
+    errors.recipient_details = 'Recipient details must be at least 3 characters'
   }
 
-  if (!formData.recipient_relationship?.trim()) {
-    errors.recipient_relationship = 'Relationship is required'
-  }
 
-  if (!formData.languages || formData.languages.length === 0) {
-    errors.languages = 'Please select at least one language'
+  if (!formData.languages || formData.languages.trim().length === 0) {
+    errors.languages = 'Please specify at least one language'
   }
 
   return {
@@ -73,10 +70,9 @@ export async function createSongRequest(
     // Sanitize inputs
     const sanitizedData = {
       requester_name: sanitizeInput(formData.requester_name),
-      recipient_name: sanitizeInput(formData.recipient_name),
-      recipient_relationship: sanitizeInput(formData.recipient_relationship),
+      recipient_details: sanitizeInput(formData.recipient_details),
       occasion: formData.occasion ? sanitizeInput(formData.occasion) : null,
-      languages: formData.languages,
+      languages: sanitizeInput(formData.languages),
       mood: formData.mood || null,
       song_story: formData.song_story ? sanitizeInput(formData.song_story) : null
     }
@@ -86,8 +82,7 @@ export async function createSongRequest(
       user_id: userId || null,
       anonymous_user_id: anonymousUserId || null,
       requester_name: sanitizedData.requester_name,
-      recipient_name: sanitizedData.recipient_name,
-      recipient_relationship: sanitizedData.recipient_relationship,
+      recipient_details: sanitizedData.recipient_details,
       occasion: sanitizedData.occasion || null,
       languages: sanitizedData.languages,
       mood: sanitizedData.mood || null,
@@ -160,8 +155,7 @@ export async function getUserSongRequests(
       id: request.id,
       user_id: request.user_id,
       requester_name: request.requester_name,
-      recipient_name: request.recipient_name,
-      recipient_relationship: request.recipient_relationship,
+      recipient_details: request.recipient_details,
       occasion: request.occasion || undefined,
       languages: request.languages,
       mood: request.mood,

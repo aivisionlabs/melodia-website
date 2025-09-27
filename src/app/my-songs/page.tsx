@@ -70,25 +70,25 @@ export default function MySongsPage() {
       console.log("User ID:", user?.id);
       console.log("Anonymous User ID:", anonymousUserId);
       console.log("User object:", user);
-      
+
       // Use your existing API endpoint to get user content
-      const apiUrl = user?.id 
+      const apiUrl = user?.id
         ? `/api/user-content?userId=${user.id}`
         : `/api/user-content?anonymousUserId=${anonymousUserId}`;
       console.log("API URL:", apiUrl);
-      
+
       const response = await fetch(apiUrl);
       console.log("Response status:", response.status);
       console.log("Response ok:", response.ok);
-      
+
       const result = await response.json();
       console.log("API Response:", result);
-      
+
       if (result.success && result.content) {
         console.log("=== DEBUGGING MY SONGS ===");
         console.log("Total items loaded:", result.content.length);
         console.log("Raw content data:", result.content);
-        
+
         // Show all items with their details
         result.content.forEach((item: UserContentItem, index: number) => {
           console.log(`Item ${index + 1}:`, {
@@ -96,11 +96,11 @@ export default function MySongsPage() {
             type: item.type,
             title: item.title,
             status: item.status,
-            recipient_name: item.recipient_name,
-            has_audio: !!item.audio_url
+            recipient_name: item.recipient_details,
+            has_audio: !!item.audio_url,
           });
         });
-        
+
         // Show ALL content items (songs, lyrics drafts, everything)
         console.log("Showing ALL content items from database...");
         setUserContent(result.content);
@@ -109,7 +109,8 @@ export default function MySongsPage() {
         addToast({
           type: "error",
           title: "Error",
-          message: result.message || "Failed to load your songs. Please try again.",
+          message:
+            result.message || "Failed to load your songs. Please try again.",
         });
       }
     } catch (error) {
@@ -165,7 +166,7 @@ export default function MySongsPage() {
 
     const songForPlayer = {
       title: selectedSongForVariants.title,
-      artist: selectedSongForVariants.recipient_name,
+      // artist: selectedSongForVariants.recipient_details,
       song_url: variant.audioUrl || variant.streamAudioUrl,
       slug: selectedSongForVariants.title.toLowerCase().replace(/\s+/g, "-"),
       lyrics: variantLyrics,
@@ -203,7 +204,7 @@ export default function MySongsPage() {
 
       const songForPlayer = {
         title: item.title,
-        artist: item.recipient_name,
+        // artist: item.recipient_name,
         song_url: item.audio_url,
         slug: item.title.toLowerCase().replace(/\s+/g, "-"),
         lyrics: songLyrics,
@@ -234,7 +235,15 @@ export default function MySongsPage() {
     if (user?.id || anonymousUserId) {
       loadUserContent();
     }
-  }, [user, authLoading, isAuthenticated, anonymousUserId, anonymousLoading, router, loadUserContent]);
+  }, [
+    user,
+    authLoading,
+    isAuthenticated,
+    anonymousUserId,
+    anonymousLoading,
+    router,
+    loadUserContent,
+  ]);
 
   // Refresh data when page becomes visible
   useEffect(() => {
@@ -464,18 +473,18 @@ export default function MySongsPage() {
   const generateAlbumArt = (title: string) => {
     const colors = [
       "bg-gradient-to-br from-blue-400 to-blue-600",
-      "bg-gradient-to-br from-green-400 to-green-600", 
+      "bg-gradient-to-br from-green-400 to-green-600",
       "bg-gradient-to-br from-purple-400 to-purple-600",
       "bg-gradient-to-br from-pink-400 to-pink-600",
       "bg-gradient-to-br from-orange-400 to-orange-600",
       "bg-gradient-to-br from-teal-400 to-teal-600",
     ];
-    
-    const hash = title.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
+
+    const hash = title.split("").reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
     }, 0);
-    
+
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -529,7 +538,8 @@ export default function MySongsPage() {
               No Content Found
             </h3>
             <p className="text-muted-foreground mb-4">
-              No songs or content found in your database. Start by creating your first song!
+              No songs or content found in your database. Start by creating your
+              first song!
             </p>
             <Button
               onClick={() => router.push("/")}
@@ -549,7 +559,11 @@ export default function MySongsPage() {
                 >
                   <div className="flex items-start space-x-4">
                     {/* Album Art */}
-                    <div className={`w-16 h-16 rounded-lg ${generateAlbumArt(item.title)} flex-shrink-0`}>
+                    <div
+                      className={`w-16 h-16 rounded-lg ${generateAlbumArt(
+                        item.title
+                      )} flex-shrink-0`}
+                    >
                       <div className="w-full h-full rounded-lg bg-white/20 flex items-center justify-center">
                         <Music className="w-8 h-8 text-white" />
                       </div>
@@ -561,12 +575,11 @@ export default function MySongsPage() {
                         {item.title}
                       </h3>
                       <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {item.type === "song" 
-                          ? `A personalized song for ${item.recipient_name}`
+                        {item.type === "song"
+                          ? `A personalized song for ${item.recipient_details}`
                           : item.type === "lyrics_draft"
-                          ? `Lyrics draft for ${item.recipient_name}`
-                          : `Song request for ${item.recipient_name}`
-                        }
+                          ? `Lyrics draft for ${item.recipient_details}`
+                          : `Song request for ${item.recipient_details}`}
                       </p>
                       <p className="text-xs text-gray-500 mb-3">
                         Created: {formatDate(item.created_at)}
@@ -577,7 +590,9 @@ export default function MySongsPage() {
                         <button
                           onClick={() => {
                             if (item.request_id) {
-                              router.push(`/lyrics-display?requestId=${item.request_id}`);
+                              router.push(
+                                `/lyrics-display?requestId=${item.request_id}`
+                              );
                             }
                           }}
                           className="text-accent text-sm font-medium hover:text-accent/80"
@@ -591,7 +606,9 @@ export default function MySongsPage() {
                               e.stopPropagation();
                               // Always navigate to lyrics display page when play button is clicked
                               if (item.request_id) {
-                                router.push(`/lyrics-display?requestId=${item.request_id}`);
+                                router.push(
+                                  `/lyrics-display?requestId=${item.request_id}`
+                                );
                               }
                             }}
                             size="sm"

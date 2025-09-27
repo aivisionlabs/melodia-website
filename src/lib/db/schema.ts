@@ -78,10 +78,9 @@ export const songRequestsTable = pgTable('song_requests', {
   anonymous_user_id: uuid('anonymous_user_id'), // For anonymous users
 
   requester_name: text('requester_name').notNull(),
-  recipient_name: text('recipient_name').notNull(),
-  recipient_relationship: text('recipient_relationship').notNull(),
+  recipient_details: text('recipient_details').notNull(),
   occasion: text('occasion'),
-  languages: text('languages').array().notNull(),
+  languages: text('languages').notNull(),
   mood: text('mood').array(),
   song_story: text('song_story'),
   status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
@@ -95,15 +94,9 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull(),
   version: integer('version').notNull().default(1),
-  language: text('language').array(),
-  tone: text('tone').array(),
-  length_hint: text('length_hint'),
-  structure: jsonb('structure'),
-  prompt_input: jsonb('prompt_input'),
+  lyrics_edit_prompt: jsonb('lyrics_edit_prompt'),
   generated_text: text('generated_text').notNull(),
-  edited_text: text('edited_text'),
   status: text('status').notNull().default('draft'),
-  is_approved: boolean('is_approved').default(false), // A clear flag for the final version
   created_by: integer('created_by'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
