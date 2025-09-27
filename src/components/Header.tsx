@@ -68,7 +68,7 @@ const Header = () => {
                 Dashboard
               </Button>
             </Link>
-            <Link href="/create-song-v2">
+            <Link href="/">
               <Button
                 size="sm"
                 className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"

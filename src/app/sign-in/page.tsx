@@ -21,7 +21,7 @@ export default function SignInPage() {
     setError(null);
     const res = await login(email, password);
     setIsSubmitting(false);
-    if (res.success) router.replace("/create-song-v2");
+    if (res.success) router.replace("/");
     else setError(res.error || "Sign in failed");
   };
 

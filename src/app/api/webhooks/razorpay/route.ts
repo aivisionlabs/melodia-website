@@ -152,13 +152,7 @@ async function handlePaymentCaptured(paymentId: number, payment: any) {
     })
     .where(eq(paymentsTable.id, paymentId));
 
-  // Update song request payment status
-  await db
-    .update(songRequestsTable)
-    .set({
-      payment_status: 'paid',
-    })
-    .where(eq(songRequestsTable.payment_id, paymentId));
+  // Payment status is tracked in payments table, no need to update song request
 
   console.log('Payment captured:', paymentId);
 }
@@ -183,13 +177,7 @@ async function handlePaymentFailed(paymentId: number, payment: any) {
     })
     .where(eq(paymentsTable.id, paymentId));
 
-  // Update song request payment status
-  await db
-    .update(songRequestsTable)
-    .set({
-      payment_status: 'failed',
-    })
-    .where(eq(songRequestsTable.payment_id, paymentId));
+  // Payment status is tracked in payments table, no need to update song request
 
   console.log('Payment failed:', paymentId);
 }
@@ -213,13 +201,7 @@ async function handleRefundCreated(paymentId: number, payment: any) {
     })
     .where(eq(paymentsTable.id, paymentId));
 
-  // Update song request payment status
-  await db
-    .update(songRequestsTable)
-    .set({
-      payment_status: 'refunded',
-    })
-    .where(eq(songRequestsTable.payment_id, paymentId));
+  // Payment status is tracked in payments table, no need to update song request
 
   console.log('Refund created:', paymentId);
 }

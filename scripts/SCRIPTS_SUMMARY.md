@@ -9,7 +9,7 @@ This directory has been organized into logical categories for better maintainabi
 ### **Essential Scripts** (`scripts/essential/`)
 **Required for basic setup and operation**
 - **`setup-complete.sh`** - Complete one-command setup from scratch
-- **`setup-complete-database.sql`** - Consolidated database schema (replaces 20+ migration files)
+- **`setup-complete-database.sql`** - Consolidated database schema with all tables (songs, users, song_requests, lyrics_drafts, payments, etc.)
 - **`SETUP_README.md`** - Complete setup documentation
 
 ### **Production Scripts** (`scripts/production/`)
@@ -31,7 +31,9 @@ This directory has been organized into logical categories for better maintainabi
 
 ### **Maintenance Scripts** (`scripts/maintenance/`)
 **For ongoing maintenance and monitoring**
-- **`check-song-requests.mjs`** - Song request monitoring utility
+- **`check-song-requests.mjs`** - Song request monitoring utility (updated for new schema)
+- **`cleanup-song-requests-fields.sql`** - Schema cleanup migration
+- **`add-missing-user-fields.sql`** - Add missing user fields migration
 - **`run-timestamped-lyrics-cleanup.sh`** - Lyrics cleanup utility
 
 ## 🗑️ **Removed Files (20+ files)**
@@ -39,7 +41,7 @@ This directory has been organized into logical categories for better maintainabi
 The following **unnecessary migration scripts** were removed because they're now consolidated in `setup-complete-database.sql`:
 
 - ❌ `add-status-tracking-fields.sql` → ✅ Consolidated
-- ❌ `add-sequence-field.sql` → ✅ Consolidated  
+- ❌ `add-sequence-field.sql` → ✅ Consolidated
 - ❌ `fix-database-schema.sql` → ✅ Consolidated
 - ❌ `migrate-phase6-schema.sql` → ✅ Consolidated
 - ❌ `migrate-user-schema.sql` → ✅ Consolidated
@@ -95,8 +97,8 @@ node scripts/maintenance/check-song-requests.mjs
 - **Production**: 2 files (deployment and migration)
 - **Testing**: 3 files (development testing)
 - **Utilities**: 3 files (content management)
-- **Maintenance**: 2 files (ongoing maintenance)
-- **Total**: 13 files, well-organized
+- **Maintenance**: 4 files (ongoing maintenance and schema migrations)
+- **Total**: 15 files, well-organized
 
 ## 🔄 **Maintenance**
 

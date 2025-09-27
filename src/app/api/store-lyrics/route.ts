@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
         song_request_id: requestId,
         version: 1,
         generated_text: lyrics,
-        edited_text: null,
         status: 'draft'
       })
       .returning({
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
     await db
       .update(songRequestsTable)
       .set({
-        lyrics_status: 'needs_review',
         updated_at: new Date()
       })
       .where(eq(songRequestsTable.id, requestId));

@@ -119,7 +119,6 @@ export interface Database {
           email: string | null
           delivery_preference: 'email' | 'whatsapp' | 'both' | null
           recipient_name: string
-          recipient_relationship: string
           languages: string[]
           person_description: string | null
           song_type: string | null
@@ -139,7 +138,6 @@ export interface Database {
           email?: string | null
           delivery_preference?: 'email' | 'whatsapp' | 'both' | null
           recipient_name: string
-          recipient_relationship: string
           languages: string[]
           person_description?: string | null
           song_type?: string | null
@@ -159,7 +157,6 @@ export interface Database {
           email?: string | null
           delivery_preference?: 'email' | 'whatsapp' | 'both' | null
           recipient_name?: string
-          recipient_relationship?: string
           languages?: string[]
           person_description?: string | null
           song_type?: string | null

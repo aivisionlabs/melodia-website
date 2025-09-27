@@ -156,7 +156,7 @@ export async function GET(
             id: variant.id,
             audioUrl: variant.audioUrl,
             streamAudioUrl: variant.streamAudioUrl,
-            imageUrl: variant.imageUrl,
+            imageUrl: variant.sourceImageUrl,
             prompt: variant.prompt,
             modelName: variant.modelName,
             title: variant.title,

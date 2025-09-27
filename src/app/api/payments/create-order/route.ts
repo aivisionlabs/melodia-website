@@ -74,7 +74,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if payment already exists for this request
-    if (songRequest[0].payment_id) {
+    const existingPayment = await db
+      .select()
+      .from(paymentsTable)
+      .where(eq(paymentsTable.song_request_id, songRequestId))
+      .limit(1);
+
+    if (existingPayment.length > 0) {
       return NextResponse.json(
         { success: false, message: 'Payment already exists for this request' },
         { status: 400 }
@@ -139,14 +145,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Update song request with payment ID
-    await db
-      .update(songRequestsTable)
-      .set({
-        payment_id: payment.id,
-        payment_status: 'pending',
-      })
-      .where(eq(songRequestsTable.id, songRequestId));
+    // Payment record is created, no need to update song request
 
     // Prepare response
     const response: CreateOrderResponse = {

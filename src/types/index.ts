@@ -45,6 +45,8 @@ export interface Song {
   status_check_count?: number | null
   // Payment integration fields
   payment_id?: number | null
+  // Lyrics workflow fields
+  approved_lyrics_id?: number | null
 }
 
 // Public song interface (without sensitive fields)
@@ -81,29 +83,15 @@ export interface SongRequest {
   id: number
   user_id: number | null
   requester_name: string
-  phone_number: string | null
-  email: string | null
-  delivery_preference: 'email' | 'whatsapp' | 'both' | null
-  recipient_name: string
-  recipient_relationship: string
-  languages: string[]
-  person_description: string | null
-  song_type: string | null
-  emotions: string[] | null
-  additional_details: string | null
+  recipient_details: string
+  occasion?: string
+  languages: string
+  mood: string[] | null
+  song_story: string | null
   status: 'pending' | 'processing' | 'completed' | 'failed'
-  suno_task_id: string | null
   generated_song_id: number | null
   created_at: string
   updated_at: string
-  // Phase 6: Lyrics workflow fields
-  lyrics_status: 'pending' | 'generating' | 'needs_review' | 'approved'
-  approved_lyrics_id: number | null
-  lyrics_locked_at: string | null
-  // Payment integration fields
-  payment_id: number | null
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded'
-  payment_required: boolean
 }
 
 // Phase 6: Lyrics-related interfaces
@@ -111,13 +99,8 @@ export interface LyricsDraft {
   id: number
   song_request_id: number
   version: number
-  language: string[]
-  tone: string[]
-  length_hint: 'short' | 'standard' | 'long'
-  structure?: any
-  prompt_input?: any
+  lyrics_edit_prompt?: any
   generated_text: string
-  edited_text?: string
   status: 'draft' | 'needs_review' | 'approved' | 'archived'
   created_by?: number
   created_at: string
@@ -126,54 +109,21 @@ export interface LyricsDraft {
 
 export interface GenerateLyricsParams {
   language: string[]
-  structure?: any
   refineText?: string
 }
 
 // Form data interfaces
 export interface SongRequestFormData {
   requester_name: string
-  phone_number?: string
-  email?: string
-  delivery_preference?: 'email' | 'whatsapp' | 'both'
-  recipient_name: string
-  recipient_relationship: string
-  languages: string[]
-  person_description?: string
-  song_type?: string
-  emotions?: string[]
-  additional_details?: string
+  recipient_details: string
+  occasion?: string
+  languages: string
+  mood?: string[]
+  song_story?: string
 }
 
-// Predefined options for form fields
-export const AVAILABLE_LANGUAGES = [
-  'Hindi',
-  'English', 
-  'Punjabi',
-  'Gujarati',
-  'Marathi',
-  'Bengali',
-  'Tamil',
-  'Telugu',
-  'Kannada',
-  'Malayalam'
-] as const
 
-export const AVAILABLE_EMOTIONS = [
-  'Love',
-  'Passion',
-  'Romance',
-  'Pride',
-  'Apology',
-  'Joy',
-  'Hope',
-  'Energy',
-  'Wonder',
-  'Blues'
-] as const
 
-export type Language = typeof AVAILABLE_LANGUAGES[number]
-export type Emotion = typeof AVAILABLE_EMOTIONS[number]
 
 // Export payment types
 export * from './payment'

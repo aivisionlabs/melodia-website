@@ -42,28 +42,28 @@ print_status "Project directory: $PROJECT_DIR"
 # Function to check prerequisites
 check_prerequisites() {
     print_status "Checking prerequisites..."
-    
+
     # Check if Docker is running
     if ! docker info > /dev/null 2>&1; then
         print_error "Docker is not running. Please start Docker and try again."
         exit 1
     fi
     print_success "Docker is running"
-    
+
     # Check if Node.js is installed
     if ! command -v node &> /dev/null; then
         print_error "Node.js is not installed. Please install Node.js 18+ and try again."
         exit 1
     fi
     print_success "Node.js $(node --version) is installed"
-    
+
     # Check if npm is installed
     if ! command -v npm &> /dev/null; then
         print_error "npm is not installed. Please install npm and try again."
         exit 1
     fi
     print_success "npm $(npm --version) is installed"
-    
+
     # Check if we're in the right directory
     if [ ! -f "$PROJECT_DIR/package.json" ]; then
         print_error "package.json not found. Are you in the correct directory?"
@@ -75,7 +75,7 @@ check_prerequisites() {
 # Function to create production database dump
 create_prod_dump() {
     print_status "Step 1: Creating production database dump..."
-    
+
     if [ -f "$SCRIPT_DIR/create-prod-dump-docker.sh" ]; then
         print_status "Running production database dump script (Docker version)..."
         bash "$SCRIPT_DIR/create-prod-dump-docker.sh"
@@ -92,7 +92,7 @@ create_prod_dump() {
 # Function to setup Docker database
 setup_docker_database() {
     print_status "Step 2: Setting up Docker database..."
-    
+
     if [ -f "$SCRIPT_DIR/setup-database-docker.sh" ]; then
         print_status "Running Docker database setup script..."
         bash "$SCRIPT_DIR/setup-database-docker.sh"
@@ -106,7 +106,7 @@ setup_docker_database() {
 # Function to run database schema updates
 run_schema_updates() {
     print_status "Step 3: Running database schema updates..."
-    
+
     if [ -f "$SCRIPT_DIR/update-database-schema.sh" ]; then
         print_status "Running database schema update script..."
         bash "$SCRIPT_DIR/update-database-schema.sh"
@@ -119,7 +119,7 @@ run_schema_updates() {
 # Function to run essential setup
 run_essential_setup() {
     print_status "Step 4: Running essential database setup..."
-    
+
     if [ -f "$SCRIPT_DIR/essential/setup-complete.sh" ]; then
         print_status "Running essential setup script..."
         bash "$SCRIPT_DIR/essential/setup-complete.sh"
@@ -132,10 +132,10 @@ run_essential_setup() {
 # Function to run payment database setup
 run_payment_setup() {
     print_status "Step 5: Setting up payment database tables..."
-    
+
     if [ -f "$SCRIPT_DIR/payment-database-setup.sql" ]; then
         print_status "Running payment database setup..."
-        
+
         # Check if database container is running
         if docker ps | grep -q "melodia-postgres"; then
             docker exec -i melodia-postgres psql -U postgres -d melodia < "$SCRIPT_DIR/payment-database-setup.sql"
@@ -151,7 +151,7 @@ run_payment_setup() {
 # Function to run maintenance scripts
 run_maintenance_scripts() {
     print_status "Step 6: Running maintenance scripts..."
-    
+
     # Run anonymous user ID script
     if [ -f "$SCRIPT_DIR/maintenance/add-anonymous-user-id.sql" ]; then
         print_status "Adding anonymous user ID column..."
@@ -160,7 +160,7 @@ run_maintenance_scripts() {
             print_success "Anonymous user ID column added"
         fi
     fi
-    
+
     # Run payment columns script
     if [ -f "$SCRIPT_DIR/maintenance/add-payment-columns.sql" ]; then
         print_status "Adding payment columns..."
@@ -174,9 +174,9 @@ run_maintenance_scripts() {
 # Function to install dependencies
 install_dependencies() {
     print_status "Step 7: Installing Node.js dependencies..."
-    
+
     cd "$PROJECT_DIR"
-    
+
     if npm install; then
         print_success "Dependencies installed successfully"
     else
@@ -188,9 +188,9 @@ install_dependencies() {
 # Function to build the project
 build_project() {
     print_status "Step 8: Building the project..."
-    
+
     cd "$PROJECT_DIR"
-    
+
     if npm run build; then
         print_success "Project built successfully"
     else
@@ -202,7 +202,7 @@ build_project() {
 # Function to verify setup
 verify_setup() {
     print_status "Step 9: Verifying setup..."
-    
+
     # Check if database is accessible
     if docker exec melodia-postgres psql -U postgres -d melodia -c "SELECT COUNT(*) FROM admin_users;" >/dev/null 2>&1; then
         print_success "Database connection verified"
@@ -210,9 +210,9 @@ verify_setup() {
         print_error "Database connection verification failed"
         exit 1
     fi
-    
+
     # Check if essential tables exist
-    local tables=("songs" "admin_users" "users" "song_requests" "lyrics_drafts")
+    local tables=("songs" "admin_users" "users" "anonymous_users" "song_requests" "lyrics_drafts")
     for table in "${tables[@]}"; do
         if docker exec melodia-postgres psql -U postgres -d melodia -c "SELECT 1 FROM $table LIMIT 1;" >/dev/null 2>&1; then
             print_success "Table '$table' exists"
@@ -221,7 +221,7 @@ verify_setup() {
             exit 1
         fi
     done
-    
+
     # Check if payment tables exist
     local payment_tables=("payments" "pricing_plans" "payment_webhooks")
     for table in "${payment_tables[@]}"; do
@@ -278,10 +278,10 @@ main() {
     echo -e "${BLUE}    MELODIA COMPLETE PRODUCTION SETUP${NC}"
     echo -e "${BLUE}=====================================================${NC}"
     echo ""
-    
+
     # Check prerequisites
     check_prerequisites
-    
+
     # Ask user if they want to create production dump
     echo ""
     read -p "Do you want to create a production database dump first? (y/n): " CREATE_DUMP
@@ -290,7 +290,7 @@ main() {
     else
         print_status "Skipping production database dump"
     fi
-    
+
     # Run all setup steps
     setup_docker_database
     run_schema_updates
@@ -300,7 +300,7 @@ main() {
     install_dependencies
     build_project
     verify_setup
-    
+
     # Show final status
     show_final_status
 }

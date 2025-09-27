@@ -77,7 +77,7 @@ export async function getSongRequestByTaskId(taskId: string): Promise<any | unde
   const result = await db
     .select()
     .from(songRequestsTable)
-    .where(eq(songRequestsTable.suno_task_id, taskId))
+    .where(eq(songRequestsTable.generated_song_id, parseInt(taskId)))
     .limit(1);
 
   return result[0];

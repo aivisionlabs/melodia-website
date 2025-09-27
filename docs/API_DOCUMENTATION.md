@@ -157,10 +157,8 @@ Melodia is a personalized song generation platform that supports both **register
 {
   "requester_name": "John Doe",
   "email": "john@example.com",
-  "recipient_name": "Sarah, my friend",
-  "recipient_relationship": "friend",
+  "reciepient_details": "Sarah, my friend",
   "languages": ["English"],
-  "additional_details": "She loves pop music and dancing",
   "delivery_preference": "email",
   "user_id": 123, // For registered users
   "anonymous_user_id": "550e8400-e29b-41d4-a716-446655440000" // For anonymous users
@@ -475,8 +473,7 @@ GET /api/user-content?anonymousUserId=550e8400-e29b-41d4-a716-446655440000
       "version": 1,
       "generated_text": "Original lyrics...",
       "edited_text": "Edited lyrics...",
-      "status": "draft",
-      "is_approved": false
+      "status": "draft"
     }
   ]
 }

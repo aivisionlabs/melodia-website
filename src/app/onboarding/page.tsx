@@ -86,7 +86,7 @@ export default function OnboardingPage() {
         localStorage.setItem("onboarding_complete", "true");
 
         // Redirect to create-song-v2
-        router.push("/create-song-v2");
+        router.push("/");
       } else {
         throw new Error("Failed to create anonymous user");
       }
@@ -94,7 +94,7 @@ export default function OnboardingPage() {
       console.error("Error creating anonymous user:", error);
       // Still redirect to create-song-v2 even if anonymous user creation fails
       localStorage.setItem("onboarding_complete", "true");
-      router.push("/create-song-v2");
+      router.push("/");
     } finally {
       setIsCreatingUser(false);
     }

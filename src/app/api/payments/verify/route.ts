@@ -113,13 +113,7 @@ export async function POST(request: NextRequest) {
       .where(eq(paymentsTable.id, payment[0].id))
       .returning();
 
-    // Update song request payment status
-    await db
-      .update(songRequestsTable)
-      .set({
-        payment_status: paymentStatus === 'completed' ? 'paid' : 'failed',
-      })
-      .where(eq(songRequestsTable.payment_id, payment[0].id));
+    // Payment status is tracked in payments table, no need to update song request
 
     // If payment is completed, update any associated songs
     if (paymentStatus === 'completed') {

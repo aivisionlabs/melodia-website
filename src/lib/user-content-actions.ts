@@ -6,7 +6,7 @@ export interface UserContentItem {
   id: string;
   type: 'lyrics_draft' | 'song_request' | 'song';
   title: string;
-  recipient_name: string;
+  recipient_details: string;
   status: string;
   created_at: string;
   lyrics?: string;
@@ -81,14 +81,14 @@ export async function getUserContent(
             id: `song-${song[0].id}`,
             type: 'song',
             title: song[0].title,
-            recipient_name: request.recipient_name,
+            recipient_details: request.recipient_details,
             status: song[0].status || 'draft',
             created_at: song[0].created_at.toISOString(),
             lyrics: song[0].lyrics || undefined,
             audio_url: song[0].song_url || undefined,
             request_id: request.id,
             song_id: song[0].id,
-            suno_task_id: song[0].suno_task_id || undefined,
+            suno_task_id: song[0].suno_task_id || undefined, // suno_task_id is now in songs table
             variants: Array.isArray(song[0].suno_variants) ? song[0].suno_variants : undefined,
             selected_variant: song[0].selected_variant || 0,
             timestamped_lyrics_variants: song[0].timestamped_lyrics_variants as { [variantIndex: number]: any[] } | undefined,
@@ -109,11 +109,11 @@ export async function getUserContent(
           content.push({
             id: `lyrics-${latestDraft[0].id}`,
             type: 'lyrics_draft',
-            title: `Lyrics for ${request.recipient_name}`,
-            recipient_name: request.recipient_name,
+            title: `Lyrics for ${request.recipient_details}`,
+            recipient_details: request.recipient_details,
             status: latestDraft[0].status,
             created_at: latestDraft[0].created_at.toISOString(),
-            lyrics: latestDraft[0].edited_text || latestDraft[0].generated_text || undefined,
+            lyrics: latestDraft[0].generated_text || undefined,
             request_id: request.id,
             lyrics_draft_id: latestDraft[0].id
           });
@@ -122,8 +122,8 @@ export async function getUserContent(
           content.push({
             id: `request-${request.id}`,
             type: 'song_request',
-            title: `Song Request for ${request.recipient_name}`,
-            recipient_name: request.recipient_name,
+            title: `Song Request for ${request.recipient_details}`,
+            recipient_details: request.recipient_details,
             status: request.status || 'pending',
             created_at: request.created_at.toISOString(),
             request_id: request.id

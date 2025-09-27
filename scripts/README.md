@@ -42,10 +42,18 @@ docker exec -it melodia-postgres psql -U postgres -d melodia
 
 ### **Missing Columns Added:**
 - `song_requests.anonymous_user_id` (UUID) - For anonymous user tracking
-- `lyrics_drafts.is_approved` (BOOLEAN) - For lyrics approval workflow
+- `lyrics_drafts.lyrics_edit_prompt` (JSONB) - Renamed from prompt_input, stores user edit prompts
 - `songs.song_request_id` (INTEGER, UNIQUE) - Link songs to requests
 - `songs.song_url_variant_1` (TEXT) - First song variant URL
 - `songs.song_url_variant_2` (TEXT) - Second song variant URL
+
+### **Columns Removed from lyrics_drafts:**
+- `structure` - Unused JSONB field
+- `length_hint` - Unused text field
+- `is_approved` - Replaced by status field
+- `edited_text` - Replaced by updating generated_text
+- `tone` - Unused array field
+- `language` - Unused array field
 
 ### **New Tables Created:**
 - `anonymous_users` - Track anonymous user sessions
@@ -132,13 +140,13 @@ After running the schema update, verify everything is working:
 
 ```sql
 -- Check all tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' 
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
 ORDER BY table_name;
 
 -- Check all columns exist
-SELECT table_name, column_name, data_type 
-FROM information_schema.columns 
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
 WHERE table_name IN ('song_requests', 'lyrics_drafts', 'songs', 'payments')
 ORDER BY table_name, column_name;
 

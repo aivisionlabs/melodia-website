@@ -28,6 +28,7 @@ export const songsTable = pgTable('songs', {
   song_url_variant_1: text('song_url_variant_1'),
   song_url_variant_2: text('song_url_variant_2'),
   metadata: jsonb('metadata'), // For storing provider-specific data like suno_task_id, etc.
+  approved_lyrics_id: integer('approved_lyrics_id'), // Reference to the approved lyrics draft
 
   // Legacy fields for backward compatibility (to be removed in future migration)
   timestamp_lyrics: jsonb('timestamp_lyrics'),
@@ -42,7 +43,7 @@ export const songsTable = pgTable('songs', {
   categories: text('categories').array(),
   tags: text('tags').array(),
   suno_task_id: text('suno_task_id'),
-  add_to_library: boolean('add_to_library'),
+  add_to_library: boolean('add_to_library').default(false),
   is_deleted: boolean('is_deleted'),
   negative_tags: text('negative_tags'),
   suno_variants: jsonb('suno_variants'),
@@ -77,29 +78,15 @@ export const songRequestsTable = pgTable('song_requests', {
   anonymous_user_id: uuid('anonymous_user_id'), // For anonymous users
 
   requester_name: text('requester_name').notNull(),
-  phone_number: text('phone_number'),
-  email: text('email'),
-  delivery_preference: text('delivery_preference'), // 'email', 'whatsapp', 'both'
-  recipient_name: text('recipient_name').notNull(),
-  recipient_relationship: text('recipient_relationship').notNull(),
-  languages: text('languages').array().notNull(),
-  person_description: text('person_description'),
-  song_type: text('song_type'),
-  emotions: text('emotions').array(),
-  additional_details: text('additional_details'),
+  recipient_details: text('recipient_details').notNull(),
+  occasion: text('occasion'),
+  languages: text('languages').notNull(),
+  mood: text('mood').array(),
+  song_story: text('song_story'),
   status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
-  suno_task_id: text('suno_task_id'),
   generated_song_id: integer('generated_song_id'), // Add foreign key reference
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
-  // Phase 6: Lyrics workflow fields
-  lyrics_status: text('lyrics_status').default('pending'),
-  approved_lyrics_id: integer('approved_lyrics_id'),
-  lyrics_locked_at: timestamp('lyrics_locked_at'),
-  // Payment integration fields
-  payment_id: integer('payment_id'), // Will be properly referenced later
-  payment_status: text('payment_status').default('pending'),
-  payment_required: boolean('payment_required').default(true),
 });
 
 // Phase 6: Lyrics drafts table
@@ -107,15 +94,9 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull(),
   version: integer('version').notNull().default(1),
-  language: text('language').array(),
-  tone: text('tone').array(),
-  length_hint: text('length_hint'),
-  structure: jsonb('structure'),
-  prompt_input: jsonb('prompt_input'),
+  lyrics_edit_prompt: jsonb('lyrics_edit_prompt'),
   generated_text: text('generated_text').notNull(),
-  edited_text: text('edited_text'),
   status: text('status').notNull().default('draft'),
-  is_approved: boolean('is_approved').default(false), // A clear flag for the final version
   created_by: integer('created_by'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),

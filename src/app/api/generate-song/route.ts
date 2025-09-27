@@ -7,9 +7,9 @@ import { getCurrentUser } from '@/lib/user-actions'
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, lyrics, style, recipient_name, requestId, demoMode, userId, anonymousUserId } = await request.json()
+    const { title, lyrics, style, recipient_details, requestId, demoMode, userId, anonymousUserId } = await request.json()
 
-    console.log('Received request:', { title, lyrics: lyrics?.substring(0, 100) + '...', style, recipient_name, demoMode })
+    console.log('Received request:', { title, lyrics: lyrics?.substring(0, 100) + '...', style, recipient_details, demoMode })
 
     if (!title || !lyrics || !style) {
       console.log('Missing required fields:', { title: !!title, lyrics: !!lyrics, style: !!style })
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (requestId) {
       // Get user ID from request body or try authentication
       let currentUser = null;
-      
+
       if (userId) {
         // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
       if (!demoMode) {
         // Check if this is an anonymous user request
         console.log('Authorization check:', {
-        anonymousUserId,
-        dbAnonymousUserId: songRequest[0].anonymous_user_id,
-        currentUser,
-        dbUserId: songRequest[0].user_id
-      });
-        
+          anonymousUserId,
+          dbAnonymousUserId: songRequest[0].anonymous_user_id,
+          currentUser,
+          dbUserId: songRequest[0].user_id
+        });
+
         if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
           // Anonymous user owns this request - allow access
           currentUser = { id: null, anonymousUserId } as any;
@@ -88,32 +88,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Check payment status only if payment is required and not in demo mode
-      if (!demoMode && songRequest[0].payment_required) {
-        if (songRequest[0].payment_id) {
-          const payment = await db
-            .select()
-            .from(paymentsTable)
-            .where(eq(paymentsTable.id, songRequest[0].payment_id))
-            .limit(1);
+      if (!demoMode) {
+        // Check if there's a completed payment for this song request
+        const payment = await db
+          .select()
+          .from(paymentsTable)
+          .where(eq(paymentsTable.song_request_id, requestId))
+          .limit(1);
 
-          if (payment.length === 0 || payment[0].status !== 'completed') {
-            return NextResponse.json(
-              { 
-                error: true, 
-                message: 'Payment required',
-                requiresPayment: true,
-                paymentStatus: payment[0]?.status || 'pending'
-              },
-              { status: 402 }
-            );
-          }
-        } else {
-          // No payment associated with this request
+        if (payment.length === 0 || payment[0].status !== 'completed') {
           return NextResponse.json(
-            { 
-              error: true, 
+            {
+              error: true,
               message: 'Payment required',
-              requiresPayment: true
+              requiresPayment: true,
+              paymentStatus: payment[0]?.status || 'pending'
             },
             { status: 402 }
           );
@@ -123,15 +112,15 @@ export async function POST(request: NextRequest) {
       // Demo mode - return mock response without hitting real APIs
       if (demoMode) {
         console.log('🎭 DEMO MODE: Using mock response instead of real Suno API')
-        
+
         const mockTaskId = `demo-task-${Date.now()}`
-        
+
         // Still create song record in database for testing
         let songId: number | null = null
         try {
           const timestamp = Date.now()
           const randomSuffix = Math.random().toString(36).substring(2, 8)
-          const slug = `${recipient_name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+          const slug = `${recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
 
           const [song] = await db
             .insert(songsTable)
@@ -142,8 +131,8 @@ export async function POST(request: NextRequest) {
               lyrics,
               music_style: style,
               service_provider: 'Suno',
-              song_requester: recipient_name,
-              prompt: `Personalized song for ${recipient_name}`,
+              song_requester: recipient_details,
+              prompt: `Personalized song for ${recipient_details}`,
               slug,
               status: 'processing',
               suno_task_id: mockTaskId,
@@ -161,7 +150,6 @@ export async function POST(request: NextRequest) {
             .update(songRequestsTable)
             .set({
               status: 'processing',
-              suno_task_id: mockTaskId,
               generated_song_id: songId
             })
             .where(eq(songRequestsTable.id, requestId))
@@ -188,19 +176,24 @@ export async function POST(request: NextRequest) {
       const sunoAPI = SunoAPIFactory.getAPI()
       console.log('SunoAPI initialized:', typeof sunoAPI)
 
+      // Truncate style to max 200 characters for Suno API
+      const truncatedStyle = style.length > 200 ? style.substring(0, 197) + '...' : style
+      console.log('Original style length:', style.length)
+      console.log('Truncated style length:', truncatedStyle.length)
+
       // Generate song
       const generateRequest = {
         prompt,
-        style,
+        style: truncatedStyle,
         title,
         customMode: true,
         instrumental: false,
-        model: 'V4',  
+        model: 'V4',
         callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
       }
-      
+
       console.log('Sending request to Suno API:', generateRequest)
-      
+
       let generateResponse;
       try {
         generateResponse = await sunoAPI.generateSong(generateRequest)
@@ -213,38 +206,97 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Check if the response has an error
+      if (generateResponse.code !== 0 && generateResponse.code !== 200) {
+        console.error('Suno API returned error:', generateResponse)
+        return NextResponse.json(
+          {
+            error: true,
+            message: generateResponse.msg || 'Suno API returned an error',
+            code: generateResponse.code
+          },
+          { status: 400 }
+        )
+      }
+
+      // Check if we have valid data
+      if (!generateResponse.data || !generateResponse.data.taskId) {
+        console.error('Invalid response from Suno API:', generateResponse)
+        return NextResponse.json(
+          { error: true, message: 'Invalid response from Suno API - no task ID received' },
+          { status: 500 }
+        )
+      }
+
       const taskId = generateResponse.data.taskId
       console.log('Generated task ID:', taskId)
 
-      // Create song record in database
+      // Create or update song record in database
       let songId: number | null = null
       if (requestId) {
         try {
-          const timestamp = Date.now()
-          const randomSuffix = Math.random().toString(36).substring(2, 8)
-          const slug = `${recipient_name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+          // Check if song already exists for this request
+          const existingSongs = await db
+            .select()
+            .from(songsTable)
+            .where(eq(songsTable.song_request_id, requestId))
+            .limit(1)
 
-          const [song] = await db
-            .insert(songsTable)
-            .values({
-              song_request_id: requestId,
-              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
-              title,
-              lyrics,
-              music_style: style,
-              service_provider: 'Suno',
-              song_requester: recipient_name,
-              prompt: `Personalized song for ${recipient_name}`,
-              slug,
-              status: 'processing',
-              suno_task_id: taskId,
-              metadata: {
-                original_request_id: requestId,
-                demo_mode: false,
-                anonymous_user_id: currentUser.anonymousUserId || null
-              }
-            })
-            .returning({ id: songsTable.id })
+          let song
+          if (existingSongs.length > 0) {
+            // Update existing song
+            song = existingSongs[0]
+            console.log('🎵 Updating existing song:', song.id)
+
+            await db
+              .update(songsTable)
+              .set({
+                title,
+                lyrics,
+                music_style: style,
+                service_provider: 'Suno',
+                song_requester: recipient_details,
+                prompt: `Personalized song for ${recipient_details}`,
+                status: 'processing',
+                suno_task_id: taskId,
+                metadata: {
+                  original_request_id: requestId,
+                  demo_mode: false,
+                  anonymous_user_id: currentUser.anonymousUserId || null
+                }
+              })
+              .where(eq(songsTable.id, song.id))
+          } else {
+            // Create new song record
+            const timestamp = Date.now()
+            const randomSuffix = Math.random().toString(36).substring(2, 8)
+            const slug = `${recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+
+            const [newSong] = await db
+              .insert(songsTable)
+              .values({
+                song_request_id: requestId,
+                user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
+                title,
+                lyrics,
+                music_style: style,
+                service_provider: 'Suno',
+                song_requester: recipient_details,
+                prompt: `Personalized song for ${recipient_details}`,
+                slug,
+                status: 'processing',
+                suno_task_id: taskId,
+                metadata: {
+                  original_request_id: requestId,
+                  demo_mode: false,
+                  anonymous_user_id: currentUser.anonymousUserId || null
+                }
+              })
+              .returning({ id: songsTable.id })
+
+            song = newSong
+            console.log('🎵 Created new song:', song.id)
+          }
 
           songId = song.id
 
@@ -252,12 +304,11 @@ export async function POST(request: NextRequest) {
             .update(songRequestsTable)
             .set({
               status: 'processing',
-              suno_task_id: taskId,
               generated_song_id: songId
             })
             .where(eq(songRequestsTable.id, requestId))
 
-          console.log('Song created in database:', { songId, taskId })
+          console.log('Song processed in database:', { songId, taskId })
         } catch (dbError) {
           console.error('Database error:', dbError)
           // Continue with response even if DB update fails
