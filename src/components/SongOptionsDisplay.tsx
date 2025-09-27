@@ -26,6 +26,7 @@ interface SongOptionsDisplayProps {
     suno_task_id?: string;
     title: string;
     artist?: string;
+    songId?: number; // Add song ID for updating add_to_library
   };
 }
 
@@ -145,11 +146,45 @@ export default function SongOptionsDisplay({
     document.body.removeChild(link);
   };
 
+  const updateAddToLibrary = async (addToLibrary: boolean) => {
+    if (!songData?.songId) {
+      console.warn('No song ID available to update add_to_library');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/song/update-library', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          songId: songData.songId,
+          addToLibrary: addToLibrary
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Successfully updated add_to_library:', result);
+      } else {
+        console.error('Failed to update add_to_library:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error updating add_to_library:', error);
+    }
+  };
+
   const handleShareToggle = (variantId: string) => {
+    const newShareState = !sharePublicly[variantId];
+    
     setSharePublicly(prev => ({
       ...prev,
-      [variantId]: !prev[variantId]
+      [variantId]: newShareState
     }));
+
+    // Update add_to_library field in database
+    updateAddToLibrary(newShareState);
   };
 
   const handleEmailChange = (variantId: string, email: string) => {

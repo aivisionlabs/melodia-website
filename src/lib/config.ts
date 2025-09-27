@@ -17,7 +17,7 @@ export const SUNO_CONFIG = {
 
 // Configuration for Gemini API (Lyrics Generation)
 export const GEMINI_CONFIG = {
-  API_TOKEN: 'AIzaSyA86q8wbENrjMIB7Ufyqxgi9nZ20AKoObw',
+  API_TOKEN: 'AIzaSyDDDsLgpJhrlq5ok7kJ6PHQbjsrkSmJoy0',
   API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
   GENERATION_CONFIG: {
     temperature: 0.8,

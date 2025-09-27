@@ -43,7 +43,7 @@ export const songsTable = pgTable('songs', {
   categories: text('categories').array(),
   tags: text('tags').array(),
   suno_task_id: text('suno_task_id'),
-  add_to_library: boolean('add_to_library'),
+  add_to_library: boolean('add_to_library').default(false),
   is_deleted: boolean('is_deleted'),
   negative_tags: text('negative_tags'),
   suno_variants: jsonb('suno_variants'),

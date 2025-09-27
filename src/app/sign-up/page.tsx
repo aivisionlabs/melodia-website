@@ -28,7 +28,7 @@ export default function SignUpPage() {
     }
     const res = await register(email, password, name);
     setIsSubmitting(false);
-    if (res.success) router.replace("/create-song-v2");
+    if (res.success) router.replace("/");
     else setError(res.error || "Sign up failed");
   };
 

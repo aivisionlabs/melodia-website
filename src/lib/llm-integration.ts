@@ -89,7 +89,7 @@ Create a song using ONLY these inputs. Do not add extra words or descriptions.`;
   try {
     // Call Gemini API directly
     const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-    const GEMINI_API_TOKEN = 'AIzaSyDDDsLgpJhrlq5ok7kJ6PHQbjsrkSmJoy0';
+    const GEMINI_API_TOKEN = 'AIzaSyA86q8wbENrjMIB7Ufyqxgi9nZ20AKoObw';
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_TOKEN}`, {
       method: 'POST',
