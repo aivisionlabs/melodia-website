@@ -126,7 +126,6 @@ export async function POST(request: NextRequest) {
             .insert(songsTable)
             .values({
               song_request_id: requestId,
-              user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
               title,
               lyrics,
               music_style: style,
@@ -149,8 +148,7 @@ export async function POST(request: NextRequest) {
           await db
             .update(songRequestsTable)
             .set({
-              status: 'processing',
-              generated_song_id: songId
+              status: 'processing'
             })
             .where(eq(songRequestsTable.id, requestId))
 
@@ -276,7 +274,6 @@ export async function POST(request: NextRequest) {
               .insert(songsTable)
               .values({
                 song_request_id: requestId,
-                user_id: currentUser.id || 1, // Use fallback user_id for anonymous users
                 title,
                 lyrics,
                 music_style: style,
@@ -303,8 +300,7 @@ export async function POST(request: NextRequest) {
           await db
             .update(songRequestsTable)
             .set({
-              status: 'processing',
-              generated_song_id: songId
+              status: 'processing'
             })
             .where(eq(songRequestsTable.id, requestId))
 

@@ -74,12 +74,10 @@ export async function POST(request: NextRequest) {
       .values({
         song_request_id: requestId,
         version: newVersion,
-        lyrics_edit_prompt: {
-          recipient_name: recipient_details,
-          languages,
-          refineText: null
-        },
+        lyrics_edit_prompt: null,
         generated_text: generatedResponse.lyrics || '',
+        song_title: generatedResponse.title,
+        music_style: generatedResponse.styleOfMusic,
         status: 'draft'
       })
       .returning();

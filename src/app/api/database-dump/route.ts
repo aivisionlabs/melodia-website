@@ -125,7 +125,6 @@ function getTableSchema(tableName: string): string {
         mood TEXT[],
         song_story TEXT,
         status TEXT DEFAULT 'pending',
-        generated_song_id INTEGER,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         anonymous_user_id UUID
@@ -134,7 +133,6 @@ function getTableSchema(tableName: string): string {
       CREATE TABLE IF NOT EXISTS songs (
         id SERIAL PRIMARY KEY,
         song_request_id INTEGER,
-        user_id INTEGER,
         title TEXT NOT NULL,
         lyrics TEXT NOT NULL,
         music_style TEXT,
@@ -157,7 +155,7 @@ function getTableSchema(tableName: string): string {
         id SERIAL PRIMARY KEY,
         song_request_id INTEGER NOT NULL,
         version INTEGER NOT NULL,
-        lyrics_edit_prompt JSONB,
+        lyrics_edit_prompt TEXT,
         generated_text TEXT,
         status TEXT DEFAULT 'draft',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

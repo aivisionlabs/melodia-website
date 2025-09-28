@@ -134,7 +134,6 @@ export async function updateSongRequest(
     approved_lyrics_id: number;
     lyrics_locked_at: Date;
     suno_task_id: string;
-    generated_song_id: number;
   }>
 ) {
   try {
@@ -157,7 +156,7 @@ export async function updateSongStatusWithTracking(
   songUrl?: string,
   sunoTaskId?: string
 ) {
-  const updateData: any = { 
+  const updateData: any = {
     status,
     status_checked_at: new Date(),
     last_status_check: new Date()

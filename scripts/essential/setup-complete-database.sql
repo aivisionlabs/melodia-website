@@ -109,8 +109,10 @@ CREATE TABLE IF NOT EXISTS lyrics_drafts (
   id SERIAL PRIMARY KEY,
   song_request_id INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
-  lyrics_edit_prompt JSONB,
+  lyrics_edit_prompt TEXT,
   generated_text TEXT NOT NULL,
+  song_title TEXT,
+  music_style TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
   created_by INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -250,8 +252,10 @@ COMMENT ON COLUMN song_requests.generated_song_id IS 'Reference to the generated
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in Phase 6 workflow';
 COMMENT ON COLUMN lyrics_drafts.song_request_id IS 'Reference to the song request this draft belongs to';
 COMMENT ON COLUMN lyrics_drafts.version IS 'Version number of this draft (increments with each generation)';
-COMMENT ON COLUMN lyrics_drafts.lyrics_edit_prompt IS 'JSON snapshot of the generation request and parameters';
+COMMENT ON COLUMN lyrics_drafts.lyrics_edit_prompt IS 'User edit prompt for lyrics refinement';
 COMMENT ON COLUMN lyrics_drafts.generated_text IS 'The original AI-generated lyrics text';
+COMMENT ON COLUMN lyrics_drafts.song_title IS 'Song title determined by LLM during lyrics generation';
+COMMENT ON COLUMN lyrics_drafts.music_style IS 'Music style determined by LLM during lyrics generation';
 COMMENT ON COLUMN lyrics_drafts.status IS 'Current status: draft, needs_review, approved, archived';
 
 -- Payments table comments

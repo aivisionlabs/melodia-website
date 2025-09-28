@@ -115,7 +115,7 @@ export function LyricsHistory({
                   <p>Created: {formatDate(draft.created_at)}</p>
                 </div>
 
-                {draft.lyrics_edit_prompt?.userEditPrompt && (
+                {draft.lyrics_edit_prompt && (
                   <div className="mt-2 text-xs text-gray-500">
                     <span className="font-medium">✓ User Edited</span>
                   </div>

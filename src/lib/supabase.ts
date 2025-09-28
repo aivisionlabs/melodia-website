@@ -126,7 +126,6 @@ export interface Database {
           additional_details: string | null
           status: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id: string | null
-          generated_song_id: number | null
           created_at: string
           updated_at: string
         }
@@ -145,7 +144,6 @@ export interface Database {
           additional_details?: string | null
           status?: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id?: string | null
-          generated_song_id?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -164,7 +162,6 @@ export interface Database {
           additional_details?: string | null
           status?: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id?: string | null
-          generated_song_id?: number | null
           created_at?: string
           updated_at?: string
         }

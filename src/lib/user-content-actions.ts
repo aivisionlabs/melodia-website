@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { songRequestsTable, lyricsDraftsTable, songsTable } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 
 export interface UserContentItem {
   id: string;
@@ -44,7 +44,7 @@ export async function getUserContent(
       throw new Error('Either userId or anonymousUserId must be provided');
     }
 
-    // Get song requests with their latest lyrics drafts
+    // Get all song requests for the user
     const songRequests = await db
       .select()
       .from(songRequestsTable)
@@ -55,67 +55,86 @@ export async function getUserContent(
       )
       .orderBy(desc(songRequestsTable.created_at));
 
-    for (const request of songRequests) {
-      // If there's a generated song, show only the song (not lyrics draft)
-      if (request.generated_song_id) {
-        const song = await db
-          .select({
-            id: songsTable.id,
-            title: songsTable.title,
-            status: songsTable.status,
-            created_at: songsTable.created_at,
-            lyrics: songsTable.lyrics,
-            song_url: songsTable.song_url,
-            suno_task_id: songsTable.suno_task_id,
-            suno_variants: songsTable.suno_variants,
-            selected_variant: songsTable.selected_variant,
-            timestamped_lyrics_variants: songsTable.timestamped_lyrics_variants,
-            timestamp_lyrics: songsTable.timestamp_lyrics
-          })
-          .from(songsTable)
-          .where(eq(songsTable.id, request.generated_song_id))
-          .limit(1);
+    // Get all songs for these requests in one query
+    const requestIds = songRequests.map(req => req.id);
+    const songs = requestIds.length > 0 ? await db
+      .select({
+        id: songsTable.id,
+        title: songsTable.title,
+        status: songsTable.status,
+        created_at: songsTable.created_at,
+        lyrics: songsTable.lyrics,
+        song_url: songsTable.song_url,
+        suno_task_id: songsTable.suno_task_id,
+        suno_variants: songsTable.suno_variants,
+        selected_variant: songsTable.selected_variant,
+        timestamped_lyrics_variants: songsTable.timestamped_lyrics_variants,
+        timestamp_lyrics: songsTable.timestamp_lyrics,
+        song_request_id: songsTable.song_request_id
+      })
+      .from(songsTable)
+      .where(inArray(songsTable.song_request_id, requestIds)) : [];
 
-        if (song[0]) {
-          content.push({
-            id: `song-${song[0].id}`,
-            type: 'song',
-            title: song[0].title,
-            recipient_details: request.recipient_details,
-            status: song[0].status || 'draft',
-            created_at: song[0].created_at.toISOString(),
-            lyrics: song[0].lyrics || undefined,
-            audio_url: song[0].song_url || undefined,
-            request_id: request.id,
-            song_id: song[0].id,
-            suno_task_id: song[0].suno_task_id || undefined, // suno_task_id is now in songs table
-            variants: Array.isArray(song[0].suno_variants) ? song[0].suno_variants : undefined,
-            selected_variant: song[0].selected_variant || 0,
-            timestamped_lyrics_variants: song[0].timestamped_lyrics_variants as { [variantIndex: number]: any[] } | undefined,
-            timestamp_lyrics: song[0].timestamp_lyrics as any[] | undefined
-          });
-        }
+    // Get all lyrics drafts for these requests in one query
+    const lyricsDrafts = requestIds.length > 0 ? await db
+      .select()
+      .from(lyricsDraftsTable)
+      .where(inArray(lyricsDraftsTable.song_request_id, requestIds))
+      .orderBy(desc(lyricsDraftsTable.version)) : [];
+
+    // Create maps for easy lookup
+    const songsByRequestId = new Map(songs.map(song => [song.song_request_id, song]));
+    const lyricsDraftsByRequestId = new Map<number, any[]>();
+
+    // Group lyrics drafts by request ID and get the latest version for each
+    lyricsDrafts.forEach(draft => {
+      if (!lyricsDraftsByRequestId.has(draft.song_request_id)) {
+        lyricsDraftsByRequestId.set(draft.song_request_id, []);
+      }
+      lyricsDraftsByRequestId.get(draft.song_request_id)!.push(draft);
+    });
+
+    // Process each song request
+    for (const request of songRequests) {
+      const song = songsByRequestId.get(request.id);
+
+      if (song) {
+        // If there's a generated song, show only the song (not lyrics draft)
+        content.push({
+          id: `song-${song.id}`,
+          type: 'song',
+          title: song.title,
+          recipient_details: request.recipient_details,
+          status: song.status || 'draft',
+          created_at: song.created_at.toISOString(),
+          lyrics: song.lyrics || undefined,
+          audio_url: song.song_url || undefined,
+          request_id: request.id,
+          song_id: song.id,
+          suno_task_id: song.suno_task_id || undefined,
+          variants: Array.isArray(song.suno_variants) ? song.suno_variants : undefined,
+          selected_variant: song.selected_variant || 0,
+          timestamped_lyrics_variants: song.timestamped_lyrics_variants as { [variantIndex: number]: any[] } | undefined,
+          timestamp_lyrics: song.timestamp_lyrics as any[] | undefined
+        });
       } else {
         // No generated song yet, show lyrics draft or song request
-        const latestDraft = await db
-          .select()
-          .from(lyricsDraftsTable)
-          .where(eq(lyricsDraftsTable.song_request_id, request.id))
-          .orderBy(desc(lyricsDraftsTable.version))
-          .limit(1);
+        const requestDrafts = lyricsDraftsByRequestId.get(request.id);
 
-        if (latestDraft[0]) {
-          // Add lyrics draft
+        if (requestDrafts && requestDrafts.length > 0) {
+          // Get the latest draft (first in the array since we ordered by version desc)
+          const latestDraft = requestDrafts[0];
+
           content.push({
-            id: `lyrics-${latestDraft[0].id}`,
+            id: `lyrics-${latestDraft.id}`,
             type: 'lyrics_draft',
             title: `Lyrics for ${request.recipient_details}`,
             recipient_details: request.recipient_details,
-            status: latestDraft[0].status,
-            created_at: latestDraft[0].created_at.toISOString(),
-            lyrics: latestDraft[0].generated_text || undefined,
+            status: latestDraft.status,
+            created_at: latestDraft.created_at.toISOString(),
+            lyrics: latestDraft.generated_text || undefined,
             request_id: request.id,
-            lyrics_draft_id: latestDraft[0].id
+            lyrics_draft_id: latestDraft.id
           });
         } else {
           // Add song request without lyrics

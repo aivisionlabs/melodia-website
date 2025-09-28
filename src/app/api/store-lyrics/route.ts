@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
         song_request_id: requestId,
         version: 1,
         generated_text: lyrics,
+        song_title: null, // No title for manually stored lyrics
+        music_style: 'Personal', // Default value for manually stored lyrics
         status: 'draft'
       })
       .returning({

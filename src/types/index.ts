@@ -89,7 +89,6 @@ export interface SongRequest {
   mood: string[] | null
   song_story: string | null
   status: 'pending' | 'processing' | 'completed' | 'failed'
-  generated_song_id: number | null
   created_at: string
   updated_at: string
 }
@@ -99,7 +98,7 @@ export interface LyricsDraft {
   id: number
   song_request_id: number
   version: number
-  lyrics_edit_prompt?: any
+  lyrics_edit_prompt?: string
   generated_text: string
   status: 'draft' | 'needs_review' | 'approved' | 'archived'
   created_by?: number

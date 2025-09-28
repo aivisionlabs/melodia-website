@@ -38,6 +38,13 @@ The `check-song-requests.mjs` script is particularly useful for:
 
 ## 🗄️ Database Migrations
 
+### Lyrics Edit Prompt Migration
+The `migrate-lyrics-edit-prompt-to-text.sql` migration:
+- Converts `lyrics_edit_prompt` from JSONB to TEXT format
+- Extracts `refineText` and `userEditPrompt` fields from existing JSONB data
+- Updates column comments
+- Provides verification queries
+
 ### Lyrics Drafts Cleanup Migration
 The `schema-migration-lyrics-drafts-cleanup.sql` migration:
 - Renames `prompt_input` column to `lyrics_edit_prompt`

@@ -14,7 +14,6 @@ import {
 export const songsTable = pgTable('songs', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull().unique(), // Each request generates one song record
-  user_id: integer('user_id').notNull(), // Which user ultimately owns this song
 
   created_at: timestamp('created_at').notNull().defaultNow(),
   title: text('title').notNull(),
@@ -29,8 +28,6 @@ export const songsTable = pgTable('songs', {
   song_url_variant_2: text('song_url_variant_2'),
   metadata: jsonb('metadata'), // For storing provider-specific data like suno_task_id, etc.
   approved_lyrics_id: integer('approved_lyrics_id'), // Reference to the approved lyrics draft
-
-  // Legacy fields for backward compatibility (to be removed in future migration)
   timestamp_lyrics: jsonb('timestamp_lyrics'),
   timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants').notNull().default('{}'),
   timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses').notNull().default('{}'),
@@ -84,7 +81,6 @@ export const songRequestsTable = pgTable('song_requests', {
   mood: text('mood').array(),
   song_story: text('song_story'),
   status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
-  generated_song_id: integer('generated_song_id'), // Add foreign key reference
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -94,8 +90,10 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull(),
   version: integer('version').notNull().default(1),
-  lyrics_edit_prompt: jsonb('lyrics_edit_prompt'),
+  lyrics_edit_prompt: text('lyrics_edit_prompt'),
   generated_text: text('generated_text').notNull(),
+  song_title: text('song_title'),
+  music_style: text('music_style'),
   status: text('status').notNull().default('draft'),
   created_by: integer('created_by'),
   created_at: timestamp('created_at').notNull().defaultNow(),

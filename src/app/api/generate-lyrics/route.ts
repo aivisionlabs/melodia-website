@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
           .values({
             song_request_id: requestId,
             version: newVersion,
-            language: languages,
             generated_text: result.lyrics || '',
+            song_title: result.title,
+            music_style: result.styleOfMusic,
             status: 'draft'
           })
           .returning();

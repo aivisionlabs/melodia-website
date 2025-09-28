@@ -1,6 +1,5 @@
 'use server'
 
-import { GenerateLyricsParams } from '@/types'
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { config } from './config'
@@ -18,7 +17,7 @@ function buildRefinementPromptWithHistory(currentLyrics: string, refineText: str
     versionHistory = '\n\nVersion History Context:\n';
     allDrafts.forEach((draft) => {
       const versionInfo = `Version ${draft.version}:`;
-      const promptInfo = draft.lyrics_edit_prompt?.refineText ? `Refinement: "${draft.lyrics_edit_prompt.refineText}"` : 'Initial generation';
+      const promptInfo = draft.lyrics_edit_prompt ? `Refinement: "${draft.lyrics_edit_prompt}"` : 'Initial generation';
       versionHistory += `${versionInfo} ${promptInfo}\n`;
     });
     versionHistory += '\nThis shows the evolution of the lyrics. Please maintain the context and improvements from all previous versions.';
@@ -92,8 +91,10 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
         .values({
           song_request_id: requestId,
           version: latestDraft.version + 1,
-          lyrics_edit_prompt: { refineText },
+          lyrics_edit_prompt: refineText,
           generated_text: mockRefinedText,
+          song_title: latestDraft.song_title,
+          music_style: latestDraft.music_style,
           status: 'draft'
         })
         .returning()
@@ -188,8 +189,10 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
       .values({
         song_request_id: requestId,
         version: latestDraft.version + 1,
-        lyrics_edit_prompt: { refineText },
+        lyrics_edit_prompt: refineText,
         generated_text: refinedText,
+        song_title: latestDraft.song_title,
+        music_style: latestDraft.music_style,
         status: 'draft'
       })
       .returning()
@@ -285,8 +288,8 @@ export async function createSongFromLyricsAction(requestId: number) {
       await db
         .update(songsTable)
         .set({
+          title: approvedLyrics[0].song_title || `Song for ${request[0].recipient_details}`,
           lyrics: approvedLyrics[0].generated_text,
-          music_style: 'Personal',
           service_provider: 'Suno',
           song_requester: request[0].requester_name,
           prompt: `Personalized song for ${request[0].recipient_details}`,
@@ -307,10 +310,9 @@ export async function createSongFromLyricsAction(requestId: number) {
         .insert(songsTable)
         .values({
           song_request_id: requestId,
-          user_id: request[0].user_id || 1, // Use request user_id or default to 1
-          title: `Song for ${request[0].recipient_details}`,
+          title: approvedLyrics[0].song_title || `Song for ${request[0].recipient_details}`,
           lyrics: approvedLyrics[0].generated_text,
-          music_style: 'Personal',
+          music_style: approvedLyrics[0].music_style,
           service_provider: 'Suno',
           song_requester: request[0].requester_name,
           prompt: `Personalized song for ${request[0].recipient_details}`,
@@ -369,8 +371,7 @@ export async function createSongFromLyricsAction(requestId: number) {
       await db
         .update(songRequestsTable)
         .set({
-          status: 'processing',
-          generated_song_id: song.id
+          status: 'processing'
         })
         .where(eq(songRequestsTable.id, requestId))
 
@@ -459,8 +460,7 @@ export async function createSongFromLyricsAction(requestId: number) {
           await db
             .update(songRequestsTable)
             .set({
-              status: 'processing',
-              generated_song_id: song.id
+              status: 'processing'
             })
             .where(eq(songRequestsTable.id, requestId))
 
@@ -492,12 +492,11 @@ export async function createSongFromLyricsAction(requestId: number) {
       })
       .where(eq(songsTable.id, song.id))
 
-    // Update song request (suno_task_id moved to songs table)
+    // Update song request
     await db
       .update(songRequestsTable)
       .set({
-        status: 'processing',
-        generated_song_id: song.id
+        status: 'processing'
       })
       .where(eq(songRequestsTable.id, requestId))
 

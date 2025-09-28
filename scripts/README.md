@@ -42,7 +42,7 @@ docker exec -it melodia-postgres psql -U postgres -d melodia
 
 ### **Missing Columns Added:**
 - `song_requests.anonymous_user_id` (UUID) - For anonymous user tracking
-- `lyrics_drafts.lyrics_edit_prompt` (JSONB) - Renamed from prompt_input, stores user edit prompts
+- `lyrics_drafts.lyrics_edit_prompt` (TEXT) - Renamed from prompt_input, stores user edit prompts
 - `songs.song_request_id` (INTEGER, UNIQUE) - Link songs to requests
 - `songs.song_url_variant_1` (TEXT) - First song variant URL
 - `songs.song_url_variant_2` (TEXT) - Second song variant URL

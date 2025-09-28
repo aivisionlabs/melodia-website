@@ -32,8 +32,8 @@ export function LyricsEditor({
       setLastSavedText(displayText);
 
       // Load existing edit prompt if available
-      if (currentDraft.lyrics_edit_prompt?.userEditPrompt) {
-        setEditPrompt(currentDraft.lyrics_edit_prompt.userEditPrompt);
+      if (currentDraft.lyrics_edit_prompt) {
+        setEditPrompt(currentDraft.lyrics_edit_prompt);
       }
     } else {
       setText("");

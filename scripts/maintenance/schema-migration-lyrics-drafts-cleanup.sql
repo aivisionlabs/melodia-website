@@ -16,7 +16,7 @@ ALTER TABLE lyrics_drafts DROP COLUMN IF EXISTS language;
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in Phase 6 workflow';
 COMMENT ON COLUMN lyrics_drafts.song_request_id IS 'Reference to the song request this draft belongs to';
 COMMENT ON COLUMN lyrics_drafts.version IS 'Version number of this draft (increments with each generation)';
-COMMENT ON COLUMN lyrics_drafts.lyrics_edit_prompt IS 'JSON snapshot of the generation request and parameters';
+COMMENT ON COLUMN lyrics_drafts.lyrics_edit_prompt IS 'User edit prompt for lyrics refinement';
 COMMENT ON COLUMN lyrics_drafts.generated_text IS 'The original AI-generated lyrics text';
 COMMENT ON COLUMN lyrics_drafts.status IS 'Current status: draft, needs_review, approved, archived';
 

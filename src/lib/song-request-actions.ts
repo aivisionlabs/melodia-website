@@ -161,7 +161,6 @@ export async function getUserSongRequests(
       mood: request.mood,
       song_story: request.song_story,
       status: request.status as 'pending' | 'processing' | 'completed' | 'failed',
-      generated_song_id: request.generated_song_id,
       created_at: request.created_at.toISOString(),
       updated_at: request.updated_at.toISOString()
     }))
@@ -199,7 +198,7 @@ export async function getUserSongs(
       }
     }
 
-    // Get songs created by the user
+    // Get songs created by the user using JOIN
     const songs = await db
       .select({
         id: songsTable.id,
@@ -209,8 +208,9 @@ export async function getUserSongs(
         created_at: songsTable.created_at,
         status: songsTable.status
       })
-      .from(songsTable)
-      .where(eq(songsTable.user_id, userId))
+      .from(songRequestsTable)
+      .innerJoin(songsTable, eq(songRequestsTable.id, songsTable.song_request_id))
+      .where(eq(songRequestsTable.user_id, userId))
       .orderBy(songsTable.created_at)
 
     // Convert Date objects to ISO strings
@@ -261,10 +261,7 @@ export async function updateSongRequestStatus(
     }
 
     // suno_task_id moved to songs table - no longer update here
-
-    if (generatedSongId) {
-      updateData.generated_song_id = generatedSongId
-    }
+    // generated_song_id removed - songs are linked via song_request_id
 
     const [updatedRequest] = await db
       .update(songRequestsTable)

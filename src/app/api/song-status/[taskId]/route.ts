@@ -21,7 +21,7 @@ export async function GET(
     // Demo mode - return mock response for demo tasks
     if (taskId.startsWith('demo-task-')) {
       console.log('🎭 DEMO MODE: Using mock song status response')
-      
+
       // Simulate processing time - return completed after 2 minutes
       const taskTimestamp = parseInt(taskId.split('-')[2])
       const elapsedTime = Date.now() - taskTimestamp
@@ -38,7 +38,7 @@ export async function GET(
           if (songs.length > 0) {
             const song = songs[0]
             const demoAudioUrl = 'https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.mp3'
-            
+
             // Create demo variants
             const demoVariants = [
               {
@@ -66,7 +66,7 @@ export async function GET(
                 duration: 165
               }
             ]
-            
+
             await db
               .update(songsTable)
               .set({
@@ -83,7 +83,7 @@ export async function GET(
               .set({
                 status: 'completed'
               })
-              .where(eq(songRequestsTable.generated_song_id, song.id))
+              .where(eq(songRequestsTable.id, song.song_request_id))
 
             console.log('Demo song completed and updated in database:', { songId: song.id })
           }
@@ -130,76 +130,76 @@ export async function GET(
 
     // Check if we have valid sunoData with complete variants
     if (response?.sunoData?.length > 0) {
-      const hasCompleteVariants = response.sunoData.every((variant: any) => 
+      const hasCompleteVariants = response.sunoData.every((variant: any) =>
         variant.audioUrl && variant.streamAudioUrl && variant.imageUrl
       )
-      
+
       if (hasCompleteVariants) {
-      // Update database with completed song
-      try {
-        // Find song by task ID
-        const songs = await db
-          .select()
-          .from(songsTable)
-          .where(eq(songsTable.suno_task_id, taskId))
+        // Update database with completed song
+        try {
+          // Find song by task ID
+          const songs = await db
+            .select()
+            .from(songsTable)
+            .where(eq(songsTable.suno_task_id, taskId))
 
-        if (songs.length > 0) {
-          const song = songs[0]
-          const audioUrl = response.sunoData[0].audioUrl || response.sunoData[0].streamAudioUrl
-          
-          // Update song with audio URL and ready status
-          // Convert duration from float to integer (round to nearest second)
-          const duration = response.sunoData[0].duration ? Math.round(response.sunoData[0].duration) : null
-          
-          // Store all variants in the suno_variants field
-          const variants = response.sunoData.map((variant: any) => ({
-            id: variant.id,
-            audioUrl: variant.audioUrl,
-            streamAudioUrl: variant.streamAudioUrl,
-            imageUrl: variant.sourceImageUrl,
-            prompt: variant.prompt,
-            modelName: variant.modelName,
-            title: variant.title,
-            tags: variant.tags,
-            createTime: variant.createTime,
-            duration: Math.round(variant.duration) // Convert to integer
-          }))
-          
-          await db
-            .update(songsTable)
-            .set({
-              status: 'ready',
-              song_url: audioUrl, // Primary variant (first one)
-              duration: duration,
-              suno_variants: variants,
-              selected_variant: 0 // Default to first variant
-            })
-            .where(eq(songsTable.id, song.id))
+          if (songs.length > 0) {
+            const song = songs[0]
+            const audioUrl = response.sunoData[0].audioUrl || response.sunoData[0].streamAudioUrl
 
-          // Update song request status
-          await db
-            .update(songRequestsTable)
-            .set({
-              status: 'completed'
-            })
-            .where(eq(songRequestsTable.generated_song_id, song.id))
+            // Update song with audio URL and ready status
+            // Convert duration from float to integer (round to nearest second)
+            const duration = response.sunoData[0].duration ? Math.round(response.sunoData[0].duration) : null
 
-          console.log('Song completed and updated in database:', { songId: song.id, audioUrl })
+            // Store all variants in the suno_variants field
+            const variants = response.sunoData.map((variant: any) => ({
+              id: variant.id,
+              audioUrl: variant.audioUrl,
+              streamAudioUrl: variant.streamAudioUrl,
+              imageUrl: variant.sourceImageUrl,
+              prompt: variant.prompt,
+              modelName: variant.modelName,
+              title: variant.title,
+              tags: variant.tags,
+              createTime: variant.createTime,
+              duration: Math.round(variant.duration) // Convert to integer
+            }))
+
+            await db
+              .update(songsTable)
+              .set({
+                status: 'ready',
+                song_url: audioUrl, // Primary variant (first one)
+                duration: duration,
+                suno_variants: variants,
+                selected_variant: 0 // Default to first variant
+              })
+              .where(eq(songsTable.id, song.id))
+
+            // Update song request status
+            await db
+              .update(songRequestsTable)
+              .set({
+                status: 'completed'
+              })
+              .where(eq(songRequestsTable.id, song.song_request_id))
+
+            console.log('Song completed and updated in database:', { songId: song.id, audioUrl })
+          }
+        } catch (dbError) {
+          console.error('Database update error:', dbError)
+          // Continue with response even if DB update fails
         }
-      } catch (dbError) {
-        console.error('Database update error:', dbError)
-        // Continue with response even if DB update fails
-      }
 
-      // Return the first variant's audio URL
-      const audioUrl = response.sunoData[0].audioUrl || response.sunoData[0].streamAudioUrl
-      
-      return NextResponse.json({
-        success: true,
-        status: 'completed',
-        audioUrl,
-        variants: response.sunoData
-      })
+        // Return the first variant's audio URL
+        const audioUrl = response.sunoData[0].audioUrl || response.sunoData[0].streamAudioUrl
+
+        return NextResponse.json({
+          success: true,
+          status: 'completed',
+          audioUrl,
+          variants: response.sunoData
+        })
       } else {
         // Variants exist but are not complete yet
         console.log('Song variants exist but are not complete yet')
@@ -219,7 +219,7 @@ export async function GET(
 
         if (songs.length > 0) {
           const song = songs[0]
-          
+
           // Update song with failed status
           await db
             .update(songsTable)
@@ -234,7 +234,7 @@ export async function GET(
             .set({
               status: 'failed'
             })
-            .where(eq(songRequestsTable.generated_song_id, song.id))
+            .where(eq(songRequestsTable.id, song.song_request_id))
 
           console.log('Song failed and updated in database:', { songId: song.id })
         }
