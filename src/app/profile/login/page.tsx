@@ -1,0 +1,127 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useLoginForm } from "@/hooks/use-login-form";
+import { FormField } from "@/components/forms/FormField";
+import { PasswordField } from "@/components/forms/PasswordField";
+import { GoogleAuthButton } from "@/components/forms/GoogleAuthButton";
+
+// Single Responsibility: Component handles login page UI and authentication
+export default function LoginPage() {
+  const { user, error, isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+  
+  // Dependency Inversion: Use custom hook for form management
+  const form = useLoginForm();
+
+  // Single Responsibility: Handle authentication redirect
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      router.replace("/profile/logged-in");
+    }
+  }, [loading, isAuthenticated, user, router]);
+
+  // Single Responsibility: Handle Google authentication
+  const handleGoogleAuth = () => {
+    // Placeholder for Google authentication
+    console.log("Google authentication not implemented yet");
+    // TODO: Implement Google OAuth
+  };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-melodia-teal">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="font-heading text-4xl font-bold text-melodia-teal mb-4">
+          Welcome Back
+        </h1>
+        <h2 className="font-heading text-2xl text-melodia-teal mb-8">
+          Log in to your account
+        </h2>
+
+        <div className="w-full max-w-sm space-y-4">
+          {/* Google Sign In Button */}
+          <GoogleAuthButton onClick={handleGoogleAuth} />
+
+          {/* OR Divider */}
+          <div className="relative flex py-4 items-center">
+            <div className="flex-grow border-t border-melodia-teal/20"></div>
+            <span className="flex-shrink mx-4 text-melodia-teal/60 font-body">OR</span>
+            <div className="flex-grow border-t border-melodia-teal/20"></div>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={form.handleSubmit} className="space-y-4">
+            <FormField
+              id="email"
+              type="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={form.handleEmailChange}
+              error={form.validation.errors.email}
+              required
+            />
+            
+            <PasswordField
+              id="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={form.handlePasswordChange}
+              error={form.validation.errors.password}
+              required
+              showPassword={form.showPassword}
+              onToggleVisibility={() => form.setShowPassword(!form.showPassword)}
+            />
+
+            <Link 
+              href="#" 
+              className="block text-right text-melodia-coral text-sm font-medium hover:underline font-body"
+            >
+              Forgot Password?
+            </Link>
+
+            <Button
+              type="submit"
+              disabled={!form.isFormValid || form.isSubmitting}
+              className="w-full bg-melodia-yellow text-melodia-teal font-bold py-3 px-4 rounded-xl hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {form.isSubmitting ? "Logging in..." : "Log In"}
+            </Button>
+
+            {error && (
+              <div className="text-sm text-melodia-coral text-center">
+                {error}
+              </div>
+            )}
+          </form>
+
+          {/* Sign Up Link */}
+          <div className="text-center">
+            <span className="text-melodia-teal font-body">
+              Don't have an account?
+            </span>
+            <Link
+              href="/profile/signup"
+              className="ml-1 text-melodia-coral font-medium hover:underline font-body"
+            >
+              Sign Up
+            </Link>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

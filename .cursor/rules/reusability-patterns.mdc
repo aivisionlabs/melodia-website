@@ -1,0 +1,386 @@
+---
+alwaysApply: true
+---
+# Reusability Patterns for Melodia
+
+## DRY (Don't Repeat Yourself) Principle
+
+### Before Creating New Code - Always Check Existing Solutions
+
+**MANDATORY CHECKLIST** before implementing any new functionality:
+
+1. **Search for existing utilities** in [src/lib/](mdc:src/lib/)
+2. **Check for existing hooks** in [src/hooks/](mdc:src/hooks/)
+3. **Look for existing components** in [src/components/](mdc:src/components/)
+4. **Review existing patterns** in [src/app/](mdc:src/app/)
+5. **Check validation utilities** in [src/lib/validation.ts](mdc:src/lib/validation.ts)
+
+### Code Reusability Hierarchy
+
+#### 1. Utility Functions (Highest Priority)
+```typescript
+// ✅ Good: Create reusable utility functions
+// File: src/lib/validation.ts
+export const validateEmail = (email: string): string => {
+  if (!email.trim()) return "Email is required";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return "Please enter a valid email address";
+  return "";
+};
+
+// ❌ Bad: Duplicate validation logic in components
+const validateEmail = (email: string) => {
+  // Same logic repeated in multiple components
+};
+```
+
+#### 2. Custom Hooks (Second Priority)
+```typescript
+// ✅ Good: Create reusable custom hooks
+// File: src/hooks/use-form-validation.ts
+export const useFormValidation = (): FormValidationState => {
+  // Reusable validation logic
+};
+
+// ❌ Bad: Duplicate form logic in components
+const [errors, setErrors] = useState({});
+const validateField = (field, value) => {
+  // Same logic repeated
+};
+```
+
+#### 3. Reusable Components (Third Priority)
+```typescript
+// ✅ Good: Create reusable UI components
+// File: src/components/forms/FormField.tsx
+export const FormField: React.FC<FormFieldProps> = ({ ... }) => {
+  // Reusable form field component
+};
+
+// ❌ Bad: Duplicate form field JSX in multiple places
+<div className="space-y-1">
+  <label>...</label>
+  <input className="..." />
+  {error && <p>...</p>}
+</div>
+```
+
+## Existing Reusable Solutions in Melodia
+
+### Validation Utilities
+**Location**: [src/lib/validation.ts](mdc:src/lib/validation.ts)
+```typescript
+// Available validation functions:
+- validateEmail(email: string): string
+- validatePassword(password: string): string
+- validateName(name: string): string
+- validateDateOfBirth(dob: string): string
+- validatePhoneNumber(phone: string): string
+- validateField(fieldName: string, value: string): string
+- formatDateOfBirth(value: string): string
+- formatPhoneNumber(value: string): string
+```
+
+### Form Management Hooks
+**Location**: [src/hooks/use-form-validation.ts](mdc:src/hooks/use-form-validation.ts)
+```typescript
+// Available form validation hook:
+- useFormValidation(): FormValidationState
+```
+
+**Location**: [src/hooks/use-auth-form.ts](mdc:src/hooks/use-auth-form.ts)
+```typescript
+// Available authentication form hook:
+- useAuthForm(): AuthFormState
+```
+
+### Reusable UI Components
+**Location**: [src/components/forms/](mdc:src/components/forms/)
+```typescript
+// Available form components:
+- FormField: Generic form field with validation
+- PasswordField: Password field with show/hide
+- GoogleAuthButton: Google authentication button
+```
+
+## Reusability Patterns
+
+### 1. Utility Function Pattern
+```typescript
+// Single Responsibility: Each utility has one purpose
+// DRY: Reusable across the application
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency
+  }).format(amount);
+};
+
+// Usage in components
+const price = formatCurrency(29.99); // $29.99
+```
+
+### 2. Custom Hook Pattern
+```typescript
+// Single Responsibility: Hook manages one specific concern
+// DRY: Reusable state logic
+export const useLocalStorage = <T>(key: string, initialValue: T) => {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+};
+```
+
+### 3. Component Composition Pattern
+```typescript
+// Single Responsibility: Component handles one UI concern
+// DRY: Reusable UI patterns
+interface BaseButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export const BaseButton: React.FC<BaseButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  const baseClasses = 'transition-all duration-200 ease-in-out rounded-lg font-medium';
+  const variantClasses = {
+    primary: 'bg-melodia-teal text-white hover:bg-melodia-teal/90',
+    secondary: 'bg-melodia-coral text-white hover:bg-melodia-coral/90',
+    outline: 'border-2 border-melodia-teal text-melodia-teal hover:bg-melodia-teal hover:text-white'
+  };
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2 text-base',
+    lg: 'px-6 py-3 text-lg'
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+```
+
+## Code Reuse Checklist
+
+### Before Implementing New Code:
+
+- [ ] **Search existing utilities** in `src/lib/` for similar functionality
+- [ ] **Check existing hooks** in `src/hooks/` for similar state management
+- [ ] **Look for existing components** in `src/components/` for similar UI
+- [ ] **Review validation patterns** in `src/lib/validation.ts`
+- [ ] **Check form patterns** in `src/components/forms/`
+- [ ] **Look for similar API patterns** in `src/lib/actions.ts`
+
+### When Creating New Code:
+
+- [ ] **Make it reusable** - Can this be used elsewhere?
+- [ ] **Single responsibility** - Does it do one thing well?
+- [ ] **Generic interfaces** - Can it work with different data types?
+- [ ] **Proper documentation** - Is it clear how to use it?
+- [ ] **Consistent naming** - Does it follow established patterns?
+
+## Anti-Patterns to Avoid
+
+### ❌ Code Duplication
+```typescript
+// Bad: Duplicate validation logic
+const validateEmail = (email: string) => {
+  if (!email.trim()) return "Email is required";
+  // ... validation logic
+};
+
+// In another component
+const validateEmailAgain = (email: string) => {
+  if (!email.trim()) return "Email is required";
+  // ... same validation logic
+};
+```
+
+### ❌ Copy-Paste Components
+```typescript
+// Bad: Duplicate form field JSX
+<div className="space-y-1">
+  <label className="block text-sm font-medium text-melodia-teal">
+    Email
+  </label>
+  <input className="w-full bg-white border..." />
+  {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+</div>
+
+// In another component - same JSX repeated
+<div className="space-y-1">
+  <label className="block text-sm font-medium text-melodia-teal">
+    Name
+  </label>
+  <input className="w-full bg-white border..." />
+  {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+</div>
+```
+
+### ❌ Inline Logic
+```typescript
+// Bad: Inline validation logic
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // Inline validation
+  if (!email.trim()) {
+    setError("Email is required");
+    return;
+  }
+  
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setError("Invalid email");
+    return;
+  }
+  
+  // ... rest of logic
+};
+```
+
+## Best Practices for Reusability
+
+### 1. Create Generic Interfaces
+```typescript
+// Good: Generic, reusable interface
+export interface ApiResponse<T> {
+  data: T | null;
+  error?: string;
+  success: boolean;
+}
+
+// Usage with different data types
+const userResponse: ApiResponse<User> = await fetchUser();
+const songResponse: ApiResponse<Song> = await fetchSong();
+```
+
+### 2. Use Composition Over Inheritance
+```typescript
+// Good: Composable components
+export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = ''
+}) => {
+  return (
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-4 ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+// Usage: Compose different card types
+<Card>
+  <h3>Song Title</h3>
+  <p>Artist Name</p>
+</Card>
+```
+
+### 3. Extract Common Patterns
+```typescript
+// Good: Extract common loading pattern
+export const useAsyncOperation = <T>(
+  operation: () => Promise<T>
+) => {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const execute = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await operation();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Operation failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [operation]);
+
+  return { data, loading, error, execute };
+};
+```
+
+## File Organization for Reusability
+
+### Utility Functions
+```
+src/lib/
+├── validation.ts          # Form validation utilities
+├── formatting.ts          # Data formatting utilities
+├── api.ts                 # API utility functions
+├── constants.ts           # Application constants
+└── helpers.ts             # General helper functions
+```
+
+### Custom Hooks
+```
+src/hooks/
+├── use-form-validation.ts # Form validation hook
+├── use-auth-form.ts       # Authentication form hook
+├── use-local-storage.ts   # Local storage hook
+├── use-api.ts             # API data fetching hook
+└── use-debounce.ts        # Debouncing hook
+```
+
+### Reusable Components
+```
+src/components/
+├── ui/                    # Base UI components
+│   ├── Button.tsx
+│   ├── Input.tsx
+│   └── Modal.tsx
+├── forms/                 # Form-specific components
+│   ├── FormField.tsx
+│   ├── PasswordField.tsx
+│   └── ValidationMessage.tsx
+└── layout/                # Layout components
+    ├── Header.tsx
+    ├── Footer.tsx
+    └── Navigation.tsx
+```
+
+## Code Review Checklist for Reusability
+
+- [ ] **No duplicate code** - Is this logic already implemented elsewhere?
+- [ ] **Reusable design** - Can this be used in other parts of the app?
+- [ ] **Generic interfaces** - Does it work with different data types?
+- [ ] **Proper abstraction** - Is the right level of abstraction used?
+- [ ] **Consistent patterns** - Does it follow established patterns?
+- [ ] **Clear documentation** - Is it easy to understand and use?
+- [ ] **Single responsibility** - Does it do one thing well?
+- [ ] **Dependency injection** - Are dependencies properly injected?

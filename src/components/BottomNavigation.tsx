@@ -39,7 +39,7 @@ export default function BottomNavigation({
       href: "/profile",
       icon: "user",
       label: "Profile",
-      isActive: pathname === "/profile",
+      isActive: pathname === "/profile" || pathname === "/profile/logged-in",
     },
   ];
 

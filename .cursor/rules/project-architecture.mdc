@@ -1,152 +1,568 @@
 ---
 alwaysApply: false
-description: This is  Melodia Website Architecture Guide
 ---
+# Project Architecture for Melodia
 
+## Directory Structure Principles
 
-# Melodia Website Architecture Guide
-
-## Project Structure Overview
-
-The Melodia website is built with Next.js 14 using the App Router pattern. The main source code is organized in the [src/](mdc:src/) directory with the following structure:
-
-### Core Directories
-- **`src/app/`** - Next.js App Router pages and API routes
-- **`src/components/`** - Reusable UI components
-- **`src/lib/`** - Business logic, utilities, and services
-- **`src/types/`** - TypeScript type definitions
-- **`src/hooks/`** - Custom React hooks
-
-### Key Files and Their Relationships
-
-#### Database & Types
-- [src/types/index.ts](mdc:src/types/index.ts) - Main type definitions (Song, PublicSong, LyricLine)
-- [src/lib/supabase.ts](mdc:src/lib/supabase.ts) - Database client and type definitions
-- [init.sql](mdc:init.sql) - Database schema and initial setup
-
-#### Business Logic
-- [src/lib/actions.ts](mdc:src/lib/actions.ts) - Server actions for all database operations (1098 lines)
-- [src/lib/suno-api.ts](mdc:src/lib/suno-api.ts) - Suno AI integration for song generation
-- [src/lib/constants.ts](mdc:src/lib/constants.ts) - App constants and sample song data
-- [src/lib/utils.ts](mdc:src/lib/utils.ts) - Utility functions
-- [src/lib/analytics.ts](mdc:src/lib/analytics.ts) - Analytics tracking
-
-#### Core Components
-- [src/components/MediaPlayer.tsx](mdc:src/components/MediaPlayer.tsx) - Main audio player with lyrics sync
-- [src/components/FullPageMediaPlayer.tsx](mdc:src/components/FullPageMediaPlayer.tsx) - Full-screen media player
-- [src/components/SongList.tsx](mdc:src/components/SongList.tsx) - Song listing component
-- [src/components/song-details.tsx](mdc:src/components/song-details.tsx) - Individual song display
-
-#### Pages & Routes
-- [src/app/layout.tsx](mdc:src/app/layout.tsx) - Root layout with metadata and global providers
-- [src/app/page.tsx](mdc:src/app/page.tsx) - Homepage with song showcase
-- [src/app/library/page.tsx](mdc:src/app/library/page.tsx) - Song library page
-- [src/app/song-admin-portal/](mdc:src/app/song-admin-portal/) - Admin interface
-
-#### Custom Hooks
-- [src/hooks/use-song.ts](mdc:src/hooks/use-song.ts) - Individual song data management
-- [src/hooks/use-songs.ts](mdc:src/hooks/use-songs.ts) - Song list management (currently commented out)
-- [src/hooks/use-toast.ts](mdc:src/hooks/use-toast.ts) - Toast notifications
-
-## Data Flow Architecture
-
-### Database Layer
-```typescript
-PostgreSQL (Supabase) → Song interface → PublicSong interface
+### Single Responsibility Directory Organization
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Route groups for authentication
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles and design system
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable UI components
+│   ├── ui/               # Base UI components (buttons, inputs)
+│   ├── forms/            # Form-specific components
+│   ├── layout/           # Layout components (navigation, headers)
+│   └── features/         # Feature-specific components
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility libraries and configurations
+│   ├── actions.ts        # Server actions
+│   ├── supabase.ts       # Database configuration
+│   ├── validation.ts     # Validation utilities
+│   └── utils.ts          # General utilities
+├── types/                # TypeScript type definitions
+└── styles/               # Additional styling files
 ```
 
-### API Layer
-```typescript
-Server Actions (src/lib/actions.ts) → Database → TypeScript interfaces
+### Feature-Based Organization
+```
+src/components/features/
+├── auth/                 # Authentication-related components
+│   ├── LoginForm.tsx
+│   ├── SignupForm.tsx
+│   └── AuthGuard.tsx
+├── songs/                # Song-related components
+│   ├── SongList.tsx
+│   ├── SongPlayer.tsx
+│   └── SongCard.tsx
+├── profile/              # Profile-related components
+│   ├── ProfileForm.tsx
+│   └── ProfileDisplay.tsx
+└── shared/               # Shared feature components
+    ├── LoadingSpinner.tsx
+    └── ErrorBoundary.tsx
 ```
 
-### Component Layer
+## File Naming Conventions
+
+### Component Files
+- **PascalCase** for React components: `MediaPlayer.tsx`, `SongList.tsx`
+- **Descriptive names** that indicate purpose: `UserProfileForm.tsx` not `Form.tsx`
+- **Feature prefix** for related components: `SongPlayer.tsx`, `SongList.tsx`, `SongCard.tsx`
+
+### Utility Files
+- **camelCase** for utility files: `formatDate.ts`, `validateEmail.ts`
+- **Descriptive names** that indicate functionality: `dateUtils.ts` not `utils.ts`
+- **Grouped by domain**: `authUtils.ts`, `songUtils.ts`, `validationUtils.ts`
+
+### Page Files
+- **kebab-case** for page routes: `song-details.tsx`, `user-profile.tsx`
+- **Descriptive names** that match the URL: `/song-details` → `song-details.tsx`
+- **Route groups** for organization: `(auth)/login/page.tsx`
+
+## Import Organization
+
+### Consistent Import Order
 ```typescript
-Page Components → UI Components → Custom Hooks → Server Actions
+// 1. React and Next.js imports
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// 2. Third-party library imports
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+// 3. Internal component imports (grouped by type)
+import { SongList } from '@/components/features/songs/SongList';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+
+// 4. Internal utility imports
+import { formatDate } from '@/lib/utils';
+import { validateEmail } from '@/lib/validation';
+
+// 5. Type imports
+import type { Song, User } from '@/types';
+import type { ComponentProps } from './types';
 ```
 
-## Technology Stack
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL), Server Actions
-- **AI Integration**: Suno AI for song generation
-- **Analytics**: Google Analytics integration
-
-## Development Patterns
-- Use Server Components for SEO and performance
-- Use Client Components for interactivity
-- Implement Server Actions for form handling and API calls
-- Maintain end-to-end TypeScript type safety
-- Follow the existing component structure and naming conventions
-# Melodia Website Architecture Guide
-
-## Project Structure Overview
-
-The Melodia website is built with Next.js 14 using the App Router pattern. The main source code is organized in the [src/](mdc:src/) directory with the following structure:
-
-### Core Directories
-- **`src/app/`** - Next.js App Router pages and API routes
-- **`src/components/`** - Reusable UI components
-- **`src/lib/`** - Business logic, utilities, and services
-- **`src/types/`** - TypeScript type definitions
-- **`src/hooks/`** - Custom React hooks
-
-### Key Files and Their Relationships
-
-#### Database & Types
-- [src/types/index.ts](mdc:src/types/index.ts) - Main type definitions (Song, PublicSong, LyricLine)
-- [src/lib/supabase.ts](mdc:src/lib/supabase.ts) - Database client and type definitions
-- [init.sql](mdc:init.sql) - Database schema and initial setup
-
-#### Business Logic
-- [src/lib/actions.ts](mdc:src/lib/actions.ts) - Server actions for all database operations (1098 lines)
-- [src/lib/suno-api.ts](mdc:src/lib/suno-api.ts) - Suno AI integration for song generation
-- [src/lib/constants.ts](mdc:src/lib/constants.ts) - App constants and sample song data
-- [src/lib/utils.ts](mdc:src/lib/utils.ts) - Utility functions
-- [src/lib/analytics.ts](mdc:src/lib/analytics.ts) - Analytics tracking
-
-#### Core Components
-- [src/components/MediaPlayer.tsx](mdc:src/components/MediaPlayer.tsx) - Main audio player with lyrics sync
-- [src/components/FullPageMediaPlayer.tsx](mdc:src/components/FullPageMediaPlayer.tsx) - Full-screen media player
-- [src/components/SongList.tsx](mdc:src/components/SongList.tsx) - Song listing component
-- [src/components/song-details.tsx](mdc:src/components/song-details.tsx) - Individual song display
-
-#### Pages & Routes
-- [src/app/layout.tsx](mdc:src/app/layout.tsx) - Root layout with metadata and global providers
-- [src/app/page.tsx](mdc:src/app/page.tsx) - Homepage with song showcase
-- [src/app/library/page.tsx](mdc:src/app/library/page.tsx) - Song library page
-- [src/app/song-admin-portal/](mdc:src/app/song-admin-portal/) - Admin interface
-
-#### Custom Hooks
-- [src/hooks/use-song.ts](mdc:src/hooks/use-song.ts) - Individual song data management
-- [src/hooks/use-songs.ts](mdc:src/hooks/use-songs.ts) - Song list management (currently commented out)
-- [src/hooks/use-toast.ts](mdc:src/hooks/use-toast.ts) - Toast notifications
-
-## Data Flow Architecture
-
-### Database Layer
+### Absolute Import Paths
 ```typescript
-PostgreSQL (Supabase) → Song interface → PublicSong interface
+// ✅ Good: Use absolute imports with @ alias
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { Song } from '@/types';
+
+// ❌ Bad: Relative imports for deep nesting
+import { Button } from '../../../components/ui/button';
+import { useAuth } from '../../hooks/use-auth';
 ```
 
-### API Layer
+## Component Architecture Patterns
+
+### Container vs Presentational Components
 ```typescript
-Server Actions (src/lib/actions.ts) → Database → TypeScript interfaces
+// Container Component (handles logic and state)
+export const SongListContainer: React.FC = () => {
+  const { songs, loading, error } = useSongs();
+  const { deleteSong } = useSongActions();
+
+  const handleDelete = useCallback((songId: string) => {
+    deleteSong(songId);
+  }, [deleteSong]);
+
+  return (
+    <SongListPresentation
+      songs={songs}
+      loading={loading}
+      error={error}
+      onDelete={handleDelete}
+    />
+  );
+};
+
+// Presentational Component (handles UI only)
+interface SongListPresentationProps {
+  songs: Song[];
+  loading: boolean;
+  error: string | null;
+  onDelete: (songId: string) => void;
+}
+
+export const SongListPresentation: React.FC<SongListPresentationProps> = ({
+  songs,
+  loading,
+  error,
+  onDelete
+}) => {
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+  if (songs.length === 0) return <EmptyState />;
+
+  return (
+    <div className="space-y-4">
+      {songs.map((song) => (
+        <SongCard
+          key={song.id}
+          song={song}
+          onDelete={() => onDelete(song.id)}
+        />
+      ))}
+    </div>
+  );
+};
 ```
 
-### Component Layer
+### Higher-Order Components (HOCs)
 ```typescript
-Page Components → UI Components → Custom Hooks → Server Actions
+// HOC for authentication
+export const withAuth = <P extends object>(
+  Component: React.ComponentType<P>
+) => {
+  return (props: P) => {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!loading && !user) {
+        router.replace('/profile');
+      }
+    }, [user, loading, router]);
+
+    if (loading) return <LoadingSpinner />;
+    if (!user) return null;
+
+    return <Component {...props} />;
+  };
+};
+
+// Usage
+export const ProtectedSongList = withAuth(SongList);
 ```
 
-## Technology Stack
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL), Server Actions
-- **AI Integration**: Suno AI for song generation
-- **Analytics**: Google Analytics integration
+## State Management Patterns
 
-## Development Patterns
-- Use Server Components for SEO and performance
-- Use Client Components for interactivity
-- Implement Server Actions for form handling and API calls
-- Maintain end-to-end TypeScript type safety
-- Follow the existing component structure and naming conventions
+### Local State vs Global State
+```typescript
+// Local state for component-specific data
+export const SongForm: React.FC = () => {
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Component-specific logic
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // ... submit logic
+    setIsSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+};
+
+// Global state for shared data
+export const useAuth = () => {
+  // Global authentication state
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Shared authentication logic
+  return { user, loading, login, logout };
+};
+```
+
+### Custom Hooks for State Logic
+```typescript
+// Extract complex state logic into custom hooks
+export const useSongForm = (initialSong?: Song) => {
+  const [formData, setFormData] = useState({
+    title: initialSong?.title || '',
+    artist: initialSong?.artist || '',
+    duration: initialSong?.duration || 0
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateForm = useCallback(() => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!formData.artist.trim()) {
+      newErrors.artist = 'Artist is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!validateForm()) return false;
+    
+    setIsSubmitting(true);
+    try {
+      // Submit logic
+      return true;
+    } catch (error) {
+      console.error('Submit error:', error);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, validateForm]);
+
+  return {
+    formData,
+    setFormData,
+    errors,
+    isSubmitting,
+    handleSubmit,
+    validateForm
+  };
+};
+```
+
+## API and Data Layer Architecture
+
+### Service Layer Pattern
+```typescript
+// Abstract service interfaces
+export interface SongService {
+  getSongs(userId?: string): Promise<Song[]>;
+  getSong(id: string): Promise<Song | null>;
+  createSong(songData: CreateSongData): Promise<Song>;
+  updateSong(id: string, songData: Partial<Song>): Promise<Song>;
+  deleteSong(id: string): Promise<void>;
+}
+
+// Concrete implementation
+export class SupabaseSongService implements SongService {
+  constructor(private supabase: SupabaseClient) {}
+
+  async getSongs(userId?: string): Promise<Song[]> {
+    let query = this.supabase.from('songs').select('*');
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch songs: ${error.message}`);
+    
+    return data || [];
+  }
+
+  // ... other methods
+}
+
+// Service factory
+export const createSongService = (): SongService => {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  
+  return new SupabaseSongService(supabase);
+};
+```
+
+### Repository Pattern for Data Access
+```typescript
+// Base repository interface
+export interface Repository<T> {
+  findById(id: string): Promise<T | null>;
+  findMany(filters?: Record<string, any>): Promise<T[]>;
+  create(data: Partial<T>): Promise<T>;
+  update(id: string, data: Partial<T>): Promise<T>;
+  delete(id: string): Promise<void>;
+}
+
+// Generic repository implementation
+export class BaseRepository<T extends { id: string }> implements Repository<T> {
+  constructor(
+    protected supabase: SupabaseClient,
+    protected tableName: string
+  ) {}
+
+  async findById(id: string): Promise<T | null> {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data as T;
+  }
+
+  // ... other methods
+}
+```
+
+## Error Handling Architecture
+
+### Centralized Error Handling
+```typescript
+// Error types
+export class AppError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number = 500
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message: string, public field?: string) {
+    super(message, 'VALIDATION_ERROR', 400);
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 'NOT_FOUND', 404);
+  }
+}
+
+// Error handler utility
+export const handleError = (error: unknown): AppError => {
+  if (error instanceof AppError) {
+    return error;
+  }
+  
+  if (error instanceof Error) {
+    return new AppError(error.message, 'UNKNOWN_ERROR');
+  }
+  
+  return new AppError('An unexpected error occurred', 'UNKNOWN_ERROR');
+};
+```
+
+### Error Boundary Hierarchy
+```typescript
+// Global error boundary
+export const GlobalErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-melodia-teal mb-4">
+              Something went wrong
+            </h1>
+            <p className="text-gray-600 mb-4">
+              We're sorry, but something unexpected happened.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-melodia-teal text-white rounded-lg"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
+
+// Feature-specific error boundaries
+export const SongFeatureErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">Failed to load song feature</p>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
+```
+
+## Testing Architecture
+
+### Test File Organization
+```
+src/
+├── __tests__/             # Test files
+│   ├── components/        # Component tests
+│   ├── hooks/            # Hook tests
+│   ├── lib/              # Utility tests
+│   └── __mocks__/        # Mock files
+├── components/
+│   └── SongList.tsx
+└── components/
+    └── __tests__/
+        └── SongList.test.tsx
+```
+
+### Test Utilities
+```typescript
+// Test utilities for consistent testing
+export const renderWithProviders = (
+  ui: React.ReactElement,
+  options?: {
+    authState?: { user: User | null; loading: boolean };
+    routerOptions?: { pathname?: string };
+  }
+) => {
+  const { authState = { user: null, loading: false }, routerOptions = {} } = options || {};
+  
+  const mockAuth = {
+    ...authState,
+    login: jest.fn(),
+    logout: jest.fn(),
+    register: jest.fn()
+  };
+
+  return render(
+    <AuthProvider value={mockAuth}>
+      <RouterProvider routerOptions={routerOptions}>
+        {ui}
+      </RouterProvider>
+    </AuthProvider>
+  );
+};
+
+// Mock data factories
+export const createMockSong = (overrides?: Partial<Song>): Song => ({
+  id: '1',
+  title: 'Test Song',
+  artist: 'Test Artist',
+  duration: 180,
+  user_id: 'user-1',
+  is_public: true,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  ...overrides
+});
+
+export const createMockUser = (overrides?: Partial<User>): User => ({
+  id: 'user-1',
+  email: 'test@example.com',
+  name: 'Test User',
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  ...overrides
+});
+```
+
+## Performance Architecture
+
+### Code Splitting Strategy
+```typescript
+// Route-based code splitting
+const SongPlayer = lazy(() => import('@/components/features/songs/SongPlayer'));
+const UserProfile = lazy(() => import('@/components/features/profile/UserProfile'));
+
+// Component-based code splitting
+const HeavyChart = lazy(() => import('@/components/HeavyChart'));
+
+// Usage with Suspense
+export const App = () => {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/songs" element={<SongPlayer />} />
+        <Route path="/profile" element={<UserProfile />} />
+      </Routes>
+    </Suspense>
+  );
+};
+```
+
+### Caching Strategy
+```typescript
+// React Query for server state caching
+export const useSongsQuery = (userId?: string) => {
+  return useQuery({
+    queryKey: ['songs', userId],
+    queryFn: () => songService.getSongs(userId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Local storage for client state
+export const useLocalStorage = <T>(key: string, initialValue: T) => {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+};
+```

@@ -1,0 +1,393 @@
+---
+alwaysApply: false
+---
+# Authentication Patterns for Melodia
+
+## Authentication Architecture
+
+### Single Responsibility Principle
+Separate authentication concerns into focused modules:
+
+```typescript
+// Authentication service interface (Dependency Inversion)
+export interface AuthService {
+  login(email: string, password: string): Promise<AuthResult>;
+  register(userData: RegisterData): Promise<AuthResult>;
+  logout(): Promise<void>;
+  getCurrentUser(): Promise<User | null>;
+  refreshToken(): Promise<string | null>;
+}
+
+// User management interface
+export interface UserService {
+  createUser(userData: CreateUserData): Promise<User>;
+  updateUser(id: string, userData: Partial<User>): Promise<User>;
+  deleteUser(id: string): Promise<void>;
+  getUserById(id: string): Promise<User | null>;
+}
+```
+
+### Authentication Hook Pattern
+Follow the pattern from [src/hooks/use-auth.ts](mdc:src/hooks/use-auth.ts):
+
+```typescript
+export const useAuth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Single responsibility: Handle authentication state
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      setLoading(true);
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+    } catch (err) {
+      setError('Failed to check authentication status');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Single responsibility: Handle login
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await authService.login(email, password);
+      if (result.success) {
+        setUser(result.user);
+        return { success: true };
+      } else {
+        setError(result.error || 'Login failed');
+        return { success: false, error: result.error };
+      }
+    } catch (err) {
+      const errorMessage = 'Login failed. Please try again.';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Single responsibility: Handle registration
+  const register = useCallback(async (userData: RegisterData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await authService.register(userData);
+      if (result.success) {
+        setUser(result.user);
+        return { success: true };
+      } else {
+        setError(result.error || 'Registration failed');
+        return { success: false, error: result.error };
+      }
+    } catch (err) {
+      const errorMessage = 'Registration failed. Please try again.';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Single responsibility: Handle logout
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+      setUser(null);
+      setError(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  return {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user
+  };
+};
+```
+
+## Route Protection Patterns
+
+### Protected Route Component
+```typescript
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  redirectTo?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  fallback = <div>Loading...</div>,
+  redirectTo = '/profile'
+}) => {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace(redirectTo);
+    }
+  }, [user, loading, router, redirectTo]);
+
+  if (loading) {
+    return <>{fallback}</>;
+  }
+
+  if (!user) {
+    return null; // Will redirect
+  }
+
+  return <>{children}</>;
+};
+```
+
+### Authentication Guard Hook
+```typescript
+export const useAuthGuard = (redirectTo: string = '/profile') => {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace(redirectTo);
+    }
+  }, [user, loading, router, redirectTo]);
+
+  return { user, loading, isAuthenticated: !!user };
+};
+```
+
+## Server-Side Authentication
+
+### API Route Protection
+```typescript
+// Middleware for protected API routes
+export const withAuth = (handler: NextApiHandler) => {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      
+      if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      const user = await verifyToken(token);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      // Add user to request object
+      (req as any).user = user;
+      
+      return handler(req, res);
+    } catch (error) {
+      return res.status(401).json({ error: 'Authentication failed' });
+    }
+  };
+};
+
+// Usage in API routes
+export default withAuth(async (req: NextApiRequest, res: NextApiResponse) => {
+  const user = (req as any).user;
+  // Protected route logic here
+});
+```
+
+### Server Actions with Authentication
+```typescript
+'use server'
+
+import { createServerSupabaseClient } from '@/lib/supabase';
+import { redirect } from 'next/navigation';
+
+export async function createSongAction(formData: FormData) {
+  const supabase = createServerSupabaseClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    redirect('/profile');
+  }
+
+  // Proceed with authenticated action
+  const title = formData.get('title') as string;
+  const artist = formData.get('artist') as string;
+
+  // Validate input
+  if (!title?.trim() || !artist?.trim()) {
+    return { error: 'Title and artist are required' };
+  }
+
+  // Create song
+  const { data, error } = await supabase
+    .from('songs')
+    .insert({ title, artist, user_id: user.id })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: 'Failed to create song' };
+  }
+
+  return { data };
+}
+```
+
+## Security Best Practices
+
+### 1. Input Validation
+```typescript
+// Always validate user input
+export const validateUserInput = (data: any): ValidationResult => {
+  const errors: string[] = [];
+
+  if (!data.email?.trim()) {
+    errors.push('Email is required');
+  } else if (!isValidEmail(data.email)) {
+    errors.push('Invalid email format');
+  }
+
+  if (!data.password?.trim()) {
+    errors.push('Password is required');
+  } else if (data.password.length < 6) {
+    errors.push('Password must be at least 6 characters');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+```
+
+### 2. Rate Limiting
+```typescript
+// Implement rate limiting for auth endpoints
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+export const checkRateLimit = (ip: string, maxRequests: number = 5, windowMs: number = 60000): boolean => {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(ip);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (userLimit.count >= maxRequests) {
+    return false;
+  }
+
+  userLimit.count++;
+  return true;
+};
+```
+
+### 3. Secure Token Handling
+```typescript
+// Secure token storage and validation
+export const setAuthToken = (token: string) => {
+  // Use httpOnly cookies in production
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('auth_token', token);
+  }
+};
+
+export const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('auth_token');
+  }
+  return null;
+};
+
+export const removeAuthToken = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth_token');
+  }
+};
+```
+
+### 4. Error Handling
+```typescript
+// Consistent error handling for auth operations
+export const handleAuthError = (error: any): string => {
+  // Don't expose sensitive error details
+  if (error.message?.includes('Invalid credentials')) {
+    return 'Invalid email or password';
+  }
+  
+  if (error.message?.includes('User not found')) {
+    return 'No account found with this email';
+  }
+  
+  if (error.message?.includes('Email already exists')) {
+    return 'An account with this email already exists';
+  }
+  
+  // Generic error for unknown issues
+  return 'An error occurred. Please try again.';
+};
+```
+
+## Testing Authentication
+
+### Mock Authentication for Tests
+```typescript
+// Mock auth service for testing
+export const createMockAuthService = (): AuthService => ({
+  login: jest.fn().mockResolvedValue({
+    success: true,
+    user: { id: '1', email: 'test@example.com', name: 'Test User' }
+  }),
+  register: jest.fn().mockResolvedValue({
+    success: true,
+    user: { id: '1', email: 'test@example.com', name: 'Test User' }
+  }),
+  logout: jest.fn().mockResolvedValue(undefined),
+  getCurrentUser: jest.fn().mockResolvedValue({
+    id: '1', email: 'test@example.com', name: 'Test User'
+  }),
+  refreshToken: jest.fn().mockResolvedValue('new-token')
+});
+```
+
+### Authentication Test Utilities
+```typescript
+// Test utilities for authentication
+export const renderWithAuth = (component: React.ReactElement, user?: User) => {
+  const mockAuth = {
+    user,
+    loading: false,
+    error: null,
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+    isAuthenticated: !!user
+  };
+
+  return render(
+    <AuthProvider value={mockAuth}>
+      {component}
+    </AuthProvider>
+  );
+};
+```
