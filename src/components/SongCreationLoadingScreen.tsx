@@ -3,23 +3,28 @@
 import React, { useState, useEffect } from "react";
 
 interface SongCreationLoadingScreenProps {
-  onComplete: () => void;
   duration?: number; // Duration in seconds, default 45
+  title?: string; // Custom title
+  message?: string; // Custom message
+  showTimer?: boolean; // Whether to show timer, default true
 }
 
 export default function SongCreationLoadingScreen({
-  onComplete,
   duration = 45,
+  title = "Crafting your song...",
+  message = "Our AI is turning your story into a musical masterpiece. Hang tight!",
+  showTimer = true,
 }: SongCreationLoadingScreenProps) {
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [isComplete, setIsComplete] = useState(false);
 
+  // Timer effect
   useEffect(() => {
+    if (!showTimer) return;
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          setIsComplete(true);
           return 0;
         }
         return prev - 1;
@@ -27,14 +32,7 @@ export default function SongCreationLoadingScreen({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  // Handle completion in a separate useEffect to avoid calling onComplete during render
-  useEffect(() => {
-    if (isComplete) {
-      onComplete();
-    }
-  }, [isComplete, onComplete]);
+  }, [showTimer]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center relative">
@@ -67,52 +65,50 @@ export default function SongCreationLoadingScreen({
 
       {/* Main Text */}
       <div className="text-center mb-12">
-        <h2 className="text-2xl font-bold text-melodia-teal mb-4">
-          Crafting your song...
-        </h2>
-        <p className="text-lg text-melodia-teal/80 max-w-md">
-          Our AI is turning your story into a musical masterpiece. Hang tight!
-        </p>
+        <h2 className="text-2xl font-bold text-melodia-teal mb-4">{title}</h2>
+        <p className="text-lg text-melodia-teal/80 max-w-md">{message}</p>
       </div>
 
       {/* Timer Circle */}
-      <div className="relative mb-8">
-        <div className="w-20 h-20 bg-melodia-yellow rounded-full border-4 border-melodia-yellow/50 flex items-center justify-center shadow-lg">
-          <span className="text-2xl font-bold text-melodia-coral">
-            {timeLeft}
-          </span>
-        </div>
+      {showTimer && (
+        <div className="relative mb-8">
+          <div className="w-20 h-20 bg-melodia-yellow rounded-full border-4 border-melodia-yellow/50 flex items-center justify-center shadow-lg">
+            <span className="text-2xl font-bold text-melodia-coral">
+              {timeLeft}
+            </span>
+          </div>
 
-        {/* Progress Ring */}
-        <svg
-          className="absolute inset-0 w-20 h-20 transform -rotate-90"
-          viewBox="0 0 80 80"
-        >
-          <circle
-            cx="40"
-            cy="40"
-            r="36"
-            stroke="currentColor"
-            strokeWidth="4"
-            fill="none"
-            className="text-melodia-yellow/30"
-          />
-          <circle
-            cx="40"
-            cy="40"
-            r="36"
-            stroke="currentColor"
-            strokeWidth="4"
-            fill="none"
-            strokeDasharray={`${2 * Math.PI * 36}`}
-            strokeDashoffset={`${
-              2 * Math.PI * 36 * (1 - (duration - timeLeft) / duration)
-            }`}
-            className="text-melodia-coral transition-all duration-1000 ease-linear"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
+          {/* Progress Ring */}
+          <svg
+            className="absolute inset-0 w-20 h-20 transform -rotate-90"
+            viewBox="0 0 80 80"
+          >
+            <circle
+              cx="40"
+              cy="40"
+              r="36"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+              className="text-melodia-yellow/30"
+            />
+            <circle
+              cx="40"
+              cy="40"
+              r="36"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+              strokeDasharray={`${2 * Math.PI * 36}`}
+              strokeDashoffset={`${
+                2 * Math.PI * 36 * (1 - (duration - timeLeft) / duration)
+              }`}
+              className="text-melodia-coral transition-all duration-1000 ease-linear"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="text-center">

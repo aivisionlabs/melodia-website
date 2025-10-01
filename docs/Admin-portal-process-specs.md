@@ -77,7 +77,7 @@ Response:
         }
       ]
     },
-    "status": "SUCCESS",
+    "status": "COMPLETE",
     "type": "GENERATE",
     "errorCode": null,
     "errorMessage": null
@@ -89,9 +89,8 @@ In the sunoData it will have 2 array data sets.
 These are the various status available for this api
 
 PENDING: Task is waiting to be processed
-TEXT_SUCCESS: Lyrics/text generation completed successfully
-FIRST_SUCCESS: First track generation completed successfully
-SUCCESS: All tracks generated successfully
+STREAM_AVAILABLE: First variant ready for streaming
+COMPLETE: All variants ready for download
 CREATE_TASK_FAILED: Failed to create the generation task
 GENERATE_AUDIO_FAILED: Failed to generate music tracks
 CALLBACK_EXCEPTION: Error occurred during callback

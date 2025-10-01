@@ -9,9 +9,8 @@ export const SUNO_CONFIG = {
 
   // Mock API configuration
   MOCK_DELAYS: {
-    TEXT_SUCCESS: 5,    // 5 seconds
-    FIRST_SUCCESS: 15,  // 15 seconds
-    SUCCESS: 25,        // 25 seconds
+    STREAM_AVAILABLE: 5,    // 5 seconds - first variant ready for streaming
+    COMPLETE: 15,           // 15 seconds - all variants ready for download
   }
 };
 

@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       return NextResponse.json({
         success: true,
-        message: 'Lyrics approved successfully'
+        message: 'Lyrics approved successfully',
+        redirectTo: result.redirectTo
       });
     } else {
       return NextResponse.json(

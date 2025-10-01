@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { config } from './config'
 import { db } from './db'
@@ -53,7 +53,7 @@ Please provide the refined lyrics that address the user's feedback while maintai
 
 
 // Refine lyrics using Gemini API
-export async function refineLyricsAction(refineText: string, requestId: number) {
+export async function refineLyricsAction(refineText: string, requestId: number, userId?: number, anonymousUserId?: string) {
   try {
     // Get ALL lyrics drafts for this request to maintain context
     const allDrafts = await db
@@ -95,7 +95,9 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
           generated_text: mockRefinedText,
           song_title: latestDraft.song_title,
           music_style: latestDraft.music_style,
-          status: 'draft'
+          status: 'draft',
+          created_by_user_id: userId || null,
+          created_by_anonymous_user_id: anonymousUserId || null
         })
         .returning()
 
@@ -193,7 +195,9 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
         generated_text: refinedText,
         song_title: latestDraft.song_title,
         music_style: latestDraft.music_style,
-        status: 'draft'
+        status: 'draft',
+        created_by_user_id: userId || null,
+        created_by_anonymous_user_id: anonymousUserId || null
       })
       .returning()
 
@@ -207,7 +211,7 @@ export async function refineLyricsAction(refineText: string, requestId: number) 
 
 
 
-// Approve lyrics
+// Approve lyrics and redirect to payment
 export async function approveLyricsAction(draftId: number, requestId: number) {
   try {
     // Update draft status
@@ -216,12 +220,9 @@ export async function approveLyricsAction(draftId: number, requestId: number) {
       .set({ status: 'approved' })
       .where(eq(lyricsDraftsTable.id, draftId))
 
-    // No need to update song_requests table - lyrics_status and approved_lyrics_id moved to other tables
-    // The lyrics draft status is already updated above
-
     revalidatePath(`/create-lyrics/${requestId}`)
     revalidatePath('/')
-    return { success: true }
+    return { success: true, redirectTo: `/payment?requestId=${requestId}` }
   } catch (error) {
     console.error('Error approving lyrics:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Failed to approve lyrics' }
@@ -243,268 +244,6 @@ export async function getSongRequestDataAction(requestId: number) {
   } catch (error) {
     console.error('Error fetching song request:', error)
     return null
-  }
-}
-
-// Create song from approved lyrics
-export async function createSongFromLyricsAction(requestId: number) {
-  try {
-    // Get the approved lyrics
-    const request = await db
-      .select()
-      .from(songRequestsTable)
-      .where(eq(songRequestsTable.id, requestId))
-      .limit(1)
-
-    // Find approved lyrics draft for this request
-    const approvedLyrics = await db
-      .select()
-      .from(lyricsDraftsTable)
-      .where(
-        and(
-          eq(lyricsDraftsTable.song_request_id, requestId),
-          eq(lyricsDraftsTable.status, 'approved')
-        )
-      )
-      .limit(1)
-
-    if (!approvedLyrics[0]) {
-      throw new Error('No approved lyrics found')
-    }
-
-    // Check if song already exists for this request
-    const existingSongs = await db
-      .select()
-      .from(songsTable)
-      .where(eq(songsTable.song_request_id, requestId))
-      .limit(1)
-
-    let song
-    if (existingSongs.length > 0) {
-      // Update existing song
-      song = existingSongs[0]
-      console.log('🎵 Updating existing song:', song.id)
-
-      await db
-        .update(songsTable)
-        .set({
-          title: approvedLyrics[0].song_title || `Song for ${request[0].recipient_details}`,
-          lyrics: approvedLyrics[0].generated_text,
-          service_provider: 'Suno',
-          song_requester: request[0].requester_name,
-          prompt: `Personalized song for ${request[0].recipient_details}`,
-          status: 'processing',
-          approved_lyrics_id: approvedLyrics[0].id,
-          metadata: {
-            original_request_id: requestId
-          }
-        })
-        .where(eq(songsTable.id, song.id))
-    } else {
-      // Create new song record
-      const timestamp = Date.now()
-      const randomSuffix = Math.random().toString(36).substring(2, 8)
-      const slug = `${request[0].recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
-
-      const [newSong] = await db
-        .insert(songsTable)
-        .values({
-          song_request_id: requestId,
-          title: approvedLyrics[0].song_title || `Song for ${request[0].recipient_details}`,
-          lyrics: approvedLyrics[0].generated_text,
-          music_style: approvedLyrics[0].music_style,
-          service_provider: 'Suno',
-          song_requester: request[0].requester_name,
-          prompt: `Personalized song for ${request[0].recipient_details}`,
-          slug,
-          status: 'processing',
-          approved_lyrics_id: approvedLyrics[0].id,
-          metadata: {
-            original_request_id: requestId
-          }
-        })
-        .returning()
-
-      song = newSong
-      console.log('🎵 Created new song:', song.id)
-    }
-
-    // Check for demo mode
-    const isDemoMode = process.env.DEMO_MODE === 'true';
-
-    if (isDemoMode) {
-      console.log('🎭 DEMO MODE: Using mock Suno responses instead of real API calls');
-
-      // Generate mock task IDs for demo mode
-      const mockTaskIds = [
-        `demo-task-${Date.now()}-1`,
-        `demo-task-${Date.now()}-2`
-      ];
-
-      const variants = [
-        { style: 'Personal', title: `${request[0].recipient_details}'s Song - Version 1` },
-        { style: 'Pop', title: `${request[0].recipient_details}'s Song - Version 2` }
-      ];
-
-      const variantsData = mockTaskIds.map((taskId, index) => ({
-        id: `variant-${index}`,
-        taskId,
-        title: variants[index].title,
-        style: variants[index].style,
-        status: 'processing'
-      }));
-
-      // Update song with mock task IDs and variants data
-      await db
-        .update(songsTable)
-        .set({
-          suno_task_id: mockTaskIds[0],
-          suno_variants: variantsData,
-          metadata: {
-            ...(song.metadata || {}),
-            demo_mode: true
-          }
-        })
-        .where(eq(songsTable.id, song.id))
-
-      // Update song request
-      await db
-        .update(songRequestsTable)
-        .set({
-          status: 'processing'
-        })
-        .where(eq(songRequestsTable.id, requestId))
-
-      revalidatePath('/')
-      return { success: true, taskId: mockTaskIds[0], taskIds: mockTaskIds, demoMode: true }
-    }
-
-    // Start Suno job - Generate 2 variants
-    console.log('🎵 Starting Suno job for song creation with 2 variants...');
-    const { SunoAPIFactory } = await import('./suno-api')
-    const sunoAPI = SunoAPIFactory.getAPI()
-    console.log('🎵 SunoAPI instance:', sunoAPI.constructor.name);
-
-    // Generate 2 variants with different styles
-    const variants = [
-      { style: 'Personal', title: `${request[0].recipient_details}'s Song - Version 1` },
-      { style: 'Pop', title: `${request[0].recipient_details}'s Song - Version 2` }
-    ];
-
-    const sunoResponses = [];
-    const taskIds = [];
-
-    for (let i = 0; i < variants.length; i++) {
-      const variant = variants[i];
-      console.log(`🎵 Generating variant ${i + 1}: ${variant.style}`);
-
-      try {
-        const sunoResponse = await sunoAPI.generateSong({
-          prompt: approvedLyrics[0].generated_text,
-          style: variant.style,
-          title: variant.title,
-          customMode: true,
-          instrumental: false,
-          model: 'V4_5',
-          callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
-        });
-
-        if (sunoResponse.code !== 0 && sunoResponse.code !== 200) {
-          if (sunoResponse.code === 429) {
-            throw new Error(`Suno API credits insufficient: ${sunoResponse.msg}. Please add credits to your Suno API account.`)
-          }
-          throw new Error(`Suno API error: ${sunoResponse.msg}`)
-        }
-
-        sunoResponses.push(sunoResponse);
-        taskIds.push(sunoResponse.data.taskId);
-      } catch (apiError) {
-        // Check if this is a credit error and fallback to demo mode
-        const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
-        const isCreditError = errorMessage.includes("credits insufficient") ||
-          errorMessage.includes("top up") ||
-          errorMessage.includes("insufficient credits");
-
-        if (isCreditError) {
-          console.log('🎭 Suno API credits insufficient, falling back to demo mode');
-
-          // Fallback to demo mode
-          const mockTaskIds = [
-            `demo-task-${Date.now()}-1`,
-            `demo-task-${Date.now()}-2`
-          ];
-
-          const variantsData = mockTaskIds.map((taskId, index) => ({
-            id: `variant-${index}`,
-            taskId,
-            title: variants[index].title,
-            style: variants[index].style,
-            status: 'processing'
-          }));
-
-          // Update song with mock task IDs and variants data
-          await db
-            .update(songsTable)
-            .set({
-              suno_task_id: mockTaskIds[0],
-              suno_variants: variantsData,
-              metadata: {
-                ...(song.metadata || {}),
-                demo_mode: true,
-                fallback_reason: 'api_credits_insufficient'
-              }
-            })
-            .where(eq(songsTable.id, song.id))
-
-          // Update song request
-          await db
-            .update(songRequestsTable)
-            .set({
-              status: 'processing'
-            })
-            .where(eq(songRequestsTable.id, requestId))
-
-          revalidatePath('/')
-          return { success: true, taskId: mockTaskIds[0], taskIds: mockTaskIds, demoMode: true, fallback: true }
-        }
-
-        // Re-throw non-credit errors
-        throw apiError;
-      }
-    }
-
-    // Store multiple task IDs and variants info
-    const primaryTaskId = taskIds[0];
-    const variantsData = taskIds.map((taskId, index) => ({
-      id: `variant-${index}`,
-      taskId,
-      title: variants[index].title,
-      style: variants[index].style,
-      status: 'processing'
-    }));
-
-    // Update song with primary task ID and variants data
-    await db
-      .update(songsTable)
-      .set({
-        suno_task_id: primaryTaskId,
-        suno_variants: variantsData
-      })
-      .where(eq(songsTable.id, song.id))
-
-    // Update song request
-    await db
-      .update(songRequestsTable)
-      .set({
-        status: 'processing'
-      })
-      .where(eq(songRequestsTable.id, requestId))
-
-    revalidatePath('/')
-    return { success: true, taskId: primaryTaskId, taskIds }
-  } catch (error) {
-    console.error('Error creating song from lyrics:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create song' }
   }
 }
 
@@ -559,8 +298,14 @@ export async function checkSunoJobStatusAction(taskId: string) {
         if (song) {
           await updateSong(song.id, {
             status: 'completed',
-            song_url: demoAudioUrl,
-            duration: 180
+            song_variants: {
+              0: {
+                audio_url: demoAudioUrl,
+                image_url: null,
+                duration: 180
+              }
+            },
+            selected_variant: 0
           });
 
           if (song.metadata && typeof song.metadata === 'object' && 'original_request_id' in song.metadata) {
@@ -607,7 +352,7 @@ export async function checkSunoJobStatusAction(taskId: string) {
 
     const jobStatus = statusResponse.data.status;
 
-    const isCompleted = jobStatus === 'completed' || jobStatus === 'SUCCESS' || jobStatus === 'success';
+    const isCompleted = jobStatus === 'completed' || jobStatus === 'COMPLETE' || jobStatus === 'success';
     const isFailed = jobStatus === 'failed' || jobStatus === 'FAILED' || jobStatus === 'error';
 
     if (isCompleted) {
@@ -620,8 +365,14 @@ export async function checkSunoJobStatusAction(taskId: string) {
         if (song) {
           await updateSong(song.id, {
             status: 'completed',
-            song_url: audioUrl,
-            duration: duration ? Math.round(duration) : undefined
+            song_variants: {
+              0: {
+                audio_url: audioUrl,
+                image_url: firstVariant.imageUrl || null,
+                duration: duration ? Math.round(duration) : undefined
+              }
+            },
+            selected_variant: 0
           });
 
           if (song.metadata && typeof song.metadata === 'object' && 'original_request_id' in song.metadata) {

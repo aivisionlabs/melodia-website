@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { paymentsTable, songRequestsTable, songsTable } from '@/lib/db/schema';
+import { paymentsTable, songsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyPaymentSignature, getPaymentDetails, mapRazorpayStatusToPaymentStatus } from '@/lib/razorpay';
 import { getCurrentUser } from '@/lib/user-actions';

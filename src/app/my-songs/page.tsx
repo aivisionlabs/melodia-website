@@ -123,7 +123,7 @@ export default function MySongsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, anonymousUserId, addToast]);
+  }, [user, anonymousUserId, addToast]);
 
   // Helper function to safely parse lyrics
   const parseLyrics = (lyrics: any): any[] => {
@@ -304,66 +304,66 @@ export default function MySongsPage() {
           // Mark as polling immediately to prevent duplicate polling
           setPollingSongs((prev) => new Set(prev.add(song.id)));
 
-          // Start polling this individual song
-          const cleanup = pollSongStatus(
-            taskId,
-            (status) => {
-              console.log(`Song ${song.id} status update:`, status);
+          // // Start polling this individual song
+          // const cleanup = pollSongStatus(
+          //   taskId,
+          //   (status) => {
+          //     console.log(`Song ${song.id} status update:`, status);
 
-              // Song status will be updated in setUserContent below
+          //     // Song status will be updated in setUserContent below
 
-              // If completed, update the user content
-              if (status.status === "completed" && status.audioUrl) {
-                setUserContent((prev) =>
-                  prev.map((item) =>
-                    item.id === song.id
-                      ? { ...item, status: "ready", audio_url: status.audioUrl }
-                      : item
-                  )
-                );
+          //     // If completed, update the user content
+          //     if (status.status === "completed" && status.audioUrl) {
+          //       setUserContent((prev) =>
+          //         prev.map((item) =>
+          //           item.id === song.id
+          //             ? { ...item, status: "ready", audio_url: status.audioUrl }
+          //             : item
+          //         )
+          //       );
 
-                addToast({
-                  type: "success",
-                  title: "Song Ready!",
-                  message: `${song.title} has been generated and is ready to listen!`,
-                });
+          //       addToast({
+          //         type: "success",
+          //         title: "Song Ready!",
+          //         message: `${song.title} has been generated and is ready to listen!`,
+          //       });
 
-                // Stop polling this song
-                stopPollingSong(song.id);
-              } else if (status.status === "failed") {
-                setUserContent((prev) =>
-                  prev.map((item) =>
-                    item.id === song.id ? { ...item, status: "failed" } : item
-                  )
-                );
+          //       // Stop polling this song
+          //       stopPollingSong(song.id);
+          //     } else if (status.status === "failed") {
+          //       setUserContent((prev) =>
+          //         prev.map((item) =>
+          //           item.id === song.id ? { ...item, status: "failed" } : item
+          //         )
+          //       );
 
-                addToast({
-                  type: "error",
-                  title: "Song Generation Failed",
-                  message: `${song.title} failed to generate. You can try again.`,
-                });
+          //       addToast({
+          //         type: "error",
+          //         title: "Song Generation Failed",
+          //         message: `${song.title} failed to generate. You can try again.`,
+          //       });
 
-                // Stop polling this song
-                stopPollingSong(song.id);
-              }
-            },
-            (error) => {
-              console.error(`Error polling song ${song.id}:`, error);
-              addToast({
-                type: "error",
-                title: "Status Check Failed",
-                message:
-                  "Failed to check song status. Please refresh the page.",
-              });
+          //       // Stop polling this song
+          //       stopPollingSong(song.id);
+          //     }
+          //   },
+          //   (error) => {
+          //     console.error(`Error polling song ${song.id}:`, error);
+          //     addToast({
+          //       type: "error",
+          //       title: "Status Check Failed",
+          //       message:
+          //         "Failed to check song status. Please refresh the page.",
+          //     });
 
-              // Stop polling this song on error
-              stopPollingSong(song.id);
-            },
-            10000 // Poll every 10 seconds
-          );
+          //     // Stop polling this song on error
+          //     stopPollingSong(song.id);
+          //   },
+          //   10000 // Poll every 10 seconds
+          // );
 
           // Store cleanup function in ref
-          cleanupFunctionsRef.current.set(song.id, cleanup);
+          // cleanupFunctionsRef.current.set(song.id, cleanup);
         });
       }
     }

@@ -1,139 +1,256 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Play, ArrowLeft, Home, Disc3, Music, User } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Play,
+  ArrowLeft,
+  Home,
+  Disc3,
+  Music,
+  User,
+  Pause,
+  BookOpen,
+  Download,
+  Share2,
+} from "lucide-react";
 import { MediaPlayer } from "@/components/MediaPlayer";
+import { SongStatusResponse, SongVariant } from "@/lib/song-status-client";
 import Image from "next/image";
 
-interface SongVariant {
-  id: string;
-  title: string;
-  audioUrl: string;
-  streamAudioUrl?: string;
-  imageUrl: string;
-  duration: number;
-  downloadStatus: string;
-  isLoading?: boolean; // New property to track loading state
-}
-
 interface SongOptionsDisplayProps {
-  variants: SongVariant[];
+  songStatus: SongStatusResponse;
   onBack: () => void;
-  onSelectVariant: (variantId: string) => void;
   onBackupWithGoogle: () => void;
-  songData?: {
-    suno_task_id?: string;
-    title: string;
-    artist?: string;
-    songId?: number; // Add song ID for updating add_to_library
-  };
 }
 
 export default function SongOptionsDisplay({
-  variants,
+  songStatus,
   onBack,
   onBackupWithGoogle,
-  songData,
 }: SongOptionsDisplayProps) {
-  const [playingVariant, setPlayingVariant] = useState<string | null>(null);
   const [showMediaPlayer, setShowMediaPlayer] = useState(false);
   const [selectedVariantForLyrics, setSelectedVariantForLyrics] =
     useState<SongVariant | null>(null);
   const [audioElements, setAudioElements] = useState<{
     [key: string]: HTMLAudioElement;
   }>({});
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [sharePublicly, setSharePublicly] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [emailInput, setEmailInput] = useState<{ [key: string]: string }>({});
 
-  const handlePlayPreview = (variantId: string, audioUrl: string) => {
-    // Don't play if no audio URL (still loading)
-    if (!audioUrl || audioUrl === "") {
-      console.log("Audio not ready yet");
-      return;
-    }
+  // Media player state for streaming audio - per variant
+  const [variantStates, setVariantStates] = useState<{
+    [variantId: string]: {
+      currentTime: number;
+      duration: number;
+      isPlaying: boolean;
+      isLoading: boolean;
+    };
+  }>({});
+  const [activeStreamingVariant, setActiveStreamingVariant] = useState<
+    string | null
+  >(null);
 
-    // If clicking the same song that's playing, pause it
-    if (playingVariant === variantId) {
+  // Helper function to get variant state
+  const getVariantState = (variantId: string) => {
+    return (
+      variantStates[variantId] || {
+        currentTime: 0,
+        duration: 180, // Default 3 minutes
+        isPlaying: false,
+        isLoading: false,
+      }
+    );
+  };
+
+  // Helper function to update variant state
+  const updateVariantState = (
+    variantId: string,
+    updates: Partial<{
+      currentTime: number;
+      duration: number;
+      isPlaying: boolean;
+      isLoading: boolean;
+    }>
+  ) => {
+    setVariantStates((prev) => {
+      const currentState = prev[variantId] || {
+        currentTime: 0,
+        duration: 180,
+        isPlaying: false,
+        isLoading: false,
+      };
+      return {
+        ...prev,
+        [variantId]: {
+          ...currentState,
+          ...updates,
+        },
+      };
+    });
+  };
+
+  // Streaming audio player functions
+  const handleStreamingPlayPause = (
+    variantId: string,
+    streamAudioUrl: string
+  ) => {
+    const variant = songStatus.variants?.find((v) => v.id === variantId);
+    if (!variant || !streamAudioUrl) return;
+
+    const currentVariantState = getVariantState(variantId);
+
+    if (activeStreamingVariant === variantId && currentVariantState.isPlaying) {
+      // Pause current audio
       const audio = audioElements[variantId];
       if (audio) {
         audio.pause();
-        setPlayingVariant(null);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
+        updateVariantState(variantId, { isPlaying: false });
+        setActiveStreamingVariant(null);
       }
-      return;
-    }
-
-    // Stop any currently playing audio and reset their currentTime
-    Object.entries(audioElements).forEach(([, audio]) => {
-      audio.pause();
-      audio.currentTime = 0;
-    });
-
-    // Clear any existing progress interval
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    let audio: HTMLAudioElement;
-
-    // Create new audio element if it doesn't exist
-    if (!audioElements[variantId]) {
-      audio = new Audio(audioUrl);
-      audio.preload = "metadata";
-
-      // Update the audioElements state immediately
-      setAudioElements((prev) => ({ ...prev, [variantId]: audio }));
-
-      audio.addEventListener("ended", () => {
-        setPlayingVariant(null);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      });
-
-      audio.addEventListener("error", (e) => {
-        console.error("Audio loading error:", e);
-        setPlayingVariant(null);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      });
     } else {
-      audio = audioElements[variantId];
+      // Stop any currently playing streaming audio
+      if (activeStreamingVariant && audioElements[activeStreamingVariant]) {
+        audioElements[activeStreamingVariant].pause();
+        audioElements[activeStreamingVariant].currentTime = 0;
+        updateVariantState(activeStreamingVariant, { isPlaying: false });
+      }
+
+      // Start playing the selected variant
+      let audio: HTMLAudioElement;
+      if (!audioElements[variantId]) {
+        audio = new Audio(streamAudioUrl);
+        audio.preload = "metadata";
+        audio.crossOrigin = "anonymous";
+
+        // Update the audioElements state
+        setAudioElements((prev) => ({ ...prev, [variantId]: audio }));
+
+        audio.addEventListener("loadedmetadata", () => {
+          updateVariantState(variantId, {
+            duration: audio.duration,
+            isLoading: false,
+          });
+        });
+
+        audio.addEventListener("timeupdate", () => {
+          updateVariantState(variantId, { currentTime: audio.currentTime });
+        });
+
+        audio.addEventListener("playing", () => {
+          // Fired when audio actually starts playing
+          console.log("Playing event fired for:", variantId);
+          setActiveStreamingVariant(variantId);
+          updateVariantState(variantId, {
+            isPlaying: true,
+            isLoading: false,
+          });
+        });
+
+        audio.addEventListener("pause", () => {
+          // Fired when audio is paused
+          updateVariantState(variantId, {
+            isPlaying: false,
+          });
+        });
+
+        audio.addEventListener("ended", () => {
+          updateVariantState(variantId, {
+            isPlaying: false,
+            currentTime: 0,
+          });
+          setActiveStreamingVariant(null);
+        });
+
+        audio.addEventListener("error", (e) => {
+          console.error("Audio streaming error:", e);
+          updateVariantState(variantId, {
+            isLoading: false,
+            isPlaying: false,
+          });
+          setActiveStreamingVariant(null);
+        });
+      } else {
+        audio = audioElements[variantId];
+      }
+
+      updateVariantState(variantId, { isLoading: true });
+      setActiveStreamingVariant(variantId);
+
+      audio
+        .play()
+        .then(() => {
+          setActiveStreamingVariant(variantId);
+          updateVariantState(variantId, {
+            isPlaying: true,
+            isLoading: false,
+          });
+        })
+        .catch((error) => {
+          console.error("Error playing streaming audio:", error);
+          updateVariantState(variantId, {
+            isLoading: false,
+            isPlaying: false,
+          });
+          setActiveStreamingVariant(null);
+        });
     }
+  };
 
-    // Set playing state BEFORE starting playback
-    setPlayingVariant(variantId);
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
 
-    // Reset to beginning and play
-    audio.currentTime = 0;
+  const handleLyricsClick = (variant: SongVariant) => {
+    setSelectedVariantForLyrics(variant);
+    setShowMediaPlayer(true);
+  };
 
-    audio
-      .play()
-      .then(() => {
-        // Start progress tracking only after successful play
-        progressIntervalRef.current = setInterval(() => {
-          // Progress tracking removed for simplified design
-        }, 100);
-      })
-      .catch((error) => {
-        console.error("Error playing audio:", error);
-        setPlayingVariant(null);
-      });
+  const handleDownload = (audioUrl: string, title: string) => {
+    const link = document.createElement("a");
+    link.href = audioUrl;
+    link.download = `${title}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShareToggle = (variantId: string) => {
+    setSharePublicly((prev) => ({
+      ...prev,
+      [variantId]: !prev[variantId],
+    }));
+  };
+
+  const handleEmailChange = (variantId: string, email: string) => {
+    setEmailInput((prev) => ({
+      ...prev,
+      [variantId]: email,
+    }));
+  };
+
+  const handleSendEmail = (variantId: string) => {
+    const email = emailInput[variantId];
+    if (email) {
+      console.log(`Sending song link to ${email} for variant ${variantId}`);
+      alert(`Song link will be sent to ${email}`);
+    }
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
       // Pause all audio elements
       Object.values(audioElements).forEach((audio) => {
         audio.pause();
         audio.currentTime = 0;
       });
+      // Reset streaming player state
+      setActiveStreamingVariant(null);
+      setVariantStates({});
     };
   }, [audioElements]);
 
@@ -155,54 +272,193 @@ export default function SongOptionsDisplay({
 
         {/* Song Options */}
         <div className="space-y-4 px-2">
-          {variants.map((variant, index) => (
-            <div
-              key={variant.id}
-              className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              {/* Song Info */}
-              <div className="flex items-start gap-4 mb-5">
-                <div className="flex-1">
-                  <p className="text-sm font-body text-neutral-500 mb-1">
-                    Song Option {index + 1}
-                  </p>
-                  <h3 className="text-xl font-heading text-melodia-teal mb-2">
-                    {variant.title}
-                  </h3>
-                  <p className="text-melodia-coral font-body font-medium text-sm">
-                    Download in 2 minutes
-                  </p>
-                </div>
+          {songStatus.variants?.map((variant, index) => {
+            const variantState = getVariantState(variant.id);
+            return (
+              <div
+                key={variant.id}
+                className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow"
+              >
+                {/* Song Info */}
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="flex-1">
+                    <p className="text-sm font-body text-neutral-500 mb-1">
+                      Song Option {index + 1}
+                    </p>
+                    <h3 className="text-xl font-heading text-melodia-teal mb-2">
+                      {variant.title}
+                    </h3>
+                    <p className="text-melodia-coral font-body font-medium text-sm">
+                      {variant.variantStatus === "DOWNLOAD_READY"
+                        ? "Ready to download"
+                        : variant.variantStatus === "STREAM_READY"
+                        ? "Stream ready - Download preparing..."
+                        : "Generating..."}
+                    </p>
+                  </div>
 
-                {/* Album Art with Wood Frame */}
-                <div className="w-16 h-16 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
-                  <div className="w-full h-full bg-white rounded overflow-hidden">
-                    <Image
-                      src={variant.imageUrl}
-                      alt={`${variant.title} album art`}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        e.currentTarget.src = "/images/melodia-logo.png";
-                      }}
-                    />
+                  {/* Album Art with Wood Frame */}
+                  <div className="w-16 h-16 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
+                    <div className="w-full h-full bg-white rounded overflow-hidden">
+                      <Image
+                        src={variant.imageUrl}
+                        alt={`${variant.title} album art`}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to a placeholder if image fails to load
+                          e.currentTarget.src = "/images/melodia-logo.png";
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Play Preview Button */}
-              <button
-                onClick={() => handlePlayPreview(variant.id, variant.audioUrl)}
-                disabled={!variant.audioUrl || variant.audioUrl === ""}
-                className="w-full h-12 bg-melodia-yellow text-melodia-teal font-body font-semibold rounded-xl hover:bg-melodia-yellow/90 transition-colors flex items-center justify-center gap-2 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed"
-              >
-                <Play className="w-5 h-5" />
-                Play 15s Preview
-              </button>
-            </div>
-          ))}
+                {/* Conditional UI based on variant status */}
+                {variant.variantStatus === "PENDING" ? (
+                  // PENDING: Show generating state
+                  <div className="w-full h-12 bg-neutral-100 text-neutral-500 font-body font-semibold rounded-xl flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </div>
+                ) : variant.variantStatus === "STREAM_READY" ||
+                  variant.variantStatus === "DOWNLOAD_READY" ? (
+                  // STREAM_READY or DOWNLOAD_READY: Full player with controls
+                  <div className="space-y-3">
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div
+                          className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
+                          style={{
+                            width: `${
+                              variantState.duration > 0
+                                ? (variantState.currentTime /
+                                    variantState.duration) *
+                                  100
+                                : 0
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-sm text-neutral-600">
+                        <span>{formatTime(variantState.currentTime)}</span>
+                        <span>{formatTime(variantState.duration)}</span>
+                      </div>
+                    </div>
+
+                    {/* Player Controls */}
+                    <div className="flex items-center justify-between">
+                      {/* Play/Pause Button */}
+                      <button
+                        onClick={() =>
+                          handleStreamingPlayPause(
+                            variant.id,
+                            variant.sourceStreamAudioUrl ||
+                              variant.streamAudioUrl ||
+                              ""
+                          )
+                        }
+                        disabled={
+                          variantState.isLoading ||
+                          (!variant.sourceStreamAudioUrl &&
+                            !variant.streamAudioUrl)
+                        }
+                        className="w-12 h-12 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
+                      >
+                        {variantState.isLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-melodia-teal border-t-transparent"></div>
+                        ) : activeStreamingVariant === variant.id &&
+                          variantState.isPlaying ? (
+                          <Pause className="w-5 h-5" />
+                        ) : (
+                          <Play className="w-5 h-5" />
+                        )}
+                      </button>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {/* Lyrics Button */}
+                        <button
+                          onClick={() => handleLyricsClick(variant)}
+                          className="h-10 px-4 bg-white border border-melodia-yellow text-melodia-teal font-body font-semibold rounded-full hover:bg-melodia-yellow/10 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          Lyrics
+                        </button>
+
+                        {/* Download Button - Only show when DOWNLOAD_READY */}
+                        {variant.variantStatus === "DOWNLOAD_READY" &&
+                          (variant.audioUrl || variant.sourceAudioUrl) && (
+                            <button
+                              onClick={() =>
+                                handleDownload(
+                                  variant.audioUrl ||
+                                    variant.sourceAudioUrl ||
+                                    "",
+                                  variant.title
+                                )
+                              }
+                              className="h-10 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download
+                            </button>
+                          )}
+                      </div>
+                    </div>
+
+                    {/* Sharing Section */}
+                    <div className="space-y-3">
+                      {/* Horizontal Divider */}
+                      <div className="w-full h-px bg-neutral-200"></div>
+
+                      {/* Share Publicly Checkbox */}
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={sharePublicly[variant.id] || false}
+                            onChange={() => handleShareToggle(variant.id)}
+                            className="w-4 h-4 text-melodia-coral bg-melodia-coral border-melodia-coral rounded focus:ring-melodia-coral focus:ring-2"
+                          />
+                          <span className="text-sm font-body text-neutral-700">
+                            Share publicly
+                          </span>
+                        </label>
+                        <Share2 className="w-4 h-4 text-neutral-400" />
+                      </div>
+
+                      {/* Email Input */}
+                      <div className="space-y-2">
+                        <p className="text-sm font-body text-neutral-600">
+                          Get your song link via email
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="Enter your email ID"
+                            value={emailInput[variant.id] || ""}
+                            onChange={(e) =>
+                              handleEmailChange(variant.id, e.target.value)
+                            }
+                            className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent font-body"
+                          />
+                          <button
+                            onClick={() => handleSendEmail(variant.id)}
+                            className="px-4 py-2 bg-melodia-yellow text-melodia-teal font-body font-semibold rounded-lg hover:bg-melodia-yellow/90 transition-colors"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
 
         {/* Backup Option */}
@@ -252,20 +508,18 @@ export default function SongOptionsDisplay({
       </div>
 
       {/* Full-screen MediaPlayer for Lyrics */}
-      {showMediaPlayer && selectedVariantForLyrics && songData && (
+      {showMediaPlayer && selectedVariantForLyrics && (
         <MediaPlayer
           song={{
-            title: songData.title,
-            artist: songData.artist || "Melodia",
-            audioUrl: selectedVariantForLyrics.audioUrl,
-            song_url:
-              selectedVariantForLyrics.streamAudioUrl ||
-              selectedVariantForLyrics.audioUrl,
-            suno_task_id: songData.suno_task_id,
-            suno_audio_id: selectedVariantForLyrics.id,
-            selected_variant: variants.findIndex(
+            metadata: {
+              title: selectedVariantForLyrics.title,
+              suno_task_id: songStatus.variants?.[0]?.id,
+            },
+            song_variants: songStatus.variants,
+            selected_variant: songStatus.variants?.findIndex(
               (v) => v.id === selectedVariantForLyrics.id
             ),
+            suno_audio_id: selectedVariantForLyrics.id,
           }}
           onClose={() => {
             // Stop any audio that might be playing in MediaPlayer

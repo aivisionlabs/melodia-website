@@ -2,11 +2,44 @@
 
 import { SongRequestFormData, SongRequest } from '@/types'
 import { db } from '@/lib/db'
-import { songRequestsTable, songsTable } from '@/lib/db/schema'
+import { songRequestsTable, songsTable, anonymousUsersTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { sanitizeInput } from './security'
 // import { shouldRequirePayment } from './payment-config'
+
+/**
+ * Validate and ensure anonymous user exists
+ */
+async function validateAnonymousUser(anonymousUserId?: string): Promise<string | null> {
+  if (!anonymousUserId) {
+    return null
+  }
+
+  try {
+    // Check if anonymous user exists
+    const existingUser = await db
+      .select({ id: anonymousUsersTable.id })
+      .from(anonymousUsersTable)
+      .where(eq(anonymousUsersTable.id, anonymousUserId))
+      .limit(1)
+
+    if (existingUser.length > 0) {
+      return anonymousUserId
+    }
+
+    // If user doesn't exist, create a new one
+    const [newUser] = await db
+      .insert(anonymousUsersTable)
+      .values({})
+      .returning({ id: anonymousUsersTable.id })
+
+    return newUser?.id || null
+  } catch (error) {
+    console.error('Error validating anonymous user:', error)
+    return null
+  }
+}
 
 // Input validation functions
 function validateSongRequestForm(formData: SongRequestFormData): { isValid: boolean; errors: Record<string, string> } {
@@ -77,10 +110,13 @@ export async function createSongRequest(
       song_story: formData.song_story ? sanitizeInput(formData.song_story) : null
     }
 
+    // Validate and ensure anonymous user exists if provided
+    const validAnonymousUserId = await validateAnonymousUser(anonymousUserId)
+
     // Insert song request - minimal fields only
     const insertData: any = {
       user_id: userId || null,
-      anonymous_user_id: anonymousUserId || null,
+      anonymous_user_id: validAnonymousUserId || null,
       requester_name: sanitizedData.requester_name,
       recipient_details: sanitizedData.recipient_details,
       occasion: sanitizedData.occasion || null,
@@ -202,21 +238,22 @@ export async function getUserSongs(
     const songs = await db
       .select({
         id: songsTable.id,
-        title: songsTable.title,
-        music_style: songsTable.music_style,
         slug: songsTable.slug,
         created_at: songsTable.created_at,
-        status: songsTable.status
+        status: songsTable.status,
+        metadata: songsTable.metadata
       })
       .from(songRequestsTable)
       .innerJoin(songsTable, eq(songRequestsTable.id, songsTable.song_request_id))
       .where(eq(songRequestsTable.user_id, userId))
       .orderBy(songsTable.created_at)
 
-    // Convert Date objects to ISO strings
+    // Convert Date objects to ISO strings and extract metadata fields
     const songsForResponse = songs.map(song => ({
       ...song,
-      created_at: song.created_at.toISOString()
+      created_at: song.created_at.toISOString(),
+      title: (song.metadata as any)?.title || 'Untitled Song',
+      music_style: (song.metadata as any)?.music_style || null
     }))
 
     return {

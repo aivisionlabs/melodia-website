@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { songsTable, songRequestsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { SongDatabaseUpdateService } from '@/lib/services/song-database-update-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
       let targetSong = null;
 
       for (const song of allSongs) {
-        if (song.suno_variants && Array.isArray(song.suno_variants)) {
-          const variant = song.suno_variants.find((v: any) => v.taskId === taskId);
+        if (song.song_variants && Array.isArray(song.song_variants)) {
+          const variant = song.song_variants.find((v: any) => v.id === taskId);
           if (variant) {
             targetSong = song;
             break;
@@ -43,80 +44,32 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
-      // Update the specific variant
-      const updatedVariants = targetSong.suno_variants.map((variant: any) => {
-        if (variant.taskId === taskId) {
-          return {
-            ...variant,
-            status: status === 'SUCCESS' ? 'completed' : 'failed',
-            audioUrl: status === 'SUCCESS' ? data?.audioUrl : null,
-            streamAudioUrl: status === 'SUCCESS' ? data?.streamAudioUrl : null,
-            imageUrl: status === 'SUCCESS' ? data?.imageUrl : null,
-            duration: status === 'SUCCESS' ? data?.duration : null
-          };
+      // Use the new database update service
+      const updateResult = await SongDatabaseUpdateService.updateDatabaseFromSunoResponse(
+        targetSong.id,
+        {
+          status: status,
+          response: { sunoData: data?.variants || [] },
+          errorMessage: status === 'FAILED' ? data?.errorMessage : null
         }
-        return variant;
-      });
-
-      // Check if all variants are completed
-      const allCompleted = updatedVariants.every((variant: any) =>
-        variant.status === 'completed' || variant.status === 'failed'
       );
 
-      if (allCompleted) {
-        // Update song status to ready
-        await db
-          .update(songsTable)
-          .set({
-            status: 'ready',
-            suno_variants: updatedVariants
-          })
-          .where(eq(songsTable.id, targetSong.id));
-
-        // Update song request status
-        await db
-          .update(songRequestsTable)
-          .set({ status: 'completed' })
-          .where(eq(songRequestsTable.id, targetSong.song_request_id));
-
-        console.log(`Song ${targetSong.id} completed with all variants`);
-      } else {
-        // Update variants but keep song as processing
-        await db
-          .update(songsTable)
-          .set({ suno_variants: updatedVariants })
-          .where(eq(songsTable.id, targetSong.id));
-
-        console.log(`Updated variant for song ${targetSong.id}, still processing`);
-      }
+      console.log(`Updated song ${targetSong.id} via webhook:`, updateResult);
     } else {
       // Handle primary task ID completion
       const song = songs[0];
 
-      if (status === 'SUCCESS') {
-        await db
-          .update(songsTable)
-          .set({
-            status: 'ready',
-            song_url: data?.audioUrl || data?.streamAudioUrl,
-            duration: data?.duration
-          })
-          .where(eq(songsTable.id, song.id));
+      // Use the new database update service
+      const updateResult = await SongDatabaseUpdateService.updateDatabaseFromSunoResponse(
+        song.id,
+        {
+          status: status,
+          response: { sunoData: data?.variants || [] },
+          errorMessage: status === 'FAILED' ? data?.errorMessage : null
+        }
+      );
 
-        await db
-          .update(songRequestsTable)
-          .set({ status: 'completed' })
-          .where(eq(songRequestsTable.id, song.song_request_id));
-
-        console.log(`Song ${song.id} completed`);
-      } else {
-        await db
-          .update(songsTable)
-          .set({ status: 'failed' })
-          .where(eq(songsTable.id, song.id));
-
-        console.log(`Song ${song.id} failed`);
-      }
+      console.log(`Updated song ${song.id} via webhook:`, updateResult);
     }
 
     return NextResponse.json({ success: true });

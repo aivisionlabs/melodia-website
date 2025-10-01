@@ -1,160 +1,181 @@
-export interface LLMResponse {
-  error: boolean;
-  title?: string;
-  styleOfMusic?: string;
-  lyrics?: string;
-  missingField?: string;
-  message?: string;
-  example?: string;
-}
+import { z } from 'zod';
+import { generateObject, generateText } from 'ai';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { CredentialsManager } from './services/ai/credentials-manager';
+
+const LLMResponseSchema = z.object({
+  title: z.string().optional(),
+  musicStyle: z.string().optional(),
+  lyrics: z.string().optional(),
+});
+
+export type LLMResponse = z.infer<typeof LLMResponseSchema>;
 
 export interface SongFormData {
   languages: string;
-  requester_name?: string;
-  recipient_details: string;
-  song_story: string;
-  mood: string[];
+  recipientDetails: string;
+  songStory: string;
+  occassion?: string;
+  mood: string[] | string;
+  requesterName?: string;
+}
+
+function initializeVertexProvider() {
+  const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+
+  if (!project) {
+    throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is required');
+  }
+
+  const creds = CredentialsManager.getGCSCredentialsFromEnv();
+
+  // Configure the Vertex provider with explicit project & location
+  return createVertex({
+    project, location, googleAuthOptions: {
+      credentials: {
+        client_email: creds?.client_email,
+        private_key: creds?.private_key ? creds.private_key.replace(/\\n/g, '\n') : undefined,
+      }
+    }
+  });
 }
 
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
   // Validate inputs first
-  if (!formData || !formData.recipient_details || !formData.languages || formData.languages.trim().length === 0) {
-    return {
-      error: true,
-      missingField: 'System',
-      message: 'Invalid form data provided',
-      example: 'Please check your connection and try again.'
-    };
+  if (!formData || !formData.recipientDetails || !formData.languages || formData.languages.trim().length === 0) {
+    throw new Error("Required details not found to produce lyrics");
   }
 
-  const prompt = `Create a song using ONLY these exact inputs. Do not add any extra descriptions or words.
+  const systemPrompt = `You are an expert songs producer writer who can produce songs in various music styles and in multiple languages, your job is to create a personalised song's
+  Lyrics, Title and Style of Music for the given requirements.
 
-CRITICAL: Return ONLY valid JSON. Never include instructional text, arrows (→), or formatting symbols in the actual lyrics.
+Make sure all the lyrics you produce have correct meaning and they rhyme well and they convey the feel which user wants to create from the song.
 
-🚨 NAME TRANSLITERATION RULE - MOST IMPORTANT 🚨
-- The recipient name MUST appear EXACTLY as provided in the recipient_details field
-- Use the name exactly as it appears - do not change, translate, or transliterate it
-- NEVER convert names to different scripts or languages
-- KEEP THE NAME EXACTLY AS PROVIDED IN THE FIELD
-- This rule applies even if the song is in Hindi language
+For produced lyrics avoid creating translation of the lyrics.
+In lyrics we should have not have numbers as part of lyrics, if there are case where we need to mention number write the number spelling in English.
+For Style of Music, think about the kind of voice might be best suited for the song production along with the sound description based on the user input requirements.
 
-STRICT REQUIREMENTS:
-- Use the EXACT name as provided in the recipient_name field - do not change it
-- Use ONLY the exact language specified
-- Use ONLY the exact style/genre mentioned in details
-- Do NOT add extra descriptive words like "मधुर", "सुंदर", "अद्भुत" etc.
-- Create song based ONLY on these 3 inputs - nothing else
+When you produce a song think about the relationship mentioned between people and draft lyrics and music style accordingly.
 
-VALIDATION:
-- Recipient must include both name and relationship (e.g., "Varsha, my daughter")
-- At least one valid language must be specified
-- Song details must contain meaningful information about style, mood, or story
+If only if the time of the song is mentioned in the user input then consider reviewing and thinking which part of the song's structure can be shortened or removed?
 
-ERROR RESPONSE (if validation fails):
+IMPORTANT: The song style that you produce should not include the name of any singer.
+
+STRICT OUTPUT RULES:
+- Output ONLY a single JSON object. No markdown, no code fences, no commentary, no extra text.
+- Do not include keys other than title, musicStyle, lyrics.
+- If you need line breaks, use \n inside JSON strings.
+- Do not use any emojis or emoticons in the output text
+
+STRICT FORMAT CONSTRAINTS:
+- The title must be less than 8 words (maximum 7 words).
+- The musicStyle must be less than 3 paragraphs (maximum 2 short paragraphs).
+- Avoid repeating phrases or sentences.
+
+LYRICS STRUCTURE RULES:
+- Use explicit section labels in brackets exactly as lines by themselves.
+- Start with a line like: (Music: brief intro mood/instrumentation)
+- Then use sections like: (Verse 1), (Chorus), (Verse 2), (Bridge), (Outro)
+- If there is an instrumental or melody, include it in brackets, e.g.: (Guitar Solo - soft and romantic)
+- Place the actual lyric lines immediately after each bracketed section label.
+- Keep labels and content clean and machine-parseable.
+
+Example (format only, not content):
+(Music: Starts with a soft, acoustic guitar melody)
+
+(Verse 1 / Mukhda)
+Line 1\nLine 2
+
+(Chorus)
+Line 1\nLine 2
+
+(Bridge)
+Line 1\nLine 2
+
+(Guitar Solo - soft and romantic)
+
+(Outro)
+
+NOTE: This JSON will be sent to a music generation service provider (e.g., Suno API) to create the song. Keep the lyrics strictly in the format above so they are easy to parse.
+
+The output should be in the following JSON format:
+
 {
-  "error": true,
-  "missingField": "field name",
-  "message": "what is missing",
-  "example": "correct format example"
-}
+  "title": "<a short title of the song, must be less than 8 words>",
+  "musicStyle": "<description of the music style in less than 3 paragraphs>",
+  "lyrics": "<Songs Lyrics>"
+}`;
 
-SUCCESS RESPONSE (if all valid):
-{
-  "error": false,
-  "title": "Creative, meaningful song title",
-  "styleOfMusic": "Detailed genre description with voice type and instrumentation",
-  "lyrics": "Complete song with proper structure"
-}
-
-SONGWRITING GUIDELINES:
-- Create a complete song with: Intro, Verse 1, Chorus, Verse 2, Chorus, Verse 3, Chorus, Bridge, Final Chorus, Outro
-- 🚨 CRITICAL: Use the recipient's name EXACTLY as provided in the recipient_name field
-- Do not change, translate, or transliterate the name in any way
-- Use correct gender pronouns based on relationship
-- Write in the specified language ONLY - if Hindi is specified, write in Hindi with Devanagari script BUT keep names exactly as provided
-- Follow the exact style/genre mentioned in details
-- Do NOT add extra descriptive words
-- Keep it simple and direct based on the 4 inputs only
-
-EXACT USER INPUTS TO USE:
-${formData.requester_name && 'Requester Name: ' + formData.requester_name}
-Recipient Name & Relationship: ${formData.recipient_details}
-Language(s): ${formData.languages}
-Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}
-Song Story: ${formData.song_story}
-
-Create a song using ONLY these inputs. Do not add extra words or descriptions.`;
+  const userPrompt = `Provided input for the song is following:
+Language: ${formData.languages}
+RecipientDetails: ${formData.recipientDetails}
+SongDetailsAndStory: ${formData.songStory}
+${formData.occassion ? `Occasion: ${formData.occassion}` : ''}
+Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}`;
 
   try {
-    // Call Gemini API directly
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-    const GEMINI_API_TOKEN = process.env.LYRICS_GENERATION_API_KEY;
-
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_TOKEN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.8,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        }
-      })
-    });
-
-    if (!response.ok) {
-      console.log(await response.json());
-
-      throw new Error(`Gemini API request failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!generatedText) {
-      throw new Error('No generated text found in Gemini response');
-    }
-
-    // Clean up markdown formatting if present
-    let cleanText = generatedText;
-    if (cleanText.includes('```json')) {
-      cleanText = cleanText.replace(/```json\s*/, '').replace(/\s*```$/, '');
-    }
-    if (cleanText.includes('```')) {
-      cleanText = cleanText.replace(/```\s*/, '').replace(/\s*```$/, '');
-    }
+    const vertexProvider = initializeVertexProvider();
+    const vertexModel = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-pro';
+    // Prefer a stable generally-available model; adjust if you require another
+    const model = vertexProvider(vertexModel);
 
     try {
-      const result = JSON.parse(cleanText);
-      return result;
-    } catch {
-      // Try to extract JSON from the text if it's embedded
-      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch {
-          throw new Error('Failed to parse JSON from Gemini response');
+      const { object } = await generateObject({
+        model,
+        schema: LLMResponseSchema,
+        schemaName: 'SongOutput',
+        schemaDescription: 'Structured output for personalised song generation',
+        system: systemPrompt,
+        prompt: userPrompt,
+        mode: 'json',
+        temperature: 0.8,
+        maxOutputTokens: 8192,
+        presencePenalty: 0.5,
+        frequencyPenalty: 0.5,
+      });
+      return object;
+    } catch (firstError) {
+      console.warn('First structured attempt failed, retrying with lower temperature:', firstError);
+      try {
+        const { object } = await generateObject({
+          model,
+          schema: LLMResponseSchema,
+          schemaName: 'SongOutput',
+          schemaDescription: 'Structured output for personalised song generation',
+          system: systemPrompt,
+          prompt: userPrompt,
+          mode: 'json',
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          presencePenalty: 0.5,
+          frequencyPenalty: 0.5,
+        });
+        return object;
+      } catch (secondError) {
+        console.warn('Second structured attempt failed, falling back to text + parse:', secondError);
+        const { text } = await generateText({
+          model,
+          system: systemPrompt + '\n\nRemember: Output ONLY a single JSON object with keys: title, musicStyle, lyrics. No extra text.',
+          prompt: userPrompt,
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          presencePenalty: 0.5,
+          frequencyPenalty: 0.5,
+        });
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No JSON object found in model output');
         }
+        const parsed = JSON.parse(jsonMatch[0]);
+        const validated = LLMResponseSchema.parse(parsed);
+        return validated;
       }
-      throw new Error('No valid JSON found in Gemini response');
     }
   } catch (error) {
     console.error('Error generating lyrics:', error);
-    return {
-      error: true,
-      missingField: 'System',
-      message: 'Failed to generate lyrics. Please try again.',
-      example: 'Please check your connection and try again.'
-    };
+    throw new Error("Error producing lyrics");
   }
 }
 

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refineLyricsAction } from '@/lib/lyrics-actions';
+import { getCurrentUser } from '@/lib/user-actions';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requestId, refineText } = body;
+    const { requestId, refineText, userId, anonymous_user_id } = body;
 
     if (!requestId || !refineText) {
       return NextResponse.json(
@@ -13,7 +14,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await refineLyricsAction(refineText, parseInt(requestId));
+    // Get user information
+    let currentUser = null;
+    if (userId) {
+      currentUser = { id: userId } as any;
+    } else {
+      currentUser = await getCurrentUser();
+    }
+
+    const result = await refineLyricsAction(
+      refineText,
+      parseInt(requestId),
+      currentUser?.id,
+      anonymous_user_id
+    );
 
     if (result.success) {
       return NextResponse.json({

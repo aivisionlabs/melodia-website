@@ -48,10 +48,6 @@ export default function CreateSongPage() {
       try {
         const user = await getCurrentUser();
         setCurrentUser(user);
-        // If user is logged in, pre-fill the requester name
-        if (user?.name && !requesterName) {
-          setRequesterName(user.name);
-        }
       } catch (error) {
         console.log("No user logged in or error getting user:", error);
         setCurrentUser(null);
@@ -59,7 +55,7 @@ export default function CreateSongPage() {
     };
 
     fetchCurrentUser();
-  }, [requesterName]);
+  }, []);
 
   const toggleMood = (m: string) => {
     if (m === "Other") {
@@ -486,8 +482,10 @@ export default function CreateSongPage() {
                   {requesterName || currentUser?.name || "there"}
                 </span>
                 ! We&apos;re creating a{" "}
-                <span className="font-bold">{moods.join(", ")}</span> song in{" "}
-                <span className="font-bold">{languages}</span> for your{" "}
+                <span className="font-bold">
+                  {moods.includes("Other") ? customMood : moods.join(", ")}
+                </span>{" "}
+                song in <span className="font-bold">{languages}</span> for{" "}
                 <span className="font-bold">{recipientDetails}</span>, for{" "}
                 <span className="font-bold">
                   {occasion === "Other" ? customOccasion : occasion}

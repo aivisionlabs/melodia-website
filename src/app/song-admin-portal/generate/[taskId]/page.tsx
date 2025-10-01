@@ -45,7 +45,7 @@ export default function GenerateProgressPage({
         if (result.success && result.song) {
           setSongInfo({
             id: result.song.id,
-            title: result.song.title,
+            title: "test",
             slug: result.song.slug,
           });
           // Set lyrics from the song record immediately
@@ -95,20 +95,17 @@ export default function GenerateProgressPage({
           setStatus(currentStatus);
           setVariants(currentVariants);
 
-          // Update progress based on status
+          // Update progress based on new two-level status system
           switch (currentStatus) {
             case "PENDING":
               setProgress(10);
               break;
-            case "TEXT_SUCCESS":
-              setProgress(30);
+            case "STREAM_AVAILABLE":
+              setProgress(50);
               break;
-            case "FIRST_SUCCESS":
-              setProgress(60);
-              break;
-            case "SUCCESS":
+            case "COMPLETE":
               setProgress(100);
-              // Stop polling when status becomes SUCCESS
+              // Stop polling when status becomes COMPLETE
               if (interval) {
                 clearInterval(interval);
                 interval = null;
@@ -159,11 +156,9 @@ export default function GenerateProgressPage({
     switch (status) {
       case "PENDING":
         return "Initializing song generation...";
-      case "TEXT_SUCCESS":
-        return "Lyrics processed successfully, generating music...";
-      case "FIRST_SUCCESS":
-        return "First variant ready, generating second variant...";
-      case "SUCCESS":
+      case "STREAM_AVAILABLE":
+        return "First variant ready for streaming, generating second variant...";
+      case "COMPLETE":
         return "Both variants generated successfully! Select your preferred variant below.";
       default:
         return "Processing...";
@@ -380,7 +375,7 @@ export default function GenerateProgressPage({
           )}
 
           {/* Add to Library Checkbox - Only show when variants are ready */}
-          {status === "SUCCESS" && variants.length >= 2 && (
+          {status === "COMPLETE" && variants.length >= 2 && (
             <div className="flex items-center justify-center mb-6">
               <input
                 type="checkbox"
@@ -397,7 +392,7 @@ export default function GenerateProgressPage({
               </label>
             </div>
           )}
-          {status === "SUCCESS" && variants.length >= 2 && (
+          {status === "COMPLETE" && variants.length >= 2 && (
             <p className="text-center text-sm text-gray-500 mb-6">
               When checked, this song will be visible in the public library.
               Uncheck to keep it private.
@@ -406,7 +401,7 @@ export default function GenerateProgressPage({
 
           {/* Action Buttons */}
           <div className="mt-8 text-center space-x-4">
-            {status === "SUCCESS" && variants.length >= 2 && (
+            {status === "COMPLETE" && variants.length >= 2 && (
               <button
                 onClick={handleSaveSelection}
                 disabled={selectedVariant === null || isSaving}

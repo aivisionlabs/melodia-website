@@ -6,9 +6,9 @@ import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipient_details, languages, requester_name, song_story, mood } = await request.json();
+    const { requestId, recipientDetails, languages, occassion, songStory, mood, userId, anonymousUserId } = await request.json();
 
-    if (!requestId || !recipient_details || !languages) {
+    if (!requestId || !recipientDetails || !languages) {
       return NextResponse.json(
         { error: true, message: 'Missing required fields: requestId, recipient_details, languages' },
         { status: 400 }
@@ -21,24 +21,22 @@ export async function POST(request: NextRequest) {
     if (process.env.DEMO_MODE === 'true') {
       console.log('🎭 DEMO MODE: Using mock lyrics instead of Gemini API');
       generatedResponse = {
-        title: `Demo Song for ${recipient_details}`,
-        styleOfMusic: 'Personal',
-        lyrics: `Demo lyrics for ${recipient_details}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipient_details}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`,
-        error: false
+        title: `Demo Song for ${recipientDetails}`,
+        musicStyle: 'Temp Music Style',
+        lyrics: `Demo lyrics for ${recipientDetails}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipientDetails}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`
       };
     } else {
       // Try to generate lyrics using the existing LLM integration
       try {
         generatedResponse = await generateLyrics({
-          recipient_details: recipient_details,
+          recipientDetails,
+          occassion,
           languages,
-          requester_name: requester_name || 'Anonymous',
-          song_story: song_story,
+          songStory,
           mood: mood || []
         });
       } catch (apiError) {
         console.error('Gemini API failed:', apiError);
-
         // Return proper error instead of fake lyrics
         return NextResponse.json(
           {
@@ -49,13 +47,6 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
-    }
-
-    if (generatedResponse.error) {
-      return NextResponse.json(
-        { error: true, message: generatedResponse.message || 'Failed to generate lyrics' },
-        { status: 500 }
-      );
     }
 
     // Get the latest version number for this request
@@ -77,8 +68,10 @@ export async function POST(request: NextRequest) {
         lyrics_edit_prompt: null,
         generated_text: generatedResponse.lyrics || '',
         song_title: generatedResponse.title,
-        music_style: generatedResponse.styleOfMusic,
-        status: 'draft'
+        music_style: generatedResponse.musicStyle,
+        status: 'draft',
+        created_by_user_id: userId || null,
+        created_by_anonymous_user_id: anonymousUserId || null
       })
       .returning();
 
@@ -92,8 +85,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      title: generatedResponse.title || `Song for ${recipient_details}`,
-      styleOfMusic: generatedResponse.styleOfMusic || 'Personal',
+      title: generatedResponse.title,
+      styleOfMusic: generatedResponse.musicStyle,
       lyrics: generatedResponse.lyrics || '',
       draftId: draft.id,
       requestId: requestId

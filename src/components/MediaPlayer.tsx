@@ -9,7 +9,10 @@ import {
   trackEngagementEvent,
   trackNavigationEvent,
 } from "@/lib/analytics";
-import { fetchTimestampedLyrics, TimestampedLyricsResponse } from "@/lib/suno-timestamped-lyrics-client";
+import {
+  fetchTimestampedLyrics,
+  TimestampedLyricsResponse,
+} from "@/lib/suno-timestamped-lyrics-client";
 
 // iOS Audio Context type declaration
 declare global {
@@ -27,20 +30,17 @@ interface LyricLine {
 
 interface MediaPlayerProps {
   song: {
-    title: string;
-    artist: string;
-    audioUrl?: string;
-    song_url?: string; // New field for the actual audio URL
-    videoUrl?: string;
-    lyrics?: LyricLine[];
-    timestamp_lyrics?: LyricLine[]; // Final variation of lyrics
-    timestamped_lyrics_variants?: {
+    metadata?: {
+      title?: string;
+      lyrics?: string;
+      suno_task_id?: string;
+    };
+    song_variants?: any[];
+    variant_timestamp_lyrics_processed?: {
       [variantIndex: number]: LyricLine[];
-    } | null;
+    };
     selected_variant?: number;
     slug?: string;
-    // Suno-specific fields for timestamped lyrics
-    suno_task_id?: string;
     suno_audio_id?: string;
   };
   onClose: () => void;
@@ -53,8 +53,10 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
-  const [sunoTimestampedLyrics, setSunoTimestampedLyrics] = useState<TimestampedLyricsResponse | null>(null);
-  const [isLoadingTimestampedLyrics, setIsLoadingTimestampedLyrics] = useState(false);
+  const [sunoTimestampedLyrics, setSunoTimestampedLyrics] =
+    useState<TimestampedLyricsResponse | null>(null);
+  const [isLoadingTimestampedLyrics, setIsLoadingTimestampedLyrics] =
+    useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
@@ -72,56 +74,76 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
   // Helper function to get the correct audio URL
   const getAudioUrl = useCallback(() => {
-    // Priority: song_url (new field) > audioUrl (legacy field)
-    return song.song_url || song.audioUrl;
-  }, [song.song_url, song.audioUrl]);
+    // Get audio URL from song variants
+    if (song.song_variants && song.song_variants.length > 0) {
+      const selectedVariant = song.selected_variant || 0;
+      const variant = song.song_variants[selectedVariant];
+      return variant?.audioUrl || variant?.streamAudioUrl;
+    }
+    return null;
+  }, [song.song_variants, song.selected_variant]);
 
   // Helper function to format lyrics text for better display
   const formatLyricsText = useCallback((text: string) => {
     if (!text) return text;
-    
+
     // Split long lines into smaller chunks for better readability
     const maxLength = 50; // Maximum characters per line
-    const words = text.split(' ');
+    const words = text.split(" ");
     const lines = [];
-    let currentLine = '';
-    
+    let currentLine = "";
+
     for (const word of words) {
-      if ((currentLine + ' ' + word).length > maxLength && currentLine.length > 0) {
+      if (
+        (currentLine + " " + word).length > maxLength &&
+        currentLine.length > 0
+      ) {
         lines.push(currentLine.trim());
         currentLine = word;
       } else {
-        currentLine += (currentLine ? ' ' : '') + word;
+        currentLine += (currentLine ? " " : "") + word;
       }
     }
-    
+
     if (currentLine) {
       lines.push(currentLine.trim());
     }
-    
-    return lines.join('\n');
+
+    return lines.join("\n");
   }, []);
 
   // Fetch Suno timestamped lyrics
   const fetchSunoTimestampedLyrics = useCallback(async () => {
-    if (!song.suno_task_id || !song.suno_audio_id || sunoTimestampedLyrics || isLoadingTimestampedLyrics) return;
+    if (
+      !song.metadata?.suno_task_id ||
+      !song.suno_audio_id ||
+      sunoTimestampedLyrics ||
+      isLoadingTimestampedLyrics
+    )
+      return;
 
     setIsLoadingTimestampedLyrics(true);
     try {
       const response = await fetchTimestampedLyrics(
-        song.suno_task_id, 
-        song.suno_audio_id, 
+        song.metadata.suno_task_id,
+        song.suno_audio_id,
         song.selected_variant || 0
       );
       if (response.success) {
         setSunoTimestampedLyrics(response);
       }
     } catch (error) {
-      console.error('Error fetching Suno timestamped lyrics:', error);
+      console.error("Error fetching Suno timestamped lyrics:", error);
     } finally {
       setIsLoadingTimestampedLyrics(false);
     }
-  }, [song.suno_task_id, song.suno_audio_id, song.selected_variant, sunoTimestampedLyrics, isLoadingTimestampedLyrics]);
+  }, [
+    song.metadata?.suno_task_id,
+    song.suno_audio_id,
+    song.selected_variant,
+    sunoTimestampedLyrics,
+    isLoadingTimestampedLyrics,
+  ]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -207,30 +229,23 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       }));
     }
 
-    // Priority 2: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line: any) => ({
-        ...line,
-        isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
-        isPast: isPlaying && timeMs >= line.end,
-      }));
-    }
-
-    // Priority 3: Use timestamped lyrics variants if available (fallback)
-    if (song.timestamped_lyrics_variants) {
+    // Priority 2: Use variant timestamped lyrics if available
+    if (song.variant_timestamp_lyrics_processed) {
       // If no selected_variant is set, default to variant 0
       const variantToUse =
         song.selected_variant !== undefined ? song.selected_variant : 0;
       let selectedVariantLyrics =
-        song.timestamped_lyrics_variants[variantToUse];
+        song.variant_timestamp_lyrics_processed[variantToUse];
 
       // If the default variant doesn't exist, try to find any available variant
       if (!selectedVariantLyrics || selectedVariantLyrics.length === 0) {
-        const availableVariants = Object.keys(song.timestamped_lyrics_variants);
+        const availableVariants = Object.keys(
+          song.variant_timestamp_lyrics_processed
+        );
         if (availableVariants.length > 0) {
           const firstVariant = parseInt(availableVariants[0]);
           selectedVariantLyrics =
-            song.timestamped_lyrics_variants[firstVariant];
+            song.variant_timestamp_lyrics_processed[firstVariant];
         }
       }
 
@@ -243,13 +258,26 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       }
     }
 
-    // Priority 4: Use the legacy lyrics prop if available
-    if (song.lyrics && song.lyrics.length > 0) {
+    // Priority 3: Use the legacy lyrics prop if available
+    if (song.metadata?.lyrics && song.metadata.lyrics.length > 0) {
       console.log("MediaPlayer: Using legacy lyrics prop");
-      return song.lyrics.map((line: any) => ({
-        ...line,
-        isActive: isPlaying && timeMs >= line.start && timeMs < line.end,
-        isPast: isPlaying && timeMs >= line.end,
+      const lines = song.metadata.lyrics
+        .split("\n")
+        .filter((line) => line.trim().length > 0);
+      const songDurationMs =
+        duration > 0 ? duration * 1000 : lines.length * 3000;
+      const lineDuration = songDurationMs / lines.length;
+
+      return lines.map((line: any, index: number) => ({
+        index,
+        text: line,
+        start: index * lineDuration,
+        end: (index + 1) * lineDuration,
+        isActive:
+          isPlaying &&
+          timeMs >= index * lineDuration &&
+          timeMs < (index + 1) * lineDuration,
+        isPast: isPlaying && timeMs >= (index + 1) * lineDuration,
       }));
     }
 
@@ -358,13 +386,21 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       setIsPlaying(false);
 
       // Track pause event
-      trackPlayerEvent.pause(song.title, song.slug || "unknown", currentTime);
+      trackPlayerEvent.pause(
+        song.metadata?.title || "Untitled Song",
+        song.slug || "unknown",
+        currentTime
+      );
     } else {
       // If no audio URL or audio error, simulate playing for demo
       if (!getAudioUrl() || audioError) {
         setIsPlaying(true);
         // Track demo play event
-        trackPlayerEvent.play(song.title, song.slug || "unknown", true);
+        trackPlayerEvent.play(
+          song.metadata?.title || "Untitled Song",
+          song.slug || "unknown",
+          true
+        );
 
         // Simulate time progression for demo
         demoIntervalRef.current = setInterval(() => {
@@ -379,7 +415,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               setIsPlaying(false);
               setCurrentTime(0);
               // Track demo end event
-              trackPlayerEvent.audioEnd(song.title, song.slug || "unknown", 40);
+              trackPlayerEvent.audioEnd(
+                song.metadata?.title || "Untitled Song",
+                song.slug || "unknown",
+                40
+              );
               return 0;
             }
             return newTime;
@@ -404,7 +444,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               setAudioError(false);
               setIsPlayLoading(false);
               // Track play event
-              trackPlayerEvent.play(song.title, song.slug || "unknown", false);
+              trackPlayerEvent.play(
+                song.metadata?.title || "Untitled Song",
+                song.slug || "unknown",
+                false
+              );
             }
           } catch (error) {
             console.warn("Error playing audio:", error);
@@ -412,7 +456,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
             setIsPlayLoading(false);
             // Track audio error
             trackPlayerEvent.audioError(
-              song.title,
+              song.metadata?.title || "Untitled Song",
               song.slug || "unknown",
               "play_error"
             );
@@ -440,13 +484,13 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       // Track skip event
       if (seconds > 0) {
         trackPlayerEvent.skipForward(
-          song.title,
+          song.metadata?.title || "Untitled Song",
           song.slug || "unknown",
           seconds
         );
       } else {
         trackPlayerEvent.skipBackward(
-          song.title,
+          song.metadata?.title || "Untitled Song",
           song.slug || "unknown",
           Math.abs(seconds)
         );
@@ -459,13 +503,13 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
       // Track skip event in demo mode
       if (seconds > 0) {
         trackPlayerEvent.skipForward(
-          song.title,
+          song.metadata?.title || "Untitled Song",
           song.slug || "unknown",
           seconds
         );
       } else {
         trackPlayerEvent.skipBackward(
-          song.title,
+          song.metadata?.title || "Untitled Song",
           song.slug || "unknown",
           Math.abs(seconds)
         );
@@ -663,27 +707,29 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               />
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg md:text-2xl font-bold truncate">
-                  {song.title}
+                  {song.metadata?.title || "Untitled Song"}
                 </h2>
                 <p className="text-sm md:text-base text-yellow-100 truncate">
-                  {song.artist}
+                  {song.metadata?.title || "Melodia"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <ShareButton
                 slug={song.slug}
-                title={`Listen to ${song.title} with synchronized lyrics`}
+                title={`Listen to ${
+                  song.metadata?.title || "Untitled Song"
+                } with synchronized lyrics`}
                 onShare={() =>
                   trackEngagementEvent.share(
-                    song.title,
+                    song.metadata?.title || "Untitled Song",
                     song.slug || "unknown",
                     "native_share"
                   )
                 }
                 onCopyLink={() =>
                   trackEngagementEvent.copyLink(
-                    song.title,
+                    song.metadata?.title || "Untitled Song",
                     song.slug || "unknown"
                   )
                 }
@@ -764,7 +810,9 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
             <div className="mb-4 p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 text-blue-700">
                 <div className="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-b-2 border-blue-700"></div>
-                <span className="text-xs md:text-sm">Loading synchronized lyrics...</span>
+                <span className="text-xs md:text-sm">
+                  Loading synchronized lyrics...
+                </span>
               </div>
             </div>
           )}
@@ -826,7 +874,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
                 // Track seek event
                 trackPlayerEvent.seek(
-                  song.title,
+                  song.metadata?.title || "Untitled Song",
                   song.slug || "unknown",
                   previousTime,
                   newTime

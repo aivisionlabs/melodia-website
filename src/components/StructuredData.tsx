@@ -5,7 +5,7 @@ interface StructuredDataProps {
   type: "website" | "song" | "organization";
 }
 
-export function StructuredData({ song, type }: StructuredDataProps) {
+export function StructuredData({ type }: StructuredDataProps) {
   const getStructuredData = () => {
     switch (type) {
       case "website":
@@ -22,35 +22,6 @@ export function StructuredData({ song, type }: StructuredDataProps) {
           //   "query-input": "required name=search_term_string",
           // },
         };
-
-      case "song":
-        if (!song) return null;
-        return {
-          "@context": "https://schema.org",
-          "@type": "MusicRecording",
-          name: song.title,
-          description: song.lyrics?.substring(0, 200) + "...",
-          url: `https://melodia-songs.com/library/${song.slug}`,
-          duration: song.duration
-            ? `PT${Math.floor(song.duration / 60)}M${song.duration % 60}S`
-            : undefined,
-          genre: song.music_style,
-          creator: {
-            "@type": "Organization",
-            name: "Melodia",
-          },
-          publisher: {
-            "@type": "Organization",
-            name: "Melodia",
-          },
-          ...(song.song_url && {
-            audio: {
-              "@type": "AudioObject",
-              contentUrl: song.song_url,
-            },
-          }),
-        };
-
       case "organization":
         return {
           "@context": "https://schema.org",

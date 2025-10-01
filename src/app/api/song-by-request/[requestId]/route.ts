@@ -37,11 +37,7 @@ export async function GET(
       success: true,
       song: {
         id: song.id,
-        title: song.title,
-        suno_task_id: song.suno_task_id,
         status: song.status,
-        song_url: song.song_url,
-        duration: song.duration,
         created_at: song.created_at
       }
     })

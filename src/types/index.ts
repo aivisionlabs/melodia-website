@@ -16,52 +16,63 @@ export interface AlignedWord {
 export interface Song {
   id: number
   created_at: string
-  title: string
-  lyrics: string | null
-  timestamp_lyrics: LyricLine[] | null
-  timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
-  timestamped_lyrics_api_responses: { [variantIndex: number]: any } | null
-  music_style: string | null
-  service_provider: string | null
-  song_requester: string | null
-  prompt: string | null
-  song_url: string | null
-  duration: number | null // Changed to number to match database integer field
+  song_request_id: number
   slug: string
-  add_to_library?: boolean
-  is_deleted?: boolean
   status?: string
+  is_featured?: boolean
+
+  // New JSONB fields for variants and timestamped lyrics
+  song_variants: { [key: string]: any } // Store all song variants as JSON
+  variant_timestamp_lyrics_api_response: { [variantIndex: number]: any[] } // Index-based timestamp lyrics API responses
+  variant_timestamp_lyrics_processed: { [variantIndex: number]: any[] } // Processed timestamp lyrics for display
+
+  metadata?: any
+  approved_lyrics_id?: number | null
+  service_provider?: string | null
   categories?: string[]
   tags?: string[]
-  suno_task_id?: string
-  negative_tags?: string
-  suno_variants?: any
+  add_to_library?: boolean
+  is_deleted?: boolean
   selected_variant?: number
-  metadata?: any
-  sequence?: number // Field to control display order
-  // Status tracking fields
-  status_checked_at?: string | null
-  last_status_check?: string | null
-  status_check_count?: number | null
-  // Payment integration fields
   payment_id?: number | null
-  // Lyrics workflow fields
-  approved_lyrics_id?: number | null
+  lyrics_draft_title?: string | null // Song title from lyrics draft
+
+  // Fields that may be in metadata (for backward compatibility)
+  title?: string
+  lyrics?: string
+  timestamp_lyrics?: any[]
+  timestamped_lyrics_variants?: { [variantIndex: number]: any[] }
+  music_style?: string
+  song_url?: string
+  suno_task_id?: string
+  negative_tags?: string[]
+  suno_variants?: any[]
+  status_checked_at?: string | Date
+  last_status_check?: string | Date
 }
 
 // Public song interface (without sensitive fields)
 export interface PublicSong {
   id: number
-  title: string
-  lyrics: string | null
-  timestamp_lyrics: LyricLine[] | null
-  timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
-  music_style: string | null
-  service_provider: string | null
-  song_url: string | null
-  duration: number | null // Changed from string to number to match integer database field
+  song_request_id: number
   slug: string
-  selected_variant: number | null
+  status?: string
+  is_featured?: boolean
+
+  // New JSONB fields for variants and timestamped lyrics
+  song_variants: { [key: string]: any }
+  variant_timestamp_lyrics_processed: { [variantIndex: number]: any[] }
+
+  service_provider?: string | null
+  categories?: string[]
+  tags?: string[]
+  selected_variant?: number
+  title?: string
+  lyrics?: string
+  music_style?: string
+  song_url?: string
+  timestamp_lyrics?: any[]
+  timestamped_lyrics_variants?: { [variantIndex: number]: any[] }
 }
 
 // User authentication interfaces
@@ -101,7 +112,8 @@ export interface LyricsDraft {
   lyrics_edit_prompt?: string
   generated_text: string
   status: 'draft' | 'needs_review' | 'approved' | 'archived'
-  created_by?: number
+  created_by_user_id?: number
+  created_by_anonymous_user_id?: string
   created_at: string
   updated_at: string
 }
@@ -122,7 +134,35 @@ export interface SongRequestFormData {
 }
 
 
+// Song status API response interfaces
+export interface SongStatusParam {
+  prompt: string
+  style: string
+  title: string
+  customMode: boolean
+  instrumental: boolean
+  model: string
+}
 
+export interface SongStatusResponseData {
+  taskId: string
+  parentMusicId: string
+  param: string // JSON stringified SongStatusParam
+  response: {
+    taskId: string
+    sunoData: any
+  }
+  status: string
+  type: string
+  errorCode: string | null
+  errorMessage: string | null
+}
+
+export interface SunoSongStatusAPIResponse {
+  code: number
+  msg: string
+  data: SongStatusResponseData
+}
 
 // Export payment types
 export * from './payment'

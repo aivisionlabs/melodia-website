@@ -6,22 +6,16 @@ import { songsTable, songRequestsTable } from '../schema';
 export async function updateSong(
   songId: number,
   updateData: Partial<{
-    title: string;
-    lyrics: string;
-    timestamp_lyrics: any;
-    music_style: string;
-    service_provider: string;
-    song_requester: string;
-    prompt: string;
-    song_url: string;
-    duration: number; // Changed back to number to match database schema
     add_to_library: boolean;
     is_deleted: boolean;
     status: string;
     categories: string[];
     tags: string[];
-    negative_tags: string;
     metadata: any;
+    song_variants: any;
+    variant_timestamp_lyrics_api_response: any;
+    variant_timestamp_lyrics_processed: any;
+    selected_variant: number;
   }>
 ) {
   try {
@@ -40,18 +34,22 @@ export async function updateSong(
 export async function updateSongStatus(
   id: number,
   status: 'draft' | 'pending' | 'generating' | 'completed' | 'failed',
-  songUrl?: string,
+  songVariants?: any[],
   sunoTaskId?: string
 ) {
   const updateData: any = { status };
 
-  if (songUrl) {
-    updateData.song_url = songUrl;
+  if (songVariants) {
+    updateData.song_variants = songVariants;
     updateData.add_to_library = true;
+    // Set primary URL from first variant
+    if (songVariants[0]) {
+      updateData.selected_variant = 0;
+    }
   }
 
   if (sunoTaskId) {
-    updateData.suno_task_id = sunoTaskId;
+    updateData.metadata = { suno_task_id: sunoTaskId };
   }
 
   await db.update(songsTable).set(updateData).where(eq(songsTable.id, id));
@@ -59,24 +57,18 @@ export async function updateSongStatus(
 
 export async function updateSongWithVariants(
   id: number,
-  sunoVariants: any[],
+  songVariants: any[],
   selectedVariant?: number,
   addToLibrary?: boolean
 ) {
   const updateData: any = {
-    suno_variants: sunoVariants,
+    song_variants: songVariants,
     status: 'completed',
     add_to_library: addToLibrary !== undefined ? addToLibrary : true
   };
 
   if (selectedVariant !== undefined) {
     updateData.selected_variant = selectedVariant;
-    // Set the song_url and duration to the selected variant's values
-    if (sunoVariants[selectedVariant]) {
-      const selectedVariantData = sunoVariants[selectedVariant];
-      updateData.song_url = selectedVariantData.sourceAudioUrl;
-      updateData.duration = selectedVariantData.duration?.toString(); // Convert to string for numeric field
-    }
   }
 
   await db.update(songsTable).set(updateData).where(eq(songsTable.id, id));
@@ -92,18 +84,18 @@ export async function updateTimestampedLyricsForVariant(
     // Get current timestamped lyrics variants and API responses
     const currentSong = await db
       .select({
-        timestamped_lyrics_variants: songsTable.timestamped_lyrics_variants,
-        timestamped_lyrics_api_responses: songsTable.timestamped_lyrics_api_responses
+        variant_timestamp_lyrics_processed: songsTable.variant_timestamp_lyrics_processed,
+        variant_timestamp_lyrics_api_response: songsTable.variant_timestamp_lyrics_api_response
       })
       .from(songsTable)
       .where(eq(songsTable.id, songId))
       .limit(1);
 
-    const currentVariants: { [key: number]: any[] } = (currentSong[0]?.timestamped_lyrics_variants as { [key: number]: any[] }) || {};
-    const currentApiResponses: { [key: number]: any } = (currentSong[0]?.timestamped_lyrics_api_responses as { [key: number]: any }) || {};
+    const currentProcessed: { [key: number]: any[] } = (currentSong[0]?.variant_timestamp_lyrics_processed as { [key: number]: any[] }) || {};
+    const currentApiResponses: { [key: number]: any } = (currentSong[0]?.variant_timestamp_lyrics_api_response as { [key: number]: any }) || {};
 
     // Update the specific variant
-    currentVariants[variantIndex] = lyricLines;
+    currentProcessed[variantIndex] = lyricLines;
 
     // Update the alignedWords data if provided (store only the alignedWords, not the full API response)
     if (alignedWords) {
@@ -114,8 +106,8 @@ export async function updateTimestampedLyricsForVariant(
     await db
       .update(songsTable)
       .set({
-        timestamped_lyrics_variants: currentVariants,
-        timestamped_lyrics_api_responses: currentApiResponses
+        variant_timestamp_lyrics_processed: currentProcessed,
+        variant_timestamp_lyrics_api_response: currentApiResponses
       })
       .where(eq(songsTable.id, songId));
 
@@ -153,22 +145,27 @@ export async function updateSongRequest(
 export async function updateSongStatusWithTracking(
   songId: number,
   status: 'draft' | 'pending' | 'generating' | 'completed' | 'failed',
-  songUrl?: string,
+  songVariants?: any[],
   sunoTaskId?: string
 ) {
   const updateData: any = {
     status,
-    status_checked_at: new Date(),
-    last_status_check: new Date()
+    metadata: {
+      status_checked_at: new Date(),
+      last_status_check: new Date()
+    }
   };
 
-  if (songUrl) {
-    updateData.song_url = songUrl;
+  if (songVariants) {
+    updateData.song_variants = songVariants;
     updateData.add_to_library = true;
   }
 
   if (sunoTaskId) {
-    updateData.suno_task_id = sunoTaskId;
+    updateData.metadata = {
+      ...updateData.metadata,
+      suno_task_id: sunoTaskId
+    };
   }
 
   await db.update(songsTable).set(updateData).where(eq(songsTable.id, songId));
@@ -176,24 +173,17 @@ export async function updateSongStatusWithTracking(
 
 export async function updateSongUrl(
   songId: number,
-  songUrl: string,
-  duration?: string
+  songVariants: any[]
 ) {
   const updateData: any = {
-    song_url: songUrl,
+    song_variants: songVariants,
     status: 'completed',
     add_to_library: true,
-    status_checked_at: new Date(),
-    last_status_check: new Date()
-  };
-
-  if (duration) {
-    // Convert string duration to number for database
-    const durationNumber = parseInt(duration, 10);
-    if (!isNaN(durationNumber)) {
-      updateData.duration = durationNumber;
+    metadata: {
+      status_checked_at: new Date(),
+      last_status_check: new Date()
     }
-  }
+  };
 
   await db.update(songsTable).set(updateData).where(eq(songsTable.id, songId));
 }
@@ -201,18 +191,22 @@ export async function updateSongUrl(
 export async function incrementStatusCheckCount(songId: number) {
   // First get the current count
   const currentSong = await db
-    .select({ status_check_count: songsTable.status_check_count })
+    .select({ metadata: songsTable.metadata })
     .from(songsTable)
     .where(eq(songsTable.id, songId))
     .limit(1);
 
-  const currentCount = currentSong[0]?.status_check_count || 0;
+  const currentMetadata = currentSong[0]?.metadata || {};
+  const currentCount = (currentMetadata as any).status_check_count || 0;
 
   await db
     .update(songsTable)
     .set({
-      status_check_count: currentCount + 1,
-      last_status_check: new Date()
+      metadata: {
+        ...currentMetadata,
+        status_check_count: currentCount + 1,
+        last_status_check: new Date()
+      }
     })
     .where(eq(songsTable.id, songId));
 }
