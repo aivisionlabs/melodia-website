@@ -1,30 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSongRequest } from '@/lib/song-request-actions';
-import { getCurrentUser } from '@/lib/user-actions';
+import { SongRequestPayload } from "@/types/song-request";
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requester_name, recipient_details, occasion, languages, song_story, user_id, anonymous_user_id } = body;
+    const { requesterName, recipientDetails, occasion, languages, story, userId, anonymousUserId, mood }: SongRequestPayload = body;
 
-    // Get user IP for rate limiting
-    const ip = request.headers.get('x-forwarded-for') ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
-
-    // Get current user from session or request body
-    const currentUser = await getCurrentUser();
-    const currentUserId = currentUser?.id || user_id;
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+    const currentUserId = userContext.userId || userId || null;
+    const currentAnonymousUserId = userContext.anonymousUserId || anonymousUserId;
 
     // Create song request
     const result = await createSongRequest({
-      requester_name,
-      recipient_details,
-      occasion: occasion || undefined,
+      requesterName,
+      recipientDetails,
+      occasion: occasion,
       languages,
-      mood: undefined,
-      song_story: song_story || undefined
-    }, currentUserId, ip, anonymous_user_id);
+      mood: mood,
+      story,
+      userId: currentUserId,
+      anonymousUserId: currentAnonymousUserId
+    }, currentUserId, currentAnonymousUserId);
 
     if (!result.success) {
       return NextResponse.json(

@@ -18,14 +18,12 @@ export async function POST(request: NextRequest) {
     const song = await db
       .select({
         id: songsTable.id,
-        title: songsTable.title,
-        lyrics: songsTable.lyrics,
-        timestamp_lyrics: songsTable.timestamp_lyrics,
-        timestamped_lyrics_variants: songsTable.timestamped_lyrics_variants,
-        suno_variants: songsTable.suno_variants
+        song_variants: songsTable.song_variants,
+        variant_timestamp_lyrics_processed: songsTable.variant_timestamp_lyrics_processed,
+        metadata: songsTable.metadata
       })
       .from(songsTable)
-      .where(eq(songsTable.suno_task_id, taskId))
+      .where(eq(songsTable.metadata, { suno_task_id: taskId }))
       .limit(1)
 
     if (!song[0]) {
@@ -39,24 +37,20 @@ export async function POST(request: NextRequest) {
     let lyricsToUse = null
 
     // Check if we have variant-specific timestamped lyrics
-    if (songData.timestamped_lyrics_variants && 
-        typeof songData.timestamped_lyrics_variants === 'object' &&
-        songData.timestamped_lyrics_variants[audioId as keyof typeof songData.timestamped_lyrics_variants]) {
-      lyricsToUse = songData.timestamped_lyrics_variants[audioId as keyof typeof songData.timestamped_lyrics_variants]
+    if (songData.variant_timestamp_lyrics_processed &&
+      typeof songData.variant_timestamp_lyrics_processed === 'object' &&
+      songData.variant_timestamp_lyrics_processed[audioId as keyof typeof songData.variant_timestamp_lyrics_processed]) {
+      lyricsToUse = songData.variant_timestamp_lyrics_processed[audioId as keyof typeof songData.variant_timestamp_lyrics_processed]
     }
-    // Check if we have general timestamped lyrics
-    else if (songData.timestamp_lyrics) {
-      lyricsToUse = songData.timestamp_lyrics
-    }
-    // Fall back to plain text lyrics and create simple timestamped format
-    else if (songData.lyrics) {
+    // Fall back to plain text lyrics from metadata and create simple timestamped format
+    else if ((songData.metadata as any)?.lyrics) {
       // Convert plain text lyrics to simple timestamped format
-      const lines = songData.lyrics.split('\n').filter(line => line.trim() !== '')
-      
+      const lines = (songData.metadata as any).lyrics.split('\n').filter((line: string) => line.trim() !== '')
+
       // Simple timing - just give each line a basic duration
       const durationPerLine = 4.0 // 4 seconds per line
-      
-      lyricsToUse = lines.map((line, index) => ({
+
+      lyricsToUse = lines.map((line: string, index: number) => ({
         word: line,
         success: true,
         startS: index * durationPerLine,

@@ -1,27 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ArrowLeft, X } from "lucide-react";
-import {
-  getSongRequestDataAction,
-  createSongFromLyricsAction,
-} from "@/lib/lyrics-actions";
-import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
-
-interface SongRequest {
-  id: number;
-  requester_name: string;
-  recipient_details: string;
-  languages: string;
-  song_story: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  user_id: number | null;
-  anonymous_user_id: string | null;
-}
+import { getSongRequestDataAction } from "@/lib/lyrics-actions";
+import { DBSongRequest } from "@/types/song-request";
 
 export default function GenerateLyricsPage({
   params,
@@ -32,7 +17,7 @@ export default function GenerateLyricsPage({
   const [resolvedParams, setResolvedParams] = useState<{
     "song-request-id": string;
   } | null>(null);
-  const [songRequest, setSongRequest] = useState<SongRequest | null>(null);
+  const [songRequest, setSongRequest] = useState<DBSongRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +26,6 @@ export default function GenerateLyricsPage({
   const [generatedTitle, setGeneratedTitle] = useState("");
   const [generatedStyle, setGeneratedStyle] = useState("");
   const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
-  const [lyricsError, setLyricsError] = useState("");
   const [isMusicStyleExpanded, setIsMusicStyleExpanded] = useState(false);
 
   // Existing lyrics state
@@ -53,8 +37,6 @@ export default function GenerateLyricsPage({
   const [isUpdatingLyrics, setIsUpdatingLyrics] = useState(false);
 
   // Song creation state
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
-  const [createdSongId, setCreatedSongId] = useState<number | null>(null);
   const [isCreatingSong, setIsCreatingSong] = useState(false);
 
   // Toast state
@@ -69,10 +51,6 @@ export default function GenerateLyricsPage({
     };
     getParams();
   }, [params]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [showLoadingScreen]);
 
   // Check for existing lyrics
   const checkExistingLyrics = async (requestId: number) => {
@@ -92,6 +70,7 @@ export default function GenerateLyricsPage({
             setEditedLyrics(lyricsText);
             setGeneratedTitle(`For ${data.data.songRequest.recipient_details}`);
             setGeneratedStyle("Personalized song style");
+            return true; // Lyrics exist
           }
         }
       } else if (response.status === 404) {
@@ -101,6 +80,7 @@ export default function GenerateLyricsPage({
           requestId,
           "- this is normal for new requests"
         );
+        return false; // No lyrics exist
       } else {
         // Handle other error cases
         console.error(
@@ -108,41 +88,118 @@ export default function GenerateLyricsPage({
           response.status,
           response.statusText
         );
+        return false; // Error occurred
       }
     } catch (error) {
       console.error("Error checking existing lyrics:", error);
+      return false; // Error occurred
     }
+    return false; // Default case
   };
+
+  const handleGenerateLyrics = useCallback(
+    async (songRequest: DBSongRequest) => {
+      if (!songRequest) return;
+
+      setIsGeneratingLyrics(true);
+
+      try {
+        const response = await fetch("/api/generate-lyrics-with-storage", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipientDetails: songRequest.recipient_details,
+            languages: songRequest.languages,
+            songStory: songRequest.song_story,
+            mood: songRequest.mood,
+            requestId: songRequest.id,
+            userId: songRequest.user_id,
+            anonymousUserId: songRequest.anonymous_user_id,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("API Error:", errorData);
+          throw new Error(errorData.message || "Failed to generate lyrics");
+        }
+
+        const data = await response.json();
+        console.log("API Response:", data);
+
+        if (data.success && data.lyrics) {
+          console.log(
+            "🎵 Lyrics generated successfully, title:",
+            data.title,
+            "style:",
+            data.styleOfMusic
+          );
+          setEditedLyrics(data.lyrics);
+          setGeneratedTitle(
+            data.title || `${songRequest.recipient_details}'s Song`
+          );
+          setGeneratedStyle(data.styleOfMusic || "Personalized song style");
+        } else {
+          console.error(
+            "Failed to generate lyrics:",
+            data.error || "Failed to generate lyrics. Please try again."
+          );
+          setEditedLyrics("");
+          setGeneratedTitle("");
+          setGeneratedStyle("");
+        }
+      } catch (error) {
+        console.error("Error generating lyrics:", error);
+        console.error(
+          "Sorry, there was an error generating your lyrics. Please check your connection and try again."
+        );
+        setEditedLyrics("");
+        setGeneratedTitle("");
+        setGeneratedStyle("");
+      } finally {
+        setIsGeneratingLyrics(false);
+      }
+    },
+    []
+  );
 
   // Load song request data
   useEffect(() => {
-    const loadSongRequest = async () => {
+    const loadSongRequestAndGenerateLyrics = async () => {
       if (!resolvedParams) return;
 
       try {
         const requestId = parseInt(resolvedParams["song-request-id"]);
         console.log("Loading song request for ID:", requestId);
 
-        const request = await getSongRequestDataAction(requestId);
-        console.log("Raw request data:", request);
+        const songRequestFromDB = await getSongRequestDataAction(requestId);
+        console.log("Raw request data:", songRequestFromDB);
 
-        if (request) {
+        if (songRequestFromDB) {
           // Convert Date objects to strings for SongRequest type
-          const songRequest: SongRequest = {
-            ...request,
-            status: request.status as
-              | "pending"
-              | "processing"
-              | "completed"
-              | "failed",
-            // lyrics_status moved to lyrics_drafts table
-            created_at: request.created_at.toISOString(),
-            updated_at: request.updated_at.toISOString(),
-          } as SongRequest;
+          const songRequest: DBSongRequest = {
+            ...songRequestFromDB,
+            created_at: songRequestFromDB.created_at.toISOString(),
+            updated_at: songRequestFromDB.updated_at.toISOString(),
+          } as DBSongRequest;
+
           setSongRequest(songRequest);
 
           // Check for existing lyrics
-          await checkExistingLyrics(requestId);
+          const lyricsExist = await checkExistingLyrics(requestId);
+
+          // If no lyrics exist, automatically start generating them
+          if (!lyricsExist) {
+            console.log(
+              "No existing lyrics found, starting automatic generation..."
+            );
+            // Set loading state for lyrics generation
+            setIsGeneratingLyrics(true);
+
+            handleGenerateLyrics(songRequest);
+          }
         } else {
           setError("Song request not found");
         }
@@ -154,71 +211,8 @@ export default function GenerateLyricsPage({
       }
     };
 
-    loadSongRequest();
-  }, [resolvedParams]);
-
-  const handleGenerateLyrics = async () => {
-    if (!songRequest) return;
-
-    setIsGeneratingLyrics(true);
-    setLyricsError("");
-
-    try {
-      const response = await fetch("/api/generate-lyrics-with-storage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipient_details: songRequest.recipient_details,
-          languages: songRequest.languages,
-          song_story: songRequest.song_story,
-          requestId: songRequest.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to generate lyrics");
-      }
-
-      const data = await response.json();
-      console.log("API Response:", data);
-
-      if (data.success && data.lyrics) {
-        console.log(
-          "🎵 Lyrics generated successfully, title:",
-          data.title,
-          "style:",
-          data.styleOfMusic
-        );
-        setEditedLyrics(data.lyrics);
-        setGeneratedTitle(
-          data.title || `${songRequest.recipient_details}'s Song`
-        );
-        setGeneratedStyle(data.styleOfMusic || "Personalized song style");
-        setLyricsError("");
-      } else {
-        const errorMessage =
-          data.error || "Failed to generate lyrics. Please try again.";
-        setLyricsError(errorMessage);
-        setEditedLyrics("");
-        setGeneratedTitle("");
-        setGeneratedStyle("");
-      }
-    } catch (error) {
-      console.error("Error generating lyrics:", error);
-      const errorMessage =
-        "Sorry, there was an error generating your lyrics. Please check your connection and try again.";
-      setLyricsError(errorMessage);
-      setEditedLyrics("");
-      setGeneratedTitle("");
-      setGeneratedStyle("");
-    } finally {
-      setIsGeneratingLyrics(false);
-    }
-  };
+    loadSongRequestAndGenerateLyrics();
+  }, [resolvedParams, handleGenerateLyrics]);
 
   const handleUpdateLyrics = async () => {
     if (!userEditInput.trim()) {
@@ -232,7 +226,6 @@ export default function GenerateLyricsPage({
     }
 
     setIsUpdatingLyrics(true);
-    setLyricsError("");
 
     try {
       const response = await fetch("/api/refine-lyrics", {
@@ -262,18 +255,17 @@ export default function GenerateLyricsPage({
         setGeneratedStyle("Personalized song style");
         setUserEditInput("");
         setIsEditingLyrics(false);
-        setLyricsError("");
       } else {
-        const errorMessage =
-          data.error || "Failed to update lyrics. Please try again.";
-        console.error("Failed to update lyrics:", errorMessage);
-        setLyricsError(errorMessage);
+        console.error(
+          "Failed to update lyrics:",
+          data.error || "Failed to update lyrics. Please try again."
+        );
       }
     } catch (error) {
       console.error("Error updating lyrics:", error);
-      const errorMessage =
-        "Sorry, there was an error updating your lyrics. Please try again.";
-      setLyricsError(errorMessage);
+      console.error(
+        "Sorry, there was an error updating your lyrics. Please try again."
+      );
     } finally {
       setIsUpdatingLyrics(false);
     }
@@ -289,7 +281,6 @@ export default function GenerateLyricsPage({
 
     try {
       setIsCreatingSong(true);
-      setLyricsError("");
 
       // Step 1: Fetch lyrics draft
       console.log("🎵 Fetching lyrics draft for requestId:", songRequest.id);
@@ -336,44 +327,24 @@ export default function GenerateLyricsPage({
         );
       }
 
-      // Step 3: Create song from approved lyrics
-      console.log("🎵 Lyrics approved successfully, creating song...");
-      const result = await createSongFromLyricsAction(songRequest.id);
+      const approveData = await approveResponse.json();
 
-      if (result.success) {
-        // Get the song ID from the created song
-        const songResponse = await fetch(
-          `/api/song-by-request/${songRequest.id}`
+      if (approveData.success) {
+        // Redirect to payment page
+        console.log(
+          "🎵 Lyrics approved successfully, redirecting to payment..."
         );
-        if (songResponse.ok) {
-          const songData = await songResponse.json();
-          if (songData.success && songData.song) {
-            setCreatedSongId(songData.song.id);
-            setShowLoadingScreen(true);
-          } else {
-            throw new Error("Failed to get song ID");
-          }
-        } else {
-          throw new Error("Failed to get song ID");
-        }
+        router.push(approveData.redirectTo);
       } else {
-        throw new Error(result.error || "Failed to create song");
+        throw new Error("Failed to approve lyrics");
       }
     } catch (error) {
       console.error("Error in approve lyrics flow:", error);
       showErrorToast(
-        "Something went wrong while creating your song. Please try again."
+        "Something went wrong while approving your lyrics. Please try again."
       );
     } finally {
       setIsCreatingSong(false);
-    }
-  };
-
-  const handleLoadingComplete = () => {
-    if (createdSongId) {
-      router.push(`/song-options/${createdSongId}`);
-    } else {
-      router.push("/");
     }
   };
 
@@ -390,23 +361,13 @@ export default function GenerateLyricsPage({
     setShowToast(false);
   };
 
-  // Show loading screen if song creation is in progress
-  if (showLoadingScreen && !lyricsError) {
-    return (
-      <SongCreationLoadingScreen
-        onComplete={handleLoadingComplete}
-        duration={45}
-      />
-    );
-  }
-
   // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-melodia-cream text-melodia-teal flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-melodia-coral mx-auto mb-4"></div>
-          <p className="text-melodia-teal">Loading song request...</p>
+          <p className="text-melodia-teal">Loading...</p>
         </div>
       </div>
     );
@@ -462,9 +423,7 @@ export default function GenerateLyricsPage({
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-bold text-melodia-teal">
-            Generate Lyrics
-          </h1>
+          <h1 className="text-2xl font-bold text-melodia-teal">Lyrics</h1>
         </div>
 
         {/* Main Content Card */}
@@ -627,7 +586,7 @@ export default function GenerateLyricsPage({
                 onClick={handleApproveLyrics}
                 disabled={isCreatingSong}
               >
-                {isCreatingSong ? "Creating Song..." : "Create Song"}
+                {isCreatingSong ? "Processing..." : "Approve & Pay"}
               </Button>
               {/* Only show Edit button if lyrics are not approved */}
               {!isLyricsApproved && (
@@ -649,7 +608,7 @@ export default function GenerateLyricsPage({
           ) : (
             <Button
               className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
-              onClick={handleGenerateLyrics}
+              onClick={() => handleGenerateLyrics(songRequest)}
             >
               Generate Lyrics
             </Button>

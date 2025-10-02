@@ -6,57 +6,55 @@ import { MediaPlayer } from "@/components/MediaPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { formatDuration } from "@/lib/utils";
 import { Song } from "@/types";
 import { Music, Play } from "lucide-react";
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getActiveSongsAction } from "@/lib/actions";
+import { useState } from "react";
 
 export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadSongs() {
-      try {
-        const result = await getActiveSongsAction();
-        if (result.success) {
-          // Sort songs by sequence field, with fallback to created_at for backward compatibility
-          const sortedSongs = (result.songs || []).sort((a, b) => {
-            // If both songs have sequence values, sort by sequence
-            if (a.sequence !== undefined && b.sequence !== undefined) {
-              return a.sequence - b.sequence;
-            }
-            // If only one has sequence, prioritize the one with sequence
-            if (a.sequence !== undefined && b.sequence === undefined) {
-              return -1;
-            }
-            if (a.sequence === undefined && b.sequence !== undefined) {
-              return 1;
-            }
-            // Fallback to created_at for songs without sequence
-            return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-            );
-          });
-          setSongs(sortedSongs);
-        } else {
-          console.error("Failed to load songs:", result.error);
-          setSongs([]);
-        }
-      } catch (error) {
-        console.error("Error loading songs:", error);
-        setSongs([]);
-      } finally {
-        setLoading(false);
-      }
-    }
+  // useEffect(() => {
+  //   async function loadSongs() {
+  //     try {
+  //       const result = await getActiveSongsAction();
+  //       if (result.success) {
+  //         // Sort songs by sequence field, with fallback to created_at for backward compatibility
+  //         const sortedSongs = (result.songs || []).sort((a, b) => {
+  //           // If both songs have sequence values, sort by sequence
+  //           if (a.sequence !== undefined && b.sequence !== undefined) {
+  //             return a.sequence - b.sequence;
+  //           }
+  //           // If only one has sequence, prioritize the one with sequence
+  //           if (a.sequence !== undefined && b.sequence === undefined) {
+  //             return -1;
+  //           }
+  //           if (a.sequence === undefined && b.sequence !== undefined) {
+  //             return 1;
+  //           }
+  //           // Fallback to created_at for songs without sequence
+  //           return (
+  //             new Date(b.created_at).getTime() -
+  //             new Date(a.created_at).getTime()
+  //           );
+  //         });
+  //         setSongs(sortedSongs);
+  //       } else {
+  //         console.error("Failed to load songs:", result.error);
+  //         setSongs([]);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error loading songs:", error);
+  //       setSongs([]);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
 
-    loadSongs();
-  }, []);
+  //   loadSongs();
+  // }, []);
 
   const handlePlaySong = (song: Song) => {
     setSelectedSong(song);
@@ -161,10 +159,7 @@ export default function SongLibraryPage() {
                       <CardHeader className="text-center">
                         {/* Album Art Placeholder */}
                         <div
-                          className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br ${getGradientColor(
-                            song.categories || null,
-                            song.music_style
-                          )} flex items-center justify-center shadow-lg`}
+                          className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg`}
                         >
                           <Music className="h-12 w-12 text-white" />
                         </div>
@@ -182,7 +177,7 @@ export default function SongLibraryPage() {
                             : song.music_style || "Custom Creation"}
                         </p>
                         <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-                          <span>Duration: {formatDuration(song.duration)}</span>
+                          <span>Duration: {"1:20"}</span>
                         </div>
                       </CardContent>
                     </Link>
@@ -211,12 +206,6 @@ export default function SongLibraryPage() {
       {selectedSong && (
         <MediaPlayer
           song={{
-            title: selectedSong.title,
-            artist: selectedSong.service_provider || "Melodia",
-            song_url: selectedSong.song_url || undefined,
-            timestamp_lyrics: selectedSong.timestamp_lyrics || undefined,
-            timestamped_lyrics_variants:
-              selectedSong.timestamped_lyrics_variants || undefined,
             selected_variant: selectedSong.selected_variant || undefined,
             slug: selectedSong.slug,
           }}

@@ -1,20 +1,49 @@
+import {
+  SongStatus,
+  VariantStatus
+} from "@/lib/services/song-status-calculation-service";
+import { FetchSongStatusApiResponse } from "@/lib/services/song-status-api-utils";
+
 // Client-side functions for song status polling
-export interface SongStatusResponse {
-  success: boolean;
-  status: 'processing' | 'completed' | 'failed';
-  audioUrl?: string;
-  variants?: Array<{
-    audioUrl: string;
-    streamAudioUrl: string;
-    duration: number;
-  }>;
-  message?: string;
-  demoMode?: boolean;
+
+export interface SongVariant {
+  id: string;
+  title: string;
+  audioUrl: string;
+  sourceAudioUrl?: string;
+  streamAudioUrl?: string;
+  sourceStreamAudioUrl?: string;
+  imageUrl: string;
+  sourceImageUrl?: string;
+  duration: number;
+  variantStatus: VariantStatus;
+  isLoading?: boolean;
+  prompt?: string;
+  modelName?: string;
+  tags?: string;
+  createTime?: string;
 }
 
-export async function checkSongStatus(taskId: string): Promise<SongStatusResponse> {
+export interface SongStatusResponse {
+  success: boolean;
+  status: SongStatus;
+  variants?: SongVariant[];
+  message?: string;
+}
+
+
+// Simplified error response type
+type ErrorResponse = {
+  success: false;
+  status: 'failed';
+  message: string;
+};
+
+export async function checkSongStatus(songId: string): Promise<FetchSongStatusApiResponse | ErrorResponse> {
+  console.log(`🌐 [CLIENT] checkSongStatus called for songId: ${songId}`)
+
   try {
-    const response = await fetch(`/api/song-status/${taskId}`, {
+    const response = await fetch(`/api/song-status/${songId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -22,57 +51,44 @@ export async function checkSongStatus(taskId: string): Promise<SongStatusRespons
     });
 
     if (!response.ok) {
-      throw new Error('Failed to check song status');
+      console.error(`❌ [CLIENT] API request failed with status: ${response.status}`)
+
+      // Handle 404 specifically
+      if (response.status === 404) {
+        return {
+          success: false,
+          status: 'failed',
+          message: 'Song not found'
+        };
+      }
+
+      // Try to get error message from response body
+      let errorMessage = 'Failed to check song status';
+      try {
+        const errorResult = await response.json();
+        if (errorResult.message) {
+          errorMessage = errorResult.message;
+        }
+      } catch {
+        // Use default message if JSON parsing fails
+      }
+
+      return {
+        success: false,
+        status: 'failed',
+        message: errorMessage
+      };
     }
 
     const result = await response.json();
     return result;
+
   } catch (error) {
-    console.error('Error checking song status:', error);
+    console.error('❌ [CLIENT] Error checking song status:', error);
     return {
       success: false,
       status: 'failed',
       message: 'Failed to check song status'
     };
   }
-}
-
-export function pollSongStatusOnce(
-  taskId: string,
-  onUpdate: (status: SongStatusResponse) => void,
-  onError?: (error: Error) => void
-): void {
-  checkSongStatus(taskId)
-    .then(onUpdate)
-    .catch((error) => {
-      console.error('Song status polling error:', error);
-      onError?.(error);
-    });
-}
-
-export function pollSongStatus(
-  taskId: string,
-  onUpdate: (status: SongStatusResponse) => void,
-  onError?: (error: Error) => void,
-  intervalMs: number = 10000 // 10 seconds
-): () => void {
-  const interval = setInterval(() => {
-    checkSongStatus(taskId)
-      .then((status) => {
-        onUpdate(status);
-        
-        // Stop polling if song is completed or failed
-        if (status.status === 'completed' || status.status === 'failed') {
-          clearInterval(interval);
-        }
-      })
-      .catch((error) => {
-        console.error('Song status polling error:', error);
-        onError?.(error);
-        clearInterval(interval);
-      });
-  }, intervalMs);
-
-  // Return cleanup function
-  return () => clearInterval(interval);
 }

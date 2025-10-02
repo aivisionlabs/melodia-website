@@ -8,16 +8,13 @@ export async function GET() {
     const songs = await db
       .select({
         id: songsTable.id,
-        title: songsTable.title,
         slug: songsTable.slug,
-        song_url: songsTable.song_url,
-        duration: songsTable.duration,
         status: songsTable.status,
         metadata: songsTable.metadata,
         created_at: songsTable.created_at,
       })
       .from(songsTable)
-      .where(and(eq(songsTable.is_active, true), eq(songsTable.is_featured, true)))
+      .where(and(eq(songsTable.is_deleted, false), eq(songsTable.is_featured, true)))
       .orderBy(desc(songsTable.created_at))
 
     return NextResponse.json({ success: true, songs })

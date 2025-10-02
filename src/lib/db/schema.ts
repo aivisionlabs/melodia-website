@@ -17,38 +17,23 @@ export const songsTable = pgTable('songs', {
   song_request_id: integer('song_request_id').notNull().unique(), // Each request generates one song record
 
   created_at: timestamp('created_at').notNull().defaultNow(),
-  title: text('title').notNull(),
-  lyrics: text('lyrics').notNull(),
-  duration: integer('duration'),
   slug: text('slug').notNull().unique(),
-  status: text('status').default('processing'), // e.g., 'processing', 'complete', 'failed'
+  status: text('status').default('processing'), // e.g., 'processing', 'completed', 'failed'
   is_featured: boolean('is_featured').default(false), // For the "Best Songs" gallery
 
-  // Store the two generated audio files
-  song_url_variant_1: text('song_url_variant_1'),
-  song_url_variant_2: text('song_url_variant_2'),
+  // New JSONB fields for variants and timestamped lyrics
+  song_variants: jsonb('song_variants').notNull().default('{}'), // Store all song variants as JSON
+  variant_timestamp_lyrics_api_response: jsonb('variant_timestamp_lyrics_api_response').notNull().default('{}'), // Index-based timestamp lyrics API responses
+  variant_timestamp_lyrics_processed: jsonb('variant_timestamp_lyrics_processed').notNull().default('{}'), // Processed timestamp lyrics for display
+
   metadata: jsonb('metadata'), // For storing provider-specific data like suno_task_id, etc.
   approved_lyrics_id: integer('approved_lyrics_id'), // Reference to the approved lyrics draft
-  timestamp_lyrics: jsonb('timestamp_lyrics'),
-  timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants').notNull().default('{}'),
-  timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses').notNull().default('{}'),
   service_provider: text('service_provider').default('SU'),
-  song_requester: text('song_requester'),
-  prompt: text('prompt'),
-  song_url: text('song_url'),
-  music_style: text('music_style'),
-  is_active: boolean('is_active').default(true),
   categories: text('categories').array(),
   tags: text('tags').array(),
-  suno_task_id: text('suno_task_id'),
   add_to_library: boolean('add_to_library').default(false),
   is_deleted: boolean('is_deleted'),
-  negative_tags: text('negative_tags'),
-  suno_variants: jsonb('suno_variants'),
   selected_variant: integer('selected_variant'),
-  status_checked_at: timestamp('status_checked_at'),
-  last_status_check: timestamp('last_status_check'),
-  status_check_count: integer('status_check_count').default(0),
   payment_id: integer('payment_id'), // Will be properly referenced later
 });
 
@@ -99,7 +84,8 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   song_title: text('song_title'),
   music_style: text('music_style'),
   status: text('status').notNull().default('draft'),
-  created_by: integer('created_by'),
+  created_by_user_id: integer('created_by_user_id'), // Reference to users table
+  created_by_anonymous_user_id: uuid('created_by_anonymous_user_id'), // Reference to anonymous_users table
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -191,7 +177,6 @@ export const paymentWebhooksTable = pgTable('payment_webhooks', {
   created_at: timestamp('created_at').defaultNow(),
   processed_at: timestamp('processed_at'),
 });
-
 
 // Type exports for payments
 export type InsertPayment = typeof paymentsTable.$inferInsert;

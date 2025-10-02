@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS songs (
   song_requester TEXT,
   prompt TEXT,
   song_url TEXT,
-  duration INTEGER,
   slug TEXT UNIQUE NOT NULL,
   is_active BOOLEAN DEFAULT true,
   status TEXT DEFAULT 'draft',

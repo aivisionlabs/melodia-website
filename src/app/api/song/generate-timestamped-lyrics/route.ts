@@ -29,43 +29,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Song data for timestamped lyrics generation:', {
-      id: song.id,
-      title: song.title,
-      hasSunoVariants: !!song.suno_variants,
-      sunoVariantsLength: Array.isArray(song.suno_variants) ? song.suno_variants.length : 0,
-      hasSunoTaskId: !!song.suno_task_id,
-      sunoTaskId: song.suno_task_id,
-      hasTimestampedLyricsVariants: !!song.timestamped_lyrics_variants,
-      timestampedLyricsVariantsLength: Array.isArray(song.timestamped_lyrics_variants) ? song.timestamped_lyrics_variants.length : 0
-    });
-
     // Check if song has variants
-    if (!song.suno_variants || !Array.isArray(song.suno_variants) || song.suno_variants.length === 0) {
+    if (!song.song_variants || !Array.isArray(song.song_variants) || song.song_variants.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Song variants not found - this song may not have been generated through Suno API' },
         { status: 404 }
       )
     }
 
-    if (!(song.suno_variants as any)[variantIndex]) {
+    if (!(song.song_variants as any)[variantIndex]) {
       return NextResponse.json(
-        { success: false, error: `Variant ${variantIndex} not found - only ${song.suno_variants.length} variants available` },
+        { success: false, error: `Variant ${variantIndex} not found - only ${song.song_variants.length} variants available` },
         { status: 404 }
       )
     }
 
     // Check if timestamped lyrics already exist
-    if (song.timestamped_lyrics_variants && (song.timestamped_lyrics_variants as any)[variantIndex]) {
+    if (song.variant_timestamp_lyrics_processed && (song.variant_timestamp_lyrics_processed as any)[variantIndex]) {
       return NextResponse.json({
         success: true,
         message: 'Timestamped lyrics already exist',
-        lyrics: (song.timestamped_lyrics_variants as any)[variantIndex]
+        lyrics: (song.variant_timestamp_lyrics_processed as any)[variantIndex]
       })
     }
 
     // Generate timestamped lyrics
-    const result = await generateTimestampedLyricsAction(song.suno_task_id!, variantIndex)
+    const sunoTaskId =
+      song.metadata && typeof song.metadata === 'object' && 'suno_task_id' in song.metadata
+        ? (song.metadata as { suno_task_id?: string }).suno_task_id || ''
+        : '';
+    const result = await generateTimestampedLyricsAction(sunoTaskId, variantIndex);
 
     if (!result.success) {
       return NextResponse.json(

@@ -4,15 +4,14 @@ import { db } from '@/lib/db'
 import { songsTable, songRequestsTable, paymentsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
+import { getUserContextFromRequest } from '@/lib/middleware-utils'
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, lyrics, style, recipient_details, requestId, demoMode, userId, anonymousUserId } = await request.json()
-
-    console.log('Received request:', { title, lyrics: lyrics?.substring(0, 100) + '...', style, recipient_details, demoMode })
+    const { recipientDetails, requestId, userId, anonymousUserId, title, lyrics, style } = await request.json()
+    const demoMode = process.env.DEMO_MODE === 'true'
 
     if (!title || !lyrics || !style) {
-      console.log('Missing required fields:', { title: !!title, lyrics: !!lyrics, style: !!style })
       return NextResponse.json(
         { error: true, message: 'Missing required fields: title, lyrics, style' },
         { status: 400 }
@@ -21,17 +20,23 @@ export async function POST(request: NextRequest) {
 
     // Check payment status if requestId is provided
     if (requestId) {
-      // Get user ID from request body or try authentication
+      // Get user context from middleware
+      const userContext = getUserContextFromRequest(request);
+
+      // Get user ID from middleware, request body, or demo mode
       let currentUser = null;
 
-      if (userId) {
+      if (userContext.userId) {
+        // Use authenticated user from middleware
+        currentUser = { id: userContext.userId } as any;
+      } else if (userId) {
         // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
       } else if (demoMode) {
         // For demo mode, use a default user ID
         currentUser = { id: 1 } as any;
       } else {
-        // Try to get from authentication
+        // Try to get from authentication (fallback)
         currentUser = await getCurrentUser();
         // If no authenticated user, we'll handle anonymous users below
       }
@@ -60,9 +65,9 @@ export async function POST(request: NextRequest) {
           dbUserId: songRequest[0].user_id
         });
 
-        if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
+        if ((userContext.anonymousUserId || anonymousUserId) && songRequest[0].anonymous_user_id === (userContext.anonymousUserId || anonymousUserId)) {
           // Anonymous user owns this request - allow access
-          currentUser = { id: null, anonymousUserId } as any;
+          currentUser = { id: null, anonymousUserId: userContext.anonymousUserId || anonymousUserId } as any;
         }
         // Check if this is a registered user request
         else if (currentUser && songRequest[0].user_id === currentUser.id) {
@@ -96,17 +101,17 @@ export async function POST(request: NextRequest) {
           .where(eq(paymentsTable.song_request_id, requestId))
           .limit(1);
 
-        if (payment.length === 0 || payment[0].status !== 'completed') {
-          return NextResponse.json(
-            {
-              error: true,
-              message: 'Payment required',
-              requiresPayment: true,
-              paymentStatus: payment[0]?.status || 'pending'
-            },
-            { status: 402 }
-          );
-        }
+        // if (payment.length === 0 || payment[0].status !== 'completed') {
+        //   return NextResponse.json(
+        //     {
+        //       error: true,
+        //       message: 'Payment required',
+        //       requiresPayment: true,
+        //       paymentStatus: payment[0]?.status || 'pending'
+        //     },
+        //     { status: 402 }
+        //   );
+        // }
       }
 
       // Demo mode - return mock response without hitting real APIs
@@ -120,25 +125,19 @@ export async function POST(request: NextRequest) {
         try {
           const timestamp = Date.now()
           const randomSuffix = Math.random().toString(36).substring(2, 8)
-          const slug = `${recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+          const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
 
           const [song] = await db
             .insert(songsTable)
             .values({
               song_request_id: requestId,
-              title,
-              lyrics,
-              music_style: style,
-              service_provider: 'Suno',
-              song_requester: recipient_details,
-              prompt: `Personalized song for ${recipient_details}`,
               slug,
-              status: 'processing',
-              suno_task_id: mockTaskId,
+              status: 'PENDING',
+              song_variants: {},
+              variant_timestamp_lyrics_api_response: {},
+              variant_timestamp_lyrics_processed: {},
               metadata: {
-                original_request_id: requestId,
-                demo_mode: true,
-                anonymous_user_id: currentUser.anonymousUserId || null
+                suno_task_id: mockTaskId,
               }
             })
             .returning({ id: songsTable.id })
@@ -148,7 +147,7 @@ export async function POST(request: NextRequest) {
           await db
             .update(songRequestsTable)
             .set({
-              status: 'processing'
+              status: 'PENDING'
             })
             .where(eq(songRequestsTable.id, requestId))
 
@@ -168,25 +167,18 @@ export async function POST(request: NextRequest) {
 
       // If not demo mode, proceed with real API call
       // Create the prompt for Suno API
-      const prompt = `Title: ${title}\n\nLyrics:\n${lyrics}\n\nStyle: ${style}`
 
       // Initialize Suno API
       const sunoAPI = SunoAPIFactory.getAPI()
       console.log('SunoAPI initialized:', typeof sunoAPI)
-
-      // Truncate style to max 200 characters for Suno API
-      const truncatedStyle = style.length > 200 ? style.substring(0, 197) + '...' : style
-      console.log('Original style length:', style.length)
-      console.log('Truncated style length:', truncatedStyle.length)
-
       // Generate song
       const generateRequest = {
-        prompt,
-        style: truncatedStyle,
+        prompt: lyrics,
+        style,
         title,
         customMode: true,
         instrumental: false,
-        model: 'V4',
+        model: 'V4_5PLUS',
         callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
       }
 
@@ -249,18 +241,9 @@ export async function POST(request: NextRequest) {
             await db
               .update(songsTable)
               .set({
-                title,
-                lyrics,
-                music_style: style,
-                service_provider: 'Suno',
-                song_requester: recipient_details,
-                prompt: `Personalized song for ${recipient_details}`,
-                status: 'processing',
-                suno_task_id: taskId,
+                status: 'PENDING',
                 metadata: {
-                  original_request_id: requestId,
-                  demo_mode: false,
-                  anonymous_user_id: currentUser.anonymousUserId || null
+                  suno_task_id: taskId,
                 }
               })
               .where(eq(songsTable.id, song.id))
@@ -268,25 +251,19 @@ export async function POST(request: NextRequest) {
             // Create new song record
             const timestamp = Date.now()
             const randomSuffix = Math.random().toString(36).substring(2, 8)
-            const slug = `${recipient_details.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+            const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
 
             const [newSong] = await db
               .insert(songsTable)
               .values({
                 song_request_id: requestId,
-                title,
-                lyrics,
-                music_style: style,
-                service_provider: 'Suno',
-                song_requester: recipient_details,
-                prompt: `Personalized song for ${recipient_details}`,
                 slug,
-                status: 'processing',
-                suno_task_id: taskId,
+                status: 'PENDING',
+                song_variants: {},
+                variant_timestamp_lyrics_api_response: {},
+                variant_timestamp_lyrics_processed: {},
                 metadata: {
-                  original_request_id: requestId,
-                  demo_mode: false,
-                  anonymous_user_id: currentUser.anonymousUserId || null
+                  suno_task_id: taskId,
                 }
               })
               .returning({ id: songsTable.id })
@@ -315,7 +292,7 @@ export async function POST(request: NextRequest) {
         success: true,
         taskId,
         songId,
-        message: 'Song generation started successfully'
+        message: 'Song generation completed successfully',
       })
     }
 

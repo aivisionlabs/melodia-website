@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requestId, lyrics } = body;
+    const { requestId, lyrics, userId, anonymous_user_id } = body;
 
     // Validate required fields
     if (!requestId || !lyrics) {
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
         generated_text: lyrics,
         song_title: null, // No title for manually stored lyrics
         music_style: 'Personal', // Default value for manually stored lyrics
-        status: 'draft'
+        status: 'draft',
+        created_by_user_id: userId || null,
+        created_by_anonymous_user_id: anonymous_user_id || null
       })
       .returning({
         id: lyricsDraftsTable.id

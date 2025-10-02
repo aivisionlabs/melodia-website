@@ -71,24 +71,3 @@ export function getButtonForContent(item: UserContentItem) {
       return { text: 'View', action: 'view', variant: 'outline' as const };
   }
 }
-
-export async function fetchUserContent(userId: number): Promise<UserContentItem[]> {
-  try {
-    const response = await fetch(`/api/user-content?userId=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch user content');
-    }
-
-    const result = await response.json();
-    return result.content || [];
-  } catch (error) {
-    console.error('Error fetching user content:', error);
-    return [];
-  }
-}

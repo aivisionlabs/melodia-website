@@ -21,15 +21,18 @@ export interface SunoGenerateResponse {
 
 export interface SunoVariant {
   id: string;
-  audioUrl: string;
-  streamAudioUrl: string;
-  imageUrl: string;
-  prompt: string;
-  modelName: string;
-  title: string;
-  tags: string;
-  createTime: string;
-  duration: number;
+  audioUrl?: string | null;
+  sourceAudioUrl?: string | null;
+  streamAudioUrl?: string | null;
+  sourceStreamAudioUrl?: string | null;
+  imageUrl?: string | null;
+  sourceImageUrl?: string | null;
+  prompt?: string;
+  modelName?: string;
+  title?: string;
+  tags?: string;
+  createTime?: string | number;
+  duration?: number;
 }
 
 export interface SunoRecordInfoResponse {
@@ -124,25 +127,17 @@ class MockSunoAPI {
     });
     this.saveTasks();
 
-    // Simulate progression through states
+    // Simulate progression through new two-level status system
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'TEXT_SUCCESS';
-        this.saveTasks();
-      }
-    }, SUNO_CONFIG.MOCK_DELAYS.TEXT_SUCCESS * 1000);
-
-    setTimeout(() => {
-      const task = this.tasks.get(taskId);
-      if (task) {
-        task.status = 'FIRST_SUCCESS';
-        // Generate first variant
+        task.status = 'STREAM_AVAILABLE';
+        // Generate first variant with streaming only
         task.variants.push({
           id: `variant_1_${taskId}`,
-          audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
-          streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Acoustic Version`,
@@ -152,18 +147,27 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.FIRST_SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.STREAM_AVAILABLE * 1000);
 
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'SUCCESS';
-        // Generate second variant
+        task.status = 'COMPLETE';
+        // Add download URLs to first variant
+        if (task.variants.length > 0) {
+          task.variants[0].audioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+          task.variants[0].sourceAudioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+        }
+
+        // Generate second variant with both streaming and download
         task.variants.push({
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
+          sourceAudioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Electric Version`,
@@ -173,7 +177,7 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.COMPLETE * 1000);
 
     return {
       code: 0,
@@ -314,25 +318,17 @@ class MockSunoAPI {
     });
     this.saveTasks();
 
-    // Simulate progression through states
+    // Simulate progression through new two-level status system
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'TEXT_SUCCESS';
-        this.saveTasks();
-      }
-    }, SUNO_CONFIG.MOCK_DELAYS.TEXT_SUCCESS * 1000);
-
-    setTimeout(() => {
-      const task = this.tasks.get(taskId);
-      if (task) {
-        task.status = 'FIRST_SUCCESS';
-        // Generate first variant
+        task.status = 'STREAM_AVAILABLE';
+        // Generate first variant with streaming only
         task.variants.push({
           id: `variant_1_${taskId}`,
-          audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
-          streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Acoustic Version`,
@@ -342,18 +338,27 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.FIRST_SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.STREAM_AVAILABLE * 1000);
 
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'SUCCESS';
-        // Generate second variant
+        task.status = 'COMPLETE';
+        // Add download URLs to first variant
+        if (task.variants.length > 0) {
+          task.variants[0].audioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+          task.variants[0].sourceAudioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+        }
+
+        // Generate second variant with both streaming and download
         task.variants.push({
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
+          sourceAudioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Electric Version`,
@@ -363,7 +368,7 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.COMPLETE * 1000);
   }
 }
 

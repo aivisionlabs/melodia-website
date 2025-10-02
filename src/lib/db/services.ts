@@ -11,25 +11,33 @@ export async function getAllSongs(): Promise<Song[]> {
     return songs.map(song => ({
       id: song.id,
       created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style,
-      service_provider: song.service_provider,
-      song_requester: song.song_requester,
-      prompt: song.prompt,
-      song_url: song.song_url,
-      duration: song.duration,
+      song_request_id: song.song_request_id,
       slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
       status: song.status ?? undefined,
+      is_featured: song.is_featured ?? undefined,
+
+      // New JSONB fields for variants and timestamped lyrics
+      song_variants: song.song_variants as any,
+      variant_timestamp_lyrics_api_response: song.variant_timestamp_lyrics_api_response as any,
+      variant_timestamp_lyrics_processed: song.variant_timestamp_lyrics_processed as any,
+
+      metadata: song.metadata ?? undefined,
+      approved_lyrics_id: song.approved_lyrics_id ?? undefined,
+      service_provider: song.service_provider ?? undefined,
       categories: song.categories ?? undefined,
       tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      metadata: song.metadata ?? undefined,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
+      selected_variant: song.selected_variant ?? undefined,
+      payment_id: song.payment_id ?? undefined,
+
+      // Fields that may be in metadata (for backward compatibility)
+      title: (song.metadata as any)?.title ?? undefined,
+      lyrics: (song.metadata as any)?.lyrics ?? undefined,
+      timestamp_lyrics: (song.metadata as any)?.timestamp_lyrics ?? undefined,
+      music_style: (song.metadata as any)?.music_style ?? undefined,
+      song_url: (song.metadata as any)?.song_url ?? undefined,
+      suno_task_id: (song.metadata as any)?.suno_task_id ?? undefined,
     }));
   } catch (error) {
     console.error('Error fetching songs:', error);
@@ -45,28 +53,33 @@ export async function getSongBySlug(slug: string): Promise<Song | null> {
     return {
       id: song.id,
       created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style,
-      service_provider: song.service_provider,
-      song_requester: song.song_requester,
-      prompt: song.prompt,
-      song_url: song.song_url,
-      duration: song.duration,
+      song_request_id: song.song_request_id,
       slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
       status: song.status ?? undefined,
+      is_featured: song.is_featured ?? undefined,
+
+      // New JSONB fields for variants and timestamped lyrics
+      song_variants: song.song_variants as any,
+      variant_timestamp_lyrics_api_response: song.variant_timestamp_lyrics_api_response as any,
+      variant_timestamp_lyrics_processed: song.variant_timestamp_lyrics_processed as any,
+
+      metadata: song.metadata ?? undefined,
+      approved_lyrics_id: song.approved_lyrics_id ?? undefined,
+      service_provider: song.service_provider ?? undefined,
       categories: song.categories ?? undefined,
       tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants ?? undefined,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
-      metadata: song.metadata ?? undefined,
+      payment_id: song.payment_id ?? undefined,
+
+      // Fields that may be in metadata (for backward compatibility)
+      title: (song.metadata as any)?.title ?? undefined,
+      lyrics: (song.metadata as any)?.lyrics ?? undefined,
+      timestamp_lyrics: (song.metadata as any)?.timestamp_lyrics ?? undefined,
+      music_style: (song.metadata as any)?.music_style ?? undefined,
+      song_url: (song.metadata as any)?.song_url ?? undefined,
+      suno_task_id: (song.metadata as any)?.suno_task_id ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song:', error);
@@ -82,28 +95,33 @@ export async function getSongByTaskId(taskId: string): Promise<Song | null> {
     return {
       id: song.id,
       created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style,
-      service_provider: song.service_provider,
-      song_requester: song.song_requester,
-      prompt: song.prompt,
-      song_url: song.song_url,
-      duration: song.duration,
+      song_request_id: song.song_request_id,
       slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
       status: song.status ?? undefined,
+      is_featured: song.is_featured ?? undefined,
+
+      // New JSONB fields for variants and timestamped lyrics
+      song_variants: song.song_variants as any,
+      variant_timestamp_lyrics_api_response: song.variant_timestamp_lyrics_api_response as any,
+      variant_timestamp_lyrics_processed: song.variant_timestamp_lyrics_processed as any,
+
+      metadata: song.metadata ?? undefined,
+      approved_lyrics_id: song.approved_lyrics_id ?? undefined,
+      service_provider: song.service_provider ?? undefined,
       categories: song.categories ?? undefined,
       tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants ?? undefined,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
-      metadata: song.metadata ?? undefined,
+      payment_id: song.payment_id ?? undefined,
+
+      // Fields that may be in metadata (for backward compatibility)
+      title: (song.metadata as any)?.title ?? undefined,
+      lyrics: (song.metadata as any)?.lyrics ?? undefined,
+      timestamp_lyrics: (song.metadata as any)?.timestamp_lyrics ?? undefined,
+      music_style: (song.metadata as any)?.music_style ?? undefined,
+      song_url: (song.metadata as any)?.song_url ?? undefined,
+      suno_task_id: (song.metadata as any)?.suno_task_id ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song by task ID:', error);
@@ -120,36 +138,39 @@ export async function getSongById(id: number): Promise<Song | null> {
     return {
       id: song.id,
       created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style,
-      service_provider: song.service_provider,
-      song_requester: song.song_requester,
-      prompt: song.prompt,
-      song_url: song.song_url,
-      duration: song.duration,
+      song_request_id: song.song_request_id,
       slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
       status: song.status ?? undefined,
+      is_featured: song.is_featured ?? undefined,
+
+      // New JSONB fields for variants and timestamped lyrics
+      song_variants: song.song_variants as any,
+      variant_timestamp_lyrics_api_response: song.variant_timestamp_lyrics_api_response as any,
+      variant_timestamp_lyrics_processed: song.variant_timestamp_lyrics_processed as any,
+
+      metadata: song.metadata ?? undefined,
+      approved_lyrics_id: song.approved_lyrics_id ?? undefined,
+      service_provider: song.service_provider ?? undefined,
       categories: song.categories ?? undefined,
       tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants ?? undefined,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
-      metadata: song.metadata ?? undefined,
+      payment_id: song.payment_id ?? undefined,
+
+      // Fields that may be in metadata (for backward compatibility)
+      title: (song.metadata as any)?.title ?? undefined,
+      lyrics: (song.metadata as any)?.lyrics ?? undefined,
+      timestamp_lyrics: (song.metadata as any)?.timestamp_lyrics ?? undefined,
+      music_style: (song.metadata as any)?.music_style ?? undefined,
+      song_url: (song.metadata as any)?.song_url ?? undefined,
+      suno_task_id: (song.metadata as any)?.suno_task_id ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song by ID:', error);
     return null;
   }
 }
-
-
 
 
 export async function createSong(songData: {
@@ -180,17 +201,28 @@ export async function createSong(songData: {
     const slug = await generateUniqueSlug(baseSlug);
 
     const newSong = {
-      title: songData.title,
-      lyrics: songData.lyrics,
-      music_style: songData.music_style,
-      categories: songData.categories || [],
-      tags: songData.tags || [],
-      prompt: songData.prompt || songData.lyrics,
+      song_request_id: songData.song_request_id,
       slug,
       status: 'draft',
-      is_active: false,
-      song_request_id: songData.song_request_id,
-      user_id: songData.user_id,
+      is_featured: false,
+
+      // Store legacy fields in metadata for backward compatibility
+      metadata: {
+        title: songData.title,
+        lyrics: songData.lyrics,
+        music_style: songData.music_style,
+        prompt: songData.prompt || songData.lyrics,
+      },
+
+      // Initialize new JSONB fields
+      song_variants: {},
+      variant_timestamp_lyrics_api_response: {},
+      variant_timestamp_lyrics_processed: {},
+
+      categories: songData.categories || [],
+      tags: songData.tags || [],
+      service_provider: 'SU',
+      add_to_library: false,
     };
 
     const song = await createSongQuery(newSong);
@@ -215,11 +247,11 @@ export async function createSong(songData: {
 export async function updateSongStatus(
   songId: number,
   status: 'draft' | 'pending' | 'generating' | 'completed' | 'failed',
-  songUrl?: string,
+  songVariants?: any[],
   sunoTaskId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateSongStatusQuery(songId, status, songUrl, sunoTaskId);
+    await updateSongStatusQuery(songId, status, songVariants, sunoTaskId);
     return { success: true };
   } catch (error) {
     console.error('Error updating song status:', error);
@@ -231,10 +263,10 @@ export async function updateSongWithSunoVariants(
   songId: number,
   sunoVariants: any[],
   selectedVariant?: number,
-  isActive?: boolean
+  addToLibrary?: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, isActive);
+    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, addToLibrary);
     return { success: true };
   } catch (error) {
     console.error('Error updating song with variants:', error);

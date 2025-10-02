@@ -3,26 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SongOptionsDisplay from "@/components/SongOptionsDisplay";
-
-interface SongVariant {
-  id: string;
-  title: string;
-  audioUrl: string;
-  streamAudioUrl?: string;
-  imageUrl: string;
-  duration: number;
-  downloadStatus: string;
-  isLoading?: boolean;
-}
-
-interface SongData {
-  id: number;
-  title: string;
-  artist?: string;
-  suno_task_id?: string;
-  status: string;
-  variants?: SongVariant[];
-}
+import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
+import { useSongStatusPolling } from "@/hooks/use-song-status-polling";
 
 export default function SongOptionsPage({
   params,
@@ -31,10 +13,43 @@ export default function SongOptionsPage({
 }) {
   const router = useRouter();
   const [songId, setSongId] = useState<string>("");
-  const [songData, setSongData] = useState<SongData | null>(null);
-  const [variants, setVariants] = useState<SongVariant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Use the custom polling hook
+  const { songStatus, isLoading, error, showLoadingScreen } =
+    useSongStatusPolling(songId, {
+      intervalMs: 10000,
+      maxPollingTime: 10 * 60 * 1000, // 10 minutes
+      autoStart: true,
+      stopOnComplete: true,
+      enableExponentialBackoff: true,
+      maxRetries: 3,
+      onStatusChange: (status) => {
+        console.log("🎵 [PAGE] Song status update:", {
+          status: status.status,
+          hasVariants: !!status.variants,
+          variantsCount: status.variants?.length || 0,
+          success: status.success,
+        });
+      },
+      onError: (error) => {
+        console.error("❌ [PAGE] Song status polling error:", error);
+      },
+    });
+
+  console.log("🎨 [PAGE] Current state:", {
+    songId,
+    isLoading,
+    error,
+    showLoadingScreen,
+    songStatus: songStatus
+      ? {
+          status: songStatus.status,
+          hasVariants: !!songStatus.variants,
+          variantsCount: songStatus.variants?.length || 0,
+          success: songStatus.success,
+        }
+      : null,
+  });
 
   // Resolve params
   useEffect(() => {
@@ -45,101 +60,8 @@ export default function SongOptionsPage({
     getParams();
   }, [params]);
 
-  // Load song data and variants
-  useEffect(() => {
-    const loadSongData = async () => {
-      if (!songId) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch song data and variants
-        const response = await fetch(`/api/song-variants/${songId}`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to load song data: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.message || "Failed to load song data");
-        }
-
-        const song = data.song;
-        const songVariants = data.variants || [];
-
-        // Transform variants to match SongOptionsDisplay interface
-        const transformedVariants: SongVariant[] = songVariants.map(
-          (variant: any, index: number) => ({
-            id: variant.id || `variant-${index}`,
-            title: variant.title || `${song.title} - Variant ${index + 1}`,
-            audioUrl: variant.audioUrl || variant.streamAudioUrl || "",
-            streamAudioUrl: variant.streamAudioUrl,
-            imageUrl: variant.imageUrl || "/images/melodia-logo.png",
-            duration: variant.duration || 180,
-            downloadStatus: variant.audioUrl ? "ready" : "generating",
-            isLoading: !variant.audioUrl,
-          })
-        );
-
-        setSongData({
-          id: song.id,
-          title: song.title,
-          artist: song.artist || "Melodia",
-          suno_task_id: song.suno_task_id,
-          status: song.status,
-        });
-
-        setVariants(transformedVariants);
-      } catch (err) {
-        console.error("Error loading song data:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load song data"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSongData();
-  }, [songId]);
-
   const handleBack = () => {
     router.back();
-  };
-
-  const handleSelectVariant = async (variantId: string) => {
-    try {
-      const variantIndex = variants.findIndex((v) => v.id === variantId);
-
-      const response = await fetch(`/api/song-variants/${songId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          variantIndex,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to select variant");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Redirect to home page after selection
-        router.push("/");
-      } else {
-        throw new Error(data.message || "Failed to select variant");
-      }
-    } catch (err) {
-      console.error("Error selecting variant:", err);
-      alert("Failed to select variant. Please try again.");
-    }
   };
 
   const handleBackupWithGoogle = () => {
@@ -149,7 +71,8 @@ export default function SongOptionsPage({
   };
 
   // Loading state
-  if (loading) {
+  if (isLoading) {
+    console.log("⏳ [PAGE] Rendering loading state");
     return (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
@@ -161,7 +84,11 @@ export default function SongOptionsPage({
   }
 
   // Error state
-  if (error || !songData) {
+  if (error || !songStatus) {
+    console.log("❌ [PAGE] Rendering error state:", {
+      error,
+      hasSongStatus: !!songStatus,
+    });
     return (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
@@ -198,8 +125,62 @@ export default function SongOptionsPage({
     );
   }
 
-  // No variants available
-  if (variants.length === 0) {
+  // Song creation loading screen - show for PENDING status or when explicitly loading
+  if (showLoadingScreen || songStatus?.status === "PENDING") {
+    console.log("⏳ [PAGE] Rendering SongCreationLoadingScreen:", {
+      showLoadingScreen,
+      status: songStatus?.status,
+    });
+    return (
+      <SongCreationLoadingScreen
+        duration={45}
+        title="Crafting your song..."
+        message="Our AI is turning your story into a musical masterpiece. Hang tight!"
+        showTimer={true}
+      />
+    );
+  }
+
+  // Handle NOT_FOUND status - show error state
+  if (songStatus?.status === "NOT_FOUND") {
+    return (
+      <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-red-600 mb-2">
+            Song Not Found
+          </h3>
+          <p className="text-gray-600 mb-4">
+            The song you&apos;re looking for doesn&apos;t exist or has been
+            removed.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-6 py-2 bg-melodia-coral text-white rounded-full hover:bg-opacity-90 transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No variants available - show this for non-PENDING statuses without variants
+  if (!songStatus.variants || songStatus.variants.length === 0) {
     return (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
@@ -238,16 +219,9 @@ export default function SongOptionsPage({
 
   return (
     <SongOptionsDisplay
-      variants={variants}
+      songStatus={songStatus!}
       onBack={handleBack}
-      onSelectVariant={handleSelectVariant}
       onBackupWithGoogle={handleBackupWithGoogle}
-      songData={{
-        suno_task_id: songData.suno_task_id,
-        title: songData.title,
-        artist: songData.artist,
-        songId: songData.id,
-      }}
     />
   );
 }
