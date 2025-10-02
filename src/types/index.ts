@@ -82,6 +82,7 @@ export interface SignupRequest {
   email: string
   dateOfBirth: string // YYYY-MM-DD format
   phoneNumber?: string
+  password: string
 }
 
 // API Response interfaces
