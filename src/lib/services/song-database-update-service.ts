@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { songsTable } from '@/lib/db/schema';
-import { calculateSongStatus, SongStatus } from "@/lib/services/song-status-calculation-service";
+import { songsTable, songRequestsTable } from '@/lib/db/schema';
+import { calculateSongStatus, SongStatus, SONG_STATUS_MAP } from "@/lib/services/song-status-calculation-service";
 import { eq } from 'drizzle-orm';
 
 export interface SunoVariant {
@@ -138,7 +138,33 @@ export class SongDatabaseUpdateService {
       song_variants: variants
     }
 
-    return await this.updateSongWithRetry(song.id, updateData)
+    // Update the song first
+    const songUpdateResult = await this.updateSongWithRetry(song.id, updateData)
+
+    // If song update was successful and status is COMPLETED, update the related song_request
+    if (songUpdateResult.success && status === SONG_STATUS_MAP.COMPLETED && song.song_request_id) {
+      try {
+        await db
+          .update(songRequestsTable)
+          .set({
+            status: 'completed'
+          })
+          .where(eq(songRequestsTable.id, song.song_request_id))
+
+        console.log(`✅ [DB-SERVICE] Updated song_request ${song.song_request_id} to completed status`)
+
+        return {
+          ...songUpdateResult,
+          songRequestId: song.song_request_id
+        }
+      } catch (error) {
+        console.error(`❌ [DB-SERVICE] Failed to update song_request ${song.song_request_id}:`, error)
+        // Return song update result even if song_request update fails
+        return songUpdateResult
+      }
+    }
+
+    return songUpdateResult
   }
 
   /**

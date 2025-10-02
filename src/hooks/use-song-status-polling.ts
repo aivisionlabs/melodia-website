@@ -106,8 +106,6 @@ export function useSongStatusPolling(
     ): SongStatusResponse | null => {
       // Handle error response
       if ("success" in apiResponse && !apiResponse.success) {
-        console.log('❌ [HOOK] Error response detected:', apiResponse.message)
-
         // Check if it's a "song not found" error (404)
         if (apiResponse.message === 'Song not found') {
           return {
@@ -129,17 +127,9 @@ export function useSongStatusPolling(
       if ("data" in apiResponse && apiResponse.data) {
         const { data } = apiResponse;
 
-        console.log('📊 [HOOK] Processing SunoSongStatusAPIResponse:', {
-          status: data.status,
-          hasResponse: !!data.response,
-          hasSunoData: !!data.response?.songVariantData,
-          sunoDataLength: data.response?.songVariantData?.length || 0,
-        })
-
         // Extract variants from sunoData if available
         let variants: SongVariant[] = [];
         if (data.response?.songVariantData) {
-          console.log('🎵 [HOOK] Processing sunoData variants...')
 
           // Convert API data to VariantData format
           const variantData: VariantData[] = data.response.songVariantData.map((item: any) => ({
@@ -160,14 +150,6 @@ export function useSongStatusPolling(
 
           // Calculate status using the new service
           const statusResult = calculateSongStatus(variantData);
-
-          console.log('🧮 [HOOK] Status calculation result:', {
-            songStatus: statusResult.songStatus,
-            variantsCount: statusResult.variants.length,
-            hasAnyStreamReady: statusResult.hasAnyStreamReady,
-            hasAnyDownloadReady: statusResult.hasAnyDownloadReady,
-            allVariantsDownloadReady: statusResult.allVariantsDownloadReady
-          });
 
           // Convert to SongVariant format with calculated status
           variants = statusResult.variants.map((variant: CalculatedVariant) => ({
@@ -191,28 +173,12 @@ export function useSongStatusPolling(
         // Use the database status from the API response instead of calculating it
         const databaseStatus = data.status as SongStatus;
 
-        console.log('🎯 [HOOK] Using database song status:', {
-          databaseStatus,
-          variantsCount: variants.length,
-          variantStatuses: variants.map(v => ({
-            id: v.id,
-            variantStatus: v.variantStatus
-          }))
-        });
-
         const result = {
           success: true,
           status: databaseStatus,
           variants: variants.length > 0 ? variants : undefined,
           message: "Song status updated",
         };
-
-        console.log('✅ [HOOK] Returning SongStatusResponse:', {
-          success: result.success,
-          status: result.status,
-          variantsCount: result.variants?.length || 0,
-          hasVariants: !!result.variants
-        })
 
         return result;
       }
@@ -227,12 +193,6 @@ export function useSongStatusPolling(
    * Update UI state based on song status
    */
   const updateUIState = useCallback((status: SongStatusResponse) => {
-    console.log('🎨 [HOOK] updateUIState called with:', {
-      status: status.status,
-      hasVariants: !!status.variants,
-      variantsCount: status.variants?.length || 0
-    })
-
     if (status.status === "PENDING") {
       // Both variants still generating, show loading screen
       console.log('⏳ [HOOK] Setting showLoadingScreen = true (PENDING status)')

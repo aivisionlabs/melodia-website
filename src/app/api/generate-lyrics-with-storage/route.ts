@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateLyrics } from '@/lib/services/llm/llm-lyrics-creation';
+import { generateLyrics } from '@/lib/services/llm/llm-lyrics-opearation';
 import { db } from '@/lib/db';
 import { lyricsDraftsTable } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';

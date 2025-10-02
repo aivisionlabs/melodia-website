@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSongRequest } from '@/lib/song-request-actions';
 import { SongRequestPayload } from "@/types/song-request";
-import { getCurrentUser } from '@/lib/user-actions';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { requesterName, recipientDetails, occasion, languages, story, userId, anonymousUserId, mood }: SongRequestPayload = body;
 
-
-    // Get current user from session or request body
-    const currentUser = await getCurrentUser();
-    const currentUserId = currentUser?.id || userId || null;
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+    const currentUserId = userContext.userId || userId || null;
+    const currentAnonymousUserId = userContext.anonymousUserId || anonymousUserId;
 
     // Create song request
     const result = await createSongRequest({
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       mood: mood,
       story,
       userId: currentUserId,
-      anonymousUserId
-    }, currentUserId, anonymousUserId);
+      anonymousUserId: currentAnonymousUserId
+    }, currentUserId, currentAnonymousUserId);
 
     if (!result.success) {
       return NextResponse.json(

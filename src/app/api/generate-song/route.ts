@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { songsTable, songRequestsTable, paymentsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
+import { getUserContextFromRequest } from '@/lib/middleware-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,17 +20,23 @@ export async function POST(request: NextRequest) {
 
     // Check payment status if requestId is provided
     if (requestId) {
-      // Get user ID from request body or try authentication
+      // Get user context from middleware
+      const userContext = getUserContextFromRequest(request);
+
+      // Get user ID from middleware, request body, or demo mode
       let currentUser = null;
 
-      if (userId) {
+      if (userContext.userId) {
+        // Use authenticated user from middleware
+        currentUser = { id: userContext.userId } as any;
+      } else if (userId) {
         // Use provided userId (for registered users)
         currentUser = { id: userId } as any;
       } else if (demoMode) {
         // For demo mode, use a default user ID
         currentUser = { id: 1 } as any;
       } else {
-        // Try to get from authentication
+        // Try to get from authentication (fallback)
         currentUser = await getCurrentUser();
         // If no authenticated user, we'll handle anonymous users below
       }
@@ -58,9 +65,9 @@ export async function POST(request: NextRequest) {
           dbUserId: songRequest[0].user_id
         });
 
-        if (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId) {
+        if ((userContext.anonymousUserId || anonymousUserId) && songRequest[0].anonymous_user_id === (userContext.anonymousUserId || anonymousUserId)) {
           // Anonymous user owns this request - allow access
-          currentUser = { id: null, anonymousUserId } as any;
+          currentUser = { id: null, anonymousUserId: userContext.anonymousUserId || anonymousUserId } as any;
         }
         // Check if this is a registered user request
         else if (currentUser && songRequest[0].user_id === currentUser.id) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refineLyricsAction } from '@/lib/lyrics-actions';
 import { getCurrentUser } from '@/lib/user-actions';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+
     // Get user information
     let currentUser = null;
-    if (userId) {
+    if (userContext.userId) {
+      currentUser = { id: userContext.userId } as any;
+    } else if (userId) {
       currentUser = { id: userId } as any;
     } else {
       currentUser = await getCurrentUser();
@@ -26,7 +32,7 @@ export async function POST(request: NextRequest) {
       refineText,
       parseInt(requestId),
       currentUser?.id,
-      anonymous_user_id
+      userContext.anonymousUserId || anonymous_user_id
     );
 
     if (result.success) {

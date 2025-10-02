@@ -4,6 +4,7 @@ import { paymentsTable, songRequestsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
 import { sanitizeAnonymousUserId } from '@/lib/utils/validation'
+import { getUserContextFromRequest } from '@/lib/middleware-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,14 +17,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request)
+
     // Get current user (optional for anonymous users)
     const currentUser = await getCurrentUser()
 
-    // Sanitize anonymous user ID from request body
-    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymousUserId)
+    // Sanitize anonymous user ID from request body or middleware
+    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymousUserId || userContext.anonymousUserId)
 
     // Use current user if available, otherwise use provided user ID
-    const finalUserId = currentUser?.id || userId || null
+    const finalUserId = userContext.userId || currentUser?.id || userId || null
     const finalAnonymousUserId = sanitizedAnonymousUserId
 
     console.log(currentUser, sanitizedAnonymousUserId, finalUserId, finalAnonymousUserId)
@@ -42,7 +46,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check ownership for both user types
-    if ((currentUser && songRequest[0].user_id !== currentUser.id) && finalAnonymousUserId && songRequest[0].anonymous_user_id !== finalAnonymousUserId) {
+    const isOwner = (finalUserId && songRequest[0].user_id === finalUserId) ||
+      (finalAnonymousUserId && songRequest[0].anonymous_user_id === finalAnonymousUserId)
+
+    if (!isOwner) {
       return NextResponse.json(
         { error: true, message: 'Unauthorized access' },
         { status: 403 }

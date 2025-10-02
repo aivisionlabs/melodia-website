@@ -8,6 +8,7 @@ import { createRazorpayOrder, generateReceiptId, validateRazorpayConfig } from '
 import { getCurrentUser } from '@/lib/user-actions';
 import { CreateOrderRequest, CreateOrderResponse } from '@/types/payment';
 import { validatePaymentRequest, sanitizeAnonymousUserId } from '@/lib/utils/validation';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+
     // Get current user (optional for anonymous users)
     const currentUser = await getCurrentUser();
 
@@ -26,14 +30,14 @@ export async function POST(request: NextRequest) {
     const body: CreateOrderRequest = await request.json();
     const { songRequestId, planId, anonymous_user_id } = body;
 
-    // Sanitize anonymous user ID
-    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymous_user_id);
+    // Sanitize anonymous user ID from middleware or request body
+    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(userContext.anonymousUserId || anonymous_user_id);
 
     // Validate payment request data
     const validation = validatePaymentRequest({
       songRequestId,
       planId,
-      userId: currentUser?.id || null,
+      userId: userContext.userId || currentUser?.id || null,
       anonymousUserId: sanitizedAnonymousUserId
     });
 
@@ -59,14 +63,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check ownership for both user types
-    if (currentUser && songRequest[0].user_id !== currentUser.id) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized access' },
-        { status: 403 }
-      );
-    }
+    const finalUserId = userContext.userId || currentUser?.id;
+    const isOwner = (finalUserId && songRequest[0].user_id === finalUserId) ||
+      (sanitizedAnonymousUserId && songRequest[0].anonymous_user_id === sanitizedAnonymousUserId);
 
-    if (sanitizedAnonymousUserId && songRequest[0].anonymous_user_id !== sanitizedAnonymousUserId) {
+    if (!isOwner) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized access' },
         { status: 403 }
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
       {
         song_request_id: songRequestId,
         plan_id: planId,
-        user_id: currentUser?.id || null,
+        user_id: finalUserId || null,
         anonymous_user_id: sanitizedAnonymousUserId,
         plan_name: pricingPlan[0].name,
       }
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     const [payment] = await db
       .insert(paymentsTable)
       .values({
-        user_id: currentUser?.id || null,
+        user_id: finalUserId || null,
         anonymous_user_id: sanitizedAnonymousUserId,
         song_request_id: songRequestId,
         razorpay_order_id: razorpayOrder.id,

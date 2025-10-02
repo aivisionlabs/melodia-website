@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { apiPost } from '@/lib/api-utils'
 
 interface AnonymousUserState {
   anonymousUserId: string | null
@@ -23,12 +24,7 @@ export const useAnonymousUser = () => {
   // Create anonymous user
   const createAnonymousUser = useCallback(async () => {
     try {
-      const response = await fetch('/api/users/anonymous', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
+      const response = await apiPost('/api/users/anonymous', {})
 
       if (!response.ok) {
         throw new Error('Failed to create anonymous user')

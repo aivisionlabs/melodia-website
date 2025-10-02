@@ -6,15 +6,21 @@ import { paymentsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/user-actions';
 import { PaymentStatusResponse, PaymentStatus } from '@/types/payment';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ paymentId: string }> }
 ) {
   try {
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+
     // Get current user
     const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    const finalUserId = userContext.userId || currentUser?.id;
+
+    if (!finalUserId) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
@@ -47,7 +53,7 @@ export async function GET(
     }
 
     // Verify payment belongs to current user
-    if (payment[0].user_id !== currentUser.id) {
+    if (payment[0].user_id !== finalUserId) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized access' },
         { status: 403 }

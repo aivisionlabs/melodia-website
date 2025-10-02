@@ -63,23 +63,19 @@ export function calculateVariantStatus(variant: VariantData): VariantStatus {
 
   // If no sourceStreamAudioUrl, variant is still PENDING
   if (!variant.sourceStreamAudioUrl) {
-    console.log('⏳ [STATUS-CALC] Variant status: PENDING (no sourceStreamAudioUrl)');
     return 'PENDING';
   }
 
   // If sourceStreamAudioUrl is available but no download URLs, variant is STREAM_READY
   if (variant.sourceStreamAudioUrl && !variant.audioUrl && !variant.sourceAudioUrl) {
-    console.log('🎵 [STATUS-CALC] Variant status: STREAM_READY (has sourceStreamAudioUrl only)');
     return 'STREAM_READY';
   }
 
   // If audioUrl or sourceAudioUrl is available, variant is DOWNLOAD_READY
   if (variant.audioUrl || variant.sourceAudioUrl) {
-    console.log('✅ [STATUS-CALC] Variant status: DOWNLOAD_READY (has audioUrl/sourceAudioUrl)');
     return 'DOWNLOAD_READY';
   }
 
-  console.log('⏳ [STATUS-CALC] Variant status: PENDING (fallback)');
   return 'PENDING';
 }
 

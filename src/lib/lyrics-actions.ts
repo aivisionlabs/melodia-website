@@ -1,72 +1,29 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { config } from './config'
 import { db } from './db'
 import { lyricsDraftsTable, songRequestsTable, songsTable } from './db/schema'
+import { DBSongRequest } from '@/types/song-request'
+import { refineLyrics } from './services/llm/llm-lyrics-opearation'
 
-// Helper function to build refinement prompt
-
-// Helper function to build refinement prompt with version history context
-function buildRefinementPromptWithHistory(currentLyrics: string, refineText: string, songRequest: any, allDrafts: any[]): string {
-  let versionHistory = '';
-
-  // Build version history context
-  if (allDrafts.length > 1) {
-    versionHistory = '\n\nVersion History Context:\n';
-    allDrafts.forEach((draft) => {
-      const versionInfo = `Version ${draft.version}:`;
-      const promptInfo = draft.lyrics_edit_prompt ? `Refinement: "${draft.lyrics_edit_prompt}"` : 'Initial generation';
-      versionHistory += `${versionInfo} ${promptInfo}\n`;
-    });
-    versionHistory += '\nThis shows the evolution of the lyrics. Please maintain the context and improvements from all previous versions.';
-  }
-
-  return `Please improve and refine the following lyrics based on the user's feedback.
-
-IMPORTANT: This is version ${allDrafts.length + 1} of the lyrics. You have access to the full version history to understand the context and evolution of the lyrics.
-
-Current Lyrics (Version ${allDrafts[allDrafts.length - 1].version}):
-${currentLyrics}
-
-User's Refinement Request:
-${refineText}
-
-Song Context:
-Recipient: ${songRequest.recipient_details}
-Song Style: Personal
-Mood: ${songRequest.mood?.join(', ') || 'Not specified'}
-Song Story: ${songRequest.song_story || 'None'}
-${versionHistory}
-
-Instructions:
-- Maintain all the context and personal details from the original song request
-- Keep the emotional connection and personal touch from all previous versions
-- Only make the specific changes requested by the user
-- If the user asks to "make it short" or "make it longer", adjust length while keeping all important details
-- If the user asks to change names or details, update only those specific elements
-- Preserve the overall theme and message from the song request
-
-Please provide the refined lyrics that address the user's feedback while maintaining the complete context and personal connection.`
-}
-
-
-// Refine lyrics using Gemini API
+// Refine lyrics using Vertex AI
 export async function refineLyricsAction(refineText: string, requestId: number, userId?: number, anonymousUserId?: string) {
   try {
-    // Get ALL lyrics drafts for this request to maintain context
-    const allDrafts = await db
+    // Fetch only the latest version of the lyrics draft for this request
+    const latestLyricsDraft = await db
       .select()
       .from(lyricsDraftsTable)
       .where(eq(lyricsDraftsTable.song_request_id, requestId))
-      .orderBy(lyricsDraftsTable.version)
+      .orderBy(desc(lyricsDraftsTable.version))
+      .limit(1);
 
-    if (allDrafts.length === 0) {
-      throw new Error('No lyrics draft found to refine')
+
+    const latestDraft = latestLyricsDraft[0];
+
+    if (!latestDraft) {
+      throw new Error('No lyrics draft found for this request');
     }
-
-    const latestDraft = allDrafts[allDrafts.length - 1]
 
     // Get song request data
     const songRequest = await db
@@ -105,84 +62,22 @@ export async function refineLyricsAction(refineText: string, requestId: number, 
       return { success: true, draft: newDraft, demoMode: true }
     }
 
-    const prompt = buildRefinementPromptWithHistory(latestDraft.generated_text, refineText, songRequest[0], allDrafts)
-
     // Log the refinement request
     console.log('=== REFINE LYRICS REQUEST ===');
     console.log('Request ID:', requestId);
     console.log('Current Version:', latestDraft.version);
     console.log('Refinement Text:', refineText);
-    console.log('API URL:', `${config.GEMINI_API_URL}?key=${config.GEMINI_API_TOKEN}`);
-    console.log('Refinement Prompt:', prompt);
-    console.log('Generation Config:', config.LYRICS_GENERATION);
     console.log('==============================');
 
-    // Call Gemini API
-    const response = await fetch(`${config.GEMINI_API_URL}?key=${config.GEMINI_API_TOKEN}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: config.LYRICS_GENERATION
-      })
-    })
+    // Call Vertex AI for refinement
+    const refinedText = await refineLyrics({
+      currentLyrics: latestDraft.generated_text,
+      refineText,
+      songRequest: songRequest[0] as unknown as DBSongRequest
+    });
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`)
-    }
-
-    const data = await response.json()
     console.log('=== REFINE LYRICS RESPONSE ===');
-    console.log('Gemini API Response:', JSON.stringify(data, null, 2));
-
-    // Try different possible response structures
-    let refinedText = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-    // If the above doesn't work, try alternative structures
-    if (!refinedText) {
-      refinedText = data.candidates?.[0]?.content?.text
-    }
-
-    if (!refinedText) {
-      refinedText = data.text
-    }
-
-    if (!refinedText) {
-      refinedText = data.response?.text
-    }
-
-    // If still no text, try to get any text from the response
-    if (!refinedText) {
-      console.log('Trying to extract text from response structure:', data)
-      // Look for any text field in the response
-      const findTextInObject = (obj: any): string | null => {
-        if (typeof obj === 'string') return obj
-        if (typeof obj === 'object' && obj !== null) {
-          for (const key in obj) {
-            if (key.toLowerCase().includes('text') && typeof obj[key] === 'string') {
-              return obj[key]
-            }
-            const found = findTextInObject(obj[key])
-            if (found) return found
-          }
-        }
-        return null
-      }
-      refinedText = findTextInObject(data)
-    }
-
-    if (!refinedText) {
-      console.error('Could not extract text from API response:', data)
-      throw new Error('No refined lyrics generated from API')
-    }
-
-    console.log('Extracted Refined Text:', refinedText);
+    console.log('Refined Text:', refinedText);
     console.log('==============================');
 
     // Create new version with refined lyrics

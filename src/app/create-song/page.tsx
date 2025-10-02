@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { SongRequestFormData } from "@/types";
+import { SongFormData } from "@/lib/services/llm/llm-lyrics-opearation";
 import { createSongRequest } from "@/lib/song-request-actions";
 import { useToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -20,12 +20,12 @@ export default function CreateSongPage() {
   const [success, setSuccess] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState<SongRequestFormData>({
-    requester_name: "",
-    recipient_details: "",
+  const [formData, setFormData] = useState<SongFormData>({
+    requesterName: "",
+    recipientDetails: "",
     languages: "English",
     mood: [],
-    song_story: "",
+    songStory: "",
   });
 
   // Validation state
@@ -49,7 +49,7 @@ export default function CreateSongPage() {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        requester_name: user.name || "",
+        requesterName: user.name || "",
         email: user.email || "",
       }));
     }
@@ -58,10 +58,10 @@ export default function CreateSongPage() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!formData.recipient_details.trim()) {
-      errors.recipient_details = "Who is this song for? (Required)";
-    } else if (formData.recipient_details.length < 3) {
-      errors.recipient_name = "Name must be at least 3 characters";
+    if (!formData.recipientDetails.trim()) {
+      errors.recipientDetails = "Who is this song for? (Required)";
+    } else if (formData.recipientDetails.length < 3) {
+      errors.recipientDetails = "Name must be at least 3 characters";
     }
 
     setValidationErrors(errors);
@@ -69,7 +69,7 @@ export default function CreateSongPage() {
   };
 
   const handleInputChange = (
-    field: keyof SongRequestFormData,
+    field: keyof SongFormData,
     value: string | string[]
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -86,7 +86,7 @@ export default function CreateSongPage() {
   };
 
   const isFormValid = (): boolean => {
-    return formData.recipient_details.trim().length >= 3;
+    return formData.recipientDetails.trim().length >= 3;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,10 +107,18 @@ export default function CreateSongPage() {
           ? localStorage.getItem("anonymous_user_id") || undefined
           : undefined;
       const result = await createSongRequest(
-        formData,
-        user?.id,
-        "unknown",
-        anonymousId
+        {
+          requesterName: formData.requesterName || "",
+          recipientDetails: formData.recipientDetails,
+          occasion: formData.occassion || "",
+          languages: formData.languages,
+          story: formData.songStory,
+          mood: Array.isArray(formData.mood) ? formData.mood : [formData.mood],
+          userId: user?.id || null,
+          anonymousUserId: anonymousId || null,
+        },
+        user?.id || null,
+        anonymousId || null
       );
 
       if (result.success) {
@@ -220,18 +228,18 @@ export default function CreateSongPage() {
             </p>
             <input
               id="recipient_name"
-              value={formData.recipient_details}
+              value={formData.recipientDetails}
               onChange={(e) =>
-                handleInputChange("recipient_details", e.target.value)
+                handleInputChange("recipientDetails", e.target.value)
               }
               placeholder="My best friend, Rohan"
               className={`form-input w-full ${
-                validationErrors.recipient_name ? "border-red-500" : ""
+                validationErrors.recipientDetails ? "border-red-500" : ""
               }`}
             />
-            {validationErrors.recipient_name && (
+            {validationErrors.recipientDetails && (
               <p className="text-red-500 text-sm mt-2">
-                {validationErrors.recipient_name}
+                {validationErrors.recipientDetails}
               </p>
             )}
           </div>

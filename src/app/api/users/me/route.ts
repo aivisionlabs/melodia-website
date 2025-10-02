@@ -1,21 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/user-actions'
+import { getUserContextFromRequest } from '@/lib/middleware-utils'
 import { db } from '@/lib/db'
 import { usersTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function GET() {
-  const user = await getCurrentUser()
-  if (!user) {
+export async function GET(request: NextRequest) {
+  // Get user context from middleware
+  const userContext = getUserContextFromRequest(request)
+
+  // For /users/me, we need an authenticated user
+  if (!userContext.isAuthenticated || !userContext.userId) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
+
+  // Get full user details from database
+  const user = await getCurrentUser()
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+  }
+
   return NextResponse.json({ success: true, user })
 }
 
 export async function PATCH(request: NextRequest) {
+  // Get user context from middleware
+  const userContext = getUserContextFromRequest(request)
+
+  // For /users/me, we need an authenticated user
+  if (!userContext.isAuthenticated || !userContext.userId) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Get full user details from database
   const user = await getCurrentUser()
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
   }
 
   try {

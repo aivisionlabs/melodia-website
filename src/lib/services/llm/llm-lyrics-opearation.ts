@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { VertexAI, GenerateContentRequest, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
 import { CredentialsManager } from '../ai/credentials-manager';
+import { DBSongRequest } from '@/types/song-request';
+import { buildGenerationPrompt, buildGenerationUserPrompt, buildRefinementPrompt, buildRefinementUserPrompt } from './prompts/lyrics-opeation-prompt-builder';
 
 const LLMResponseSchema = z.object({
   title: z.string().optional(),
@@ -18,6 +20,26 @@ export interface SongFormData {
   mood: string[] | string;
   requesterName?: string;
 }
+
+export interface RefinementRequest {
+  currentLyrics: string;
+  refineText: string;
+  songRequest: DBSongRequest;
+}
+
+// Configuration for LLM parameters
+const LLM_CONFIG = {
+  modelName: process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash',
+  generation: {
+    temperature_attempt1: 0.7,
+    temperature_attempt2: 0.3,
+    maxOutputTokens: 4000,
+  },
+  refinement: {
+    temperature: 0.7,
+    maxOutputTokens: 4000,
+  },
+};
 
 function sanitizeJsonString(jsonString: string): string {
   // Remove any potential BOM or leading/trailing whitespace
@@ -131,6 +153,7 @@ function validateOutput(output: LLMResponse): void {
   }
 }
 
+// Common Vertex AI initialization
 function initializeVertexAI() {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
   const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
@@ -156,6 +179,29 @@ function initializeVertexAI() {
   return vertexAI;
 }
 
+// Common safety settings for all Vertex AI requests
+function getSafetySettings() {
+  return [
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+  ];
+}
+
+// Common function for generating content with Vertex AI
 async function generateWithVertexAI(
   vertexAI: VertexAI,
   systemPrompt: string,
@@ -164,27 +210,10 @@ async function generateWithVertexAI(
   maxOutputTokens: number,
   useJsonMode: boolean = true
 ): Promise<string> {
-  const modelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.0-flash-001';
+  const modelName = LLM_CONFIG.modelName;
   const generativeModel = vertexAI.getGenerativeModel({
     model: modelName,
-    safetySettings: [
-      {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-    ],
+    safetySettings: getSafetySettings(),
     generationConfig: {
       temperature,
       maxOutputTokens,
@@ -196,9 +225,15 @@ async function generateWithVertexAI(
   const request: GenerateContentRequest = {
     contents: [
       {
+        role: 'system',
+        parts: [
+          { text: systemPrompt }
+        ]
+      },
+      {
         role: 'user',
         parts: [
-          { text: systemPrompt + '\n\n' + userPrompt }
+          { text: userPrompt }
         ]
       }
     ],
@@ -224,135 +259,59 @@ async function generateWithVertexAI(
   return text;
 }
 
+// Helper to attempt lyrics generation with given parameters and handle parsing/validation
+async function _attemptGenerateLyrics(
+  vertexAI: VertexAI,
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxOutputTokens: number,
+  useJsonMode: boolean,
+  attemptName: string
+): Promise<LLMResponse> {
+  console.log(`🎵 Attempting lyrics generation with ${attemptName} (temperature: ${temperature})`);
+  const responseText = await generateWithVertexAI(
+    vertexAI,
+    systemPrompt,
+    userPrompt,
+    temperature,
+    maxOutputTokens,
+    useJsonMode
+  );
+
+  const sanitized = sanitizeJsonString(responseText);
+  const parsed = JSON.parse(sanitized);
+  const validated = LLMResponseSchema.parse(parsed);
+  validateOutput(validated);
+
+  console.log(`✅ OUTPUT (${attemptName}):`, JSON.stringify(validated, null, 2));
+  return validated;
+}
+
 export async function generateLyrics(formData: SongFormData): Promise<LLMResponse> {
   // Validate inputs first
   if (!formData || !formData.recipientDetails || !formData.languages || formData.languages.trim().length === 0) {
     throw new Error("Required details not found to produce lyrics");
   }
 
-  const systemPrompt = `You are an expert songs producer writer who can produce songs in various music styles and in multiple languages, your job is to create a personalised song's
-  Lyrics, Title and Style of Music for the given requirements.
-
-Make sure all the lyrics you produce have correct meaning and they rhyme well and they convey the feel which user wants to create from the song.
-
-For produced lyrics avoid creating translation of the lyrics.
-In lyrics we should have not have numbers as part of lyrics, if there are case where we need to mention number write the number spelling in English.
-For Style of Music, think about the kind of voice might be best suited for the song production along with the sound description based on the user input requirements.
-
-When you produce a song think about the relationship mentioned between people and draft lyrics and music style accordingly.
-
-If only if the time of the song is mentioned in the user input then consider reviewing and thinking which part of the song's structure can be shortened or removed?
-
-IMPORTANT: The song style that you produce should not include the name of any singer.
-
-CRITICAL: NEVER repeat the same word, phrase, or pattern more than 2 times in the title or musicStyle fields. If you find yourself repeating, STOP immediately.
-
-STRICT OUTPUT RULES:
-- Output ONLY a single JSON object. No markdown, no code fences, no commentary, no extra text.
-- Do not include keys other than title, musicStyle, lyrics.
-- If you need line breaks, use \\n inside JSON strings.
-- Do not use any emojis or emoticons in the output text
-- Do not use excessive punctuation like !!..??.. or repetitive symbols
-
-STRICT FORMAT CONSTRAINTS:
-- The title must be EXACTLY between 3 to 7 words. No more, no less.
-- The musicStyle must be EXACTLY 2 to 3 short paragraphs. No repetition allowed.
-- Do NOT repeat any phrase, name, or pattern more than twice.
-- If a name appears in the title, use it ONLY ONCE.
-
-LYRICS STRUCTURE RULES:
-- Use explicit section labels in brackets exactly as lines by themselves.
-- Start with a line like: (Music: brief intro mood/instrumentation)
-- Then use sections like: (Verse 1), (Chorus), (Verse 2), (Bridge), (Outro)
-- If there is an instrumental or melody, include it in brackets, e.g.: (Guitar Solo - soft and romantic)
-- Place the actual lyric lines immediately after each bracketed section label.
-- Keep labels and content clean and machine-parseable.
-
-Example (format only, not content):
-(Music: Starts with a soft, acoustic guitar melody)
-
-(Verse 1 / Mukhda)
-Line 1\\nLine 2
-
-(Chorus)
-Line 1\\nLine 2
-
-(Bridge)
-Line 1\\nLine 2
-
-(Guitar Solo - soft and romantic)
-
-(Outro)
-
-NOTE: This JSON will be sent to a music generation service provider (e.g., Suno API) to create the song. Keep the lyrics strictly in the format above so they are easy to parse.
-
-The output should be in the following JSON format:
-
-{
-  "title": "<a short title of the song, must be less than 8 words>",
-  "musicStyle": "<description of the music style in 2-3 paragraphs>",
-  "lyrics": "<Songs Lyrics>"
-}`;
-
-  const userPrompt = `Provided input for the song is following:
-Language: ${formData.languages}
-RecipientDetails: ${formData.recipientDetails}
-SongDetailsAndStory: ${formData.songStory}
-${formData.occassion ? `Occasion: ${formData.occassion}` : ''}
-Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}`;
+  const systemPrompt = buildGenerationPrompt();
+  const userPrompt = buildGenerationUserPrompt(formData);
 
   try {
     const vertexAI = initializeVertexAI();
 
     // First attempt: JSON mode with higher temperature
     try {
-      console.log('🎵 Attempting lyrics generation with JSON mode (temperature: 0.7)');
-      const responseText = await generateWithVertexAI(vertexAI, systemPrompt, userPrompt, 0.7, 4000, true);
-
-      const sanitized = sanitizeJsonString(responseText);
-      const parsed = JSON.parse(sanitized);
-      const validated = LLMResponseSchema.parse(parsed);
-      validateOutput(validated);
-
-      console.log("✅ OUTPUT (Attempt 1):", JSON.stringify(validated, null, 2));
-      return validated;
+      return await _attemptGenerateLyrics(vertexAI, systemPrompt, userPrompt, LLM_CONFIG.generation.temperature_attempt1, LLM_CONFIG.generation.maxOutputTokens, true, 'Attempt 1');
     } catch (firstError) {
       console.warn('⚠️ First attempt failed, retrying with lower temperature:', firstError);
 
       // Second attempt: JSON mode with lower temperature
       try {
-        console.log('🎵 Attempting lyrics generation with JSON mode (temperature: 0.3)');
-        const responseText = await generateWithVertexAI(vertexAI, systemPrompt, userPrompt, 0.3, 4000, true);
-
-        const sanitized = sanitizeJsonString(responseText);
-        const parsed = JSON.parse(sanitized);
-        const validated = LLMResponseSchema.parse(parsed);
-        validateOutput(validated);
-
-        console.log("✅ OUTPUT (Attempt 2):", JSON.stringify(validated, null, 2));
-        return validated;
+        return await _attemptGenerateLyrics(vertexAI, systemPrompt, userPrompt, LLM_CONFIG.generation.temperature_attempt2, LLM_CONFIG.generation.maxOutputTokens, true, 'Attempt 2');
       } catch (secondError) {
         console.warn('⚠️ Second attempt failed, falling back to text mode + manual parse:', secondError);
-
-        // Third attempt: Text mode with manual JSON extraction
-        const enhancedPrompt = systemPrompt + '\n\nRemember: Output ONLY a single JSON object with keys: title, musicStyle, lyrics. No extra text, no markdown formatting.';
-        const responseText = await generateWithVertexAI(vertexAI, enhancedPrompt, userPrompt, 0.3, 4000, false);
-
-        console.log("📝 Raw text response:", responseText.substring(0, 200) + "...");
-
-        // Sanitize and extract JSON from response
-        const sanitized = sanitizeJsonString(responseText);
-        const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('No JSON object found in model output');
-        }
-
-        const parsed = JSON.parse(jsonMatch[0]);
-        const validated = LLMResponseSchema.parse(parsed);
-        validateOutput(validated);
-
-        console.log("✅ OUTPUT (Attempt 3):", JSON.stringify(validated, null, 2));
-        return validated;
+        throw secondError;
       }
     }
   } catch (error) {
@@ -361,3 +320,34 @@ Mood: ${Array.isArray(formData.mood) ? formData.mood.join(', ') : formData.mood}
   }
 }
 
+// Refine lyrics using Vertex AI
+export async function refineLyrics(refinementRequest: RefinementRequest): Promise<string> {
+  const { currentLyrics, refineText, songRequest } = refinementRequest;
+
+  // Validate inputs
+  if (!currentLyrics || !refineText || !songRequest) {
+    throw new Error("Required refinement details not found");
+  }
+
+  const systemPrompt = buildRefinementPrompt();
+  const userPrompt = buildRefinementUserPrompt(currentLyrics, refineText, songRequest);
+
+  try {
+    console.log('🎵 Attempting lyrics refinement with Vertex AI');
+    const vertexAI = initializeVertexAI();
+    // Use text mode for refinement (not JSON mode)
+    const refinedText = await generateWithVertexAI(
+      vertexAI,
+      systemPrompt,
+      userPrompt,
+      LLM_CONFIG.refinement.temperature,
+      LLM_CONFIG.refinement.maxOutputTokens,
+      false
+    );
+    console.log("✅ Refined lyrics generated successfully");
+    return refinedText.trim();
+  } catch (error) {
+    console.error('❌ Error refining lyrics:', error);
+    throw new Error("Error refining lyrics");
+  }
+}

@@ -8,9 +8,13 @@ import { verifyPaymentSignature, getPaymentDetails, mapRazorpayStatusToPaymentSt
 import { getCurrentUser } from '@/lib/user-actions';
 import { VerifyPaymentRequest, VerifyPaymentResponse } from '@/types/payment';
 import { validateUserOwnership, sanitizeAnonymousUserId } from '@/lib/utils/validation';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get user context from middleware
+    const userContext = getUserContextFromRequest(request);
+
     // Get current user (optional for anonymous users)
     const currentUser = await getCurrentUser();
 
@@ -18,12 +22,12 @@ export async function POST(request: NextRequest) {
     const body: VerifyPaymentRequest = await request.json();
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, anonymous_user_id } = body;
 
-    // Sanitize anonymous user ID
-    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymous_user_id);
+    // Sanitize anonymous user ID from middleware or request body
+    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(userContext.anonymousUserId || anonymous_user_id);
 
     // Validate user ownership
     const ownershipValidation = validateUserOwnership(
-      currentUser?.id || null,
+      userContext.userId || currentUser?.id || null,
       sanitizedAnonymousUserId
     );
 
@@ -73,14 +77,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify payment belongs to current user or anonymous user
-    if (currentUser && payment[0].user_id !== currentUser.id) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized access' },
-        { status: 403 }
-      );
-    }
+    const finalUserId = userContext.userId || currentUser?.id;
+    const isOwner = (finalUserId && payment[0].user_id === finalUserId) ||
+      (sanitizedAnonymousUserId && payment[0].anonymous_user_id === sanitizedAnonymousUserId);
 
-    if (sanitizedAnonymousUserId && payment[0].anonymous_user_id !== sanitizedAnonymousUserId) {
+    if (!isOwner) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized access' },
         { status: 403 }

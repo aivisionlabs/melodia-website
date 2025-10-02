@@ -6,21 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ArrowLeft, X } from "lucide-react";
 import { getSongRequestDataAction } from "@/lib/lyrics-actions";
-
-interface SongRequest {
-  id: number;
-  requester_name: string;
-  recipient_details: string;
-  languages: string;
-  song_story: string;
-  occasion: string;
-  mood: string[];
-  status: string;
-  created_at: string;
-  updated_at: string;
-  user_id: number | null;
-  anonymous_user_id: string | null;
-}
+import { DBSongRequest } from "@/types/song-request";
 
 export default function GenerateLyricsPage({
   params,
@@ -31,7 +17,7 @@ export default function GenerateLyricsPage({
   const [resolvedParams, setResolvedParams] = useState<{
     "song-request-id": string;
   } | null>(null);
-  const [songRequest, setSongRequest] = useState<SongRequest | null>(null);
+  const [songRequest, setSongRequest] = useState<DBSongRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,70 +97,73 @@ export default function GenerateLyricsPage({
     return false; // Default case
   };
 
-  const handleGenerateLyrics = useCallback(async (songRequest: SongRequest) => {
-    if (!songRequest) return;
+  const handleGenerateLyrics = useCallback(
+    async (songRequest: DBSongRequest) => {
+      if (!songRequest) return;
 
-    setIsGeneratingLyrics(true);
+      setIsGeneratingLyrics(true);
 
-    try {
-      const response = await fetch("/api/generate-lyrics-with-storage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipientDetails: songRequest.recipient_details,
-          languages: songRequest.languages,
-          songStory: songRequest.song_story,
-          mood: songRequest.mood,
-          requestId: songRequest.id,
-          userId: songRequest.user_id,
-          anonymousUserId: songRequest.anonymous_user_id,
-        }),
-      });
+      try {
+        const response = await fetch("/api/generate-lyrics-with-storage", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipientDetails: songRequest.recipient_details,
+            languages: songRequest.languages,
+            songStory: songRequest.song_story,
+            mood: songRequest.mood,
+            requestId: songRequest.id,
+            userId: songRequest.user_id,
+            anonymousUserId: songRequest.anonymous_user_id,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to generate lyrics");
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("API Error:", errorData);
+          throw new Error(errorData.message || "Failed to generate lyrics");
+        }
 
-      const data = await response.json();
-      console.log("API Response:", data);
+        const data = await response.json();
+        console.log("API Response:", data);
 
-      if (data.success && data.lyrics) {
-        console.log(
-          "🎵 Lyrics generated successfully, title:",
-          data.title,
-          "style:",
-          data.styleOfMusic
-        );
-        setEditedLyrics(data.lyrics);
-        setGeneratedTitle(
-          data.title || `${songRequest.recipient_details}'s Song`
-        );
-        setGeneratedStyle(data.styleOfMusic || "Personalized song style");
-      } else {
+        if (data.success && data.lyrics) {
+          console.log(
+            "🎵 Lyrics generated successfully, title:",
+            data.title,
+            "style:",
+            data.styleOfMusic
+          );
+          setEditedLyrics(data.lyrics);
+          setGeneratedTitle(
+            data.title || `${songRequest.recipient_details}'s Song`
+          );
+          setGeneratedStyle(data.styleOfMusic || "Personalized song style");
+        } else {
+          console.error(
+            "Failed to generate lyrics:",
+            data.error || "Failed to generate lyrics. Please try again."
+          );
+          setEditedLyrics("");
+          setGeneratedTitle("");
+          setGeneratedStyle("");
+        }
+      } catch (error) {
+        console.error("Error generating lyrics:", error);
         console.error(
-          "Failed to generate lyrics:",
-          data.error || "Failed to generate lyrics. Please try again."
+          "Sorry, there was an error generating your lyrics. Please check your connection and try again."
         );
         setEditedLyrics("");
         setGeneratedTitle("");
         setGeneratedStyle("");
+      } finally {
+        setIsGeneratingLyrics(false);
       }
-    } catch (error) {
-      console.error("Error generating lyrics:", error);
-      console.error(
-        "Sorry, there was an error generating your lyrics. Please check your connection and try again."
-      );
-      setEditedLyrics("");
-      setGeneratedTitle("");
-      setGeneratedStyle("");
-    } finally {
-      setIsGeneratingLyrics(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Load song request data
   useEffect(() => {
@@ -190,11 +179,11 @@ export default function GenerateLyricsPage({
 
         if (songRequestFromDB) {
           // Convert Date objects to strings for SongRequest type
-          const songRequest: SongRequest = {
+          const songRequest: DBSongRequest = {
             ...songRequestFromDB,
             created_at: songRequestFromDB.created_at.toISOString(),
             updated_at: songRequestFromDB.updated_at.toISOString(),
-          } as SongRequest;
+          } as DBSongRequest;
 
           setSongRequest(songRequest);
 
