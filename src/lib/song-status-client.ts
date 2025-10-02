@@ -2,7 +2,7 @@ import {
   SongStatus,
   VariantStatus
 } from "@/lib/services/song-status-calculation-service";
-import { SunoSongStatusAPIResponse } from "@/types";
+import { FetchSongStatusApiResponse } from "@/lib/services/song-status-api-utils";
 
 // Client-side functions for song status polling
 
@@ -32,7 +32,14 @@ export interface SongStatusResponse {
 }
 
 
-export async function checkSongStatus(songId: string): Promise<SunoSongStatusAPIResponse | { success: boolean, status: 'failed' | 'processing' | 'completed', message: string }> {
+// Simplified error response type
+type ErrorResponse = {
+  success: false;
+  status: 'failed';
+  message: string;
+};
+
+export async function checkSongStatus(songId: string): Promise<FetchSongStatusApiResponse | ErrorResponse> {
   console.log(`🌐 [CLIENT] checkSongStatus called for songId: ${songId}`)
 
   try {
@@ -46,21 +53,7 @@ export async function checkSongStatus(songId: string): Promise<SunoSongStatusAPI
     if (!response.ok) {
       console.error(`❌ [CLIENT] API request failed with status: ${response.status}`)
 
-      // Try to get the error message from the response
-      try {
-        const errorResult = await response.json();
-        if (errorResult.message) {
-          return {
-            success: false,
-            status: 'failed',
-            message: errorResult.message
-          };
-        }
-      } catch {
-        // If we can't parse the JSON, fall back to generic message
-      }
-
-      // For 404 specifically, return "Song not found"
+      // Handle 404 specifically
       if (response.status === 404) {
         return {
           success: false,
@@ -69,11 +62,25 @@ export async function checkSongStatus(songId: string): Promise<SunoSongStatusAPI
         };
       }
 
-      throw new Error('Failed to check song status');
+      // Try to get error message from response body
+      let errorMessage = 'Failed to check song status';
+      try {
+        const errorResult = await response.json();
+        if (errorResult.message) {
+          errorMessage = errorResult.message;
+        }
+      } catch {
+        // Use default message if JSON parsing fails
+      }
+
+      return {
+        success: false,
+        status: 'failed',
+        message: errorMessage
+      };
     }
 
     const result = await response.json();
-
     return result;
 
   } catch (error) {

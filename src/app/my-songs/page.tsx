@@ -18,7 +18,6 @@ import {
   getButtonForContent,
 } from "@/lib/user-content-client";
 import { useToast } from "@/components/ui/toast";
-import { pollSongStatus } from "@/lib/song-status-client";
 import { VariantSelectionModal } from "@/components/VariantSelectionModal";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import BottomNavigation from "@/components/BottomNavigation";

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { songsTable, songRequestsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { songsTable } from '@/lib/db/schema';
 import { SongDatabaseUpdateService } from '@/lib/services/song-database-update-service';
+import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const songs = await db
       .select()
       .from(songsTable)
-      .where(eq(songsTable.suno_task_id, taskId));
+      .where(eq(songsTable.metadata, { suno_task_id: taskId }));
 
     if (songs.length === 0) {
       // Check if this task ID is in any of the variants

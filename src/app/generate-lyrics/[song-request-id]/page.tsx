@@ -185,22 +185,17 @@ export default function GenerateLyricsPage({
         const requestId = parseInt(resolvedParams["song-request-id"]);
         console.log("Loading song request for ID:", requestId);
 
-        const request = await getSongRequestDataAction(requestId);
-        console.log("Raw request data:", request);
+        const songRequestFromDB = await getSongRequestDataAction(requestId);
+        console.log("Raw request data:", songRequestFromDB);
 
-        if (request) {
+        if (songRequestFromDB) {
           // Convert Date objects to strings for SongRequest type
           const songRequest: SongRequest = {
-            ...request,
-            status: request.status as
-              | "pending"
-              | "processing"
-              | "completed"
-              | "failed",
-            // lyrics_status moved to lyrics_drafts table
-            created_at: request.created_at.toISOString(),
-            updated_at: request.updated_at.toISOString(),
+            ...songRequestFromDB,
+            created_at: songRequestFromDB.created_at.toISOString(),
+            updated_at: songRequestFromDB.updated_at.toISOString(),
           } as SongRequest;
+
           setSongRequest(songRequest);
 
           // Check for existing lyrics

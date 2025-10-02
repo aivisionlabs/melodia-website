@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { getCurrentUser } from "@/lib/user-actions";
 import { useAnonymousUser } from "@/hooks/use-anonymous-user";
+import { SongRequestPayload } from "@/types/song-request";
 
 type Step = 1 | 2;
 
@@ -106,21 +107,23 @@ export default function CreateSongPage() {
     try {
       // Parse recipient name to extract name and relationship
       // Create song request in database
+      const songRequestPayload: SongRequestPayload = {
+        requesterName: requesterName || currentUser?.name || "Anonymous",
+        recipientDetails,
+        occasion: occasion === "Other" ? customOccasion : occasion,
+        languages,
+        story,
+        mood: moods.includes("Other") ? [customMood] : moods,
+        userId: currentUser?.id || null,
+        anonymousUserId,
+      };
+
       const createRequestResponse = await fetch("/api/create-song-request", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          requester_name: requesterName || currentUser?.name || "Anonymous",
-          recipient_details: recipientDetails,
-          occasion: occasion === "Other" ? customOccasion : occasion,
-          languages: languages,
-          song_story: story,
-          mood: moods.includes("Other") ? customMood : moods.join(", "),
-          user_id: currentUser?.id || null,
-          anonymous_user_id: anonymousUserId || undefined,
-        }),
+        body: JSON.stringify(songRequestPayload),
       });
 
       if (!createRequestResponse.ok) {

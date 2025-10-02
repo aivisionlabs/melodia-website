@@ -90,7 +90,7 @@ export interface UserSession {
 }
 
 // Song request interfaces
-export interface SongRequest {
+export interface SongDBRequestPayload {
   id: number
   user_id: number | null
   requester_name: string
@@ -98,7 +98,7 @@ export interface SongRequest {
   occasion?: string
   languages: string
   mood: string[] | null
-  song_story: string | null
+  story: string | null
   status: 'pending' | 'processing' | 'completed' | 'failed'
   created_at: string
   updated_at: string
@@ -122,17 +122,6 @@ export interface GenerateLyricsParams {
   language: string[]
   refineText?: string
 }
-
-// Form data interfaces
-export interface SongRequestFormData {
-  requester_name: string
-  recipient_details: string
-  occasion?: string
-  languages: string
-  mood?: string[]
-  song_story?: string
-}
-
 
 // Song status API response interfaces
 export interface SongStatusParam {

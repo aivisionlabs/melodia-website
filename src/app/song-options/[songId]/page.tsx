@@ -143,7 +143,6 @@ export default function SongOptionsPage({
 
   // Handle NOT_FOUND status - show error state
   if (songStatus?.status === "NOT_FOUND") {
-    console.log("❌ [PAGE] Rendering NOT_FOUND error state");
     return (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
@@ -182,11 +181,6 @@ export default function SongOptionsPage({
 
   // No variants available - show this for non-PENDING statuses without variants
   if (!songStatus.variants || songStatus.variants.length === 0) {
-    console.log("⚠️ [PAGE] Rendering no variants state:", {
-      status: songStatus.status,
-      hasVariants: !!songStatus.variants,
-      variantsLength: songStatus.variants?.length || 0,
-    });
     return (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
@@ -222,12 +216,6 @@ export default function SongOptionsPage({
       </div>
     );
   }
-
-  console.log("🎵 [PAGE] Rendering SongOptionsDisplay:", {
-    status: songStatus.status,
-    variantsCount: songStatus.variants?.length || 0,
-    hasVariants: !!songStatus.variants,
-  });
 
   return (
     <SongOptionsDisplay

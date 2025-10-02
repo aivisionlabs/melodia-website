@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { checkSongStatus, SongStatusResponse, SongVariant } from '@/lib/song-status-client';
-import { SunoSongStatusAPIResponse } from '@/types';
 import {
   calculateSongStatus,
   VariantData,
@@ -8,6 +7,7 @@ import {
   SONG_STATUS_MAP,
   SongStatus
 } from '@/lib/services/song-status-calculation-service';
+import { FetchSongStatusApiResponse } from '@/lib/services/song-status-api-utils';
 
 export interface UseSongStatusPollingOptions {
   /** Polling interval in milliseconds (default: 10000) */
@@ -101,16 +101,9 @@ export function useSongStatusPolling(
   const convertToSongStatusResponse = useCallback(
     (
       apiResponse:
-        | SunoSongStatusAPIResponse
+        | FetchSongStatusApiResponse
         | { success: boolean; status: string; message: string }
     ): SongStatusResponse | null => {
-      console.log('🔄 [HOOK] Converting API response to SongStatusResponse:', {
-        hasData: 'data' in apiResponse,
-        hasSuccess: 'success' in apiResponse,
-        success: 'success' in apiResponse ? apiResponse.success : 'N/A',
-        dataKeys: 'data' in apiResponse ? Object.keys(apiResponse.data || {}) : 'N/A'
-      })
-
       // Handle error response
       if ("success" in apiResponse && !apiResponse.success) {
         console.log('❌ [HOOK] Error response detected:', apiResponse.message)
@@ -139,18 +132,17 @@ export function useSongStatusPolling(
         console.log('📊 [HOOK] Processing SunoSongStatusAPIResponse:', {
           status: data.status,
           hasResponse: !!data.response,
-          hasSunoData: !!data.response?.sunoData,
-          sunoDataLength: data.response?.sunoData?.length || 0,
-          taskId: data.taskId
+          hasSunoData: !!data.response?.songVariantData,
+          sunoDataLength: data.response?.songVariantData?.length || 0,
         })
 
         // Extract variants from sunoData if available
         let variants: SongVariant[] = [];
-        if (data.response?.sunoData) {
+        if (data.response?.songVariantData) {
           console.log('🎵 [HOOK] Processing sunoData variants...')
 
           // Convert API data to VariantData format
-          const variantData: VariantData[] = data.response.sunoData.map((item: any) => ({
+          const variantData: VariantData[] = data.response.songVariantData.map((item: any) => ({
             id: item.id || '',
             audioUrl: item.audioUrl || null,
             sourceAudioUrl: item.sourceAudioUrl || null,
@@ -494,19 +486,4 @@ export function useSongStatusPolling(
     refreshStatus,
     reset,
   };
-}
-
-/**
- * Simplified hook for basic song status polling
- * Uses sensible defaults and minimal configuration
- */
-export function useSimpleSongStatusPolling(songId: string | null) {
-  return useSongStatusPolling(songId, {
-    intervalMs: 10000,
-    maxPollingTime: 10 * 60 * 1000,
-    autoStart: true,
-    stopOnComplete: true,
-    enableExponentialBackoff: true,
-    maxRetries: 3,
-  });
 }
