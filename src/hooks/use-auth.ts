@@ -7,62 +7,70 @@ interface AuthState {
   user: User | null
   loading: boolean
   error: string | null
+  isAuthenticated: boolean
 }
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
-    error: null
+    error: null,
+    isAuthenticated: false
   })
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // For now, we'll check localStorage for a simple session
-        // In a real implementation, you'd verify the session with the server
-        const sessionData = localStorage.getItem('user-session')
+        // Check authentication status via API (JWT cookie will be sent automatically)
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include', // Include cookies
+        });
 
-        if (sessionData) {
-          try {
-            const user = JSON.parse(sessionData) as User
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data.user) {
             setAuthState({
-              user,
+              user: data.data.user,
               loading: false,
-              error: null
-            })
-          } catch {
-            // Invalid session data, clear it
-            localStorage.removeItem('user-session')
+              error: null,
+              isAuthenticated: true
+            });
+          } else {
             setAuthState({
               user: null,
               loading: false,
-              error: null
-            })
+              error: null,
+              isAuthenticated: false
+            });
           }
         } else {
+          // No valid session
           setAuthState({
             user: null,
             loading: false,
-            error: null
-          })
+            error: null,
+            isAuthenticated: false
+          });
         }
       } catch (error) {
-        console.error('Error checking session:', error)
+        console.error('Session check error:', error);
         setAuthState({
           user: null,
           loading: false,
-          error: 'Failed to check session'
-        })
+          error: 'Failed to check authentication status',
+          isAuthenticated: false
+        });
       }
-    }
+    };
 
-    checkSession()
-  }, [])
+    checkSession();
+  }, []);
 
+  // Login function (for future use)
   const login = useCallback(async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }))
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -70,151 +78,88 @@ export const useAuth = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
-      })
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-      const result = await response.json()
+      const data = await response.json();
 
-      if (result.success && result.user) {
-        // Store user data in localStorage (simplified session management)
-        localStorage.setItem('user-session', JSON.stringify(result.user))
-        // Clear anonymous id after merge
-        localStorage.removeItem('anonymous_user_id')
-
+      if (data.success) {
         setAuthState({
-          user: result.user,
+          user: data.data.user,
           loading: false,
-          error: null
-        })
-
-        return { success: true }
+          error: null,
+          isAuthenticated: true
+        });
+        return { success: true };
       } else {
         setAuthState(prev => ({
           ...prev,
           loading: false,
-          error: result.error || 'Login failed'
-        }))
-
-        return { success: false, error: result.error }
+          error: data.error?.message || 'Login failed'
+        }));
+        return { success: false, error: data.error?.message };
       }
     } catch (error) {
-      console.error('Login error:', error)
+      const errorMessage = 'Network error. Please try again.';
       setAuthState(prev => ({
         ...prev,
         loading: false,
-        error: 'An unexpected error occurred'
-      }))
-
-      return { success: false, error: 'An unexpected error occurred' }
+        error: errorMessage
+      }));
+      return { success: false, error: errorMessage };
     }
-  }, [])
+  }, []);
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }))
-
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, name, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
-      })
-
-      const result = await response.json()
-
-      if (result.success && result.user) {
-        // Store user data in localStorage (simplified session management)
-        localStorage.setItem('user-session', JSON.stringify(result.user))
-        // Clear anonymous id after signup
-        localStorage.removeItem('anonymous_user_id')
-
-        setAuthState({
-          user: result.user,
-          loading: false,
-          error: null
-        })
-
-        return { success: true }
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: result.error || 'Registration failed'
-        }))
-
-        return { success: false, error: result.error }
-      }
-    } catch (error) {
-      console.error('Registration error:', error)
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'An unexpected error occurred'
-      }))
-
-      return { success: false, error: 'An unexpected error occurred' }
-    }
-  }, [])
-
+  // Logout function
   const logout = useCallback(async () => {
-    setAuthState(prev => ({ ...prev, loading: true }))
-
     try {
-      const response = await fetch('/api/auth/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        // Clear session data
-        localStorage.removeItem('user-session')
-
-        setAuthState({
-          user: null,
-          loading: false,
-          error: null
-        })
-
-        return { success: true }
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: result.error || 'Logout failed'
-        }))
-
-        return { success: false, error: result.error }
-      }
+        credentials: 'include',
+      });
     } catch (error) {
-      console.error('Logout error:', error)
-
-      // Even if logout fails, clear local session
-      localStorage.removeItem('user-session')
-
+      console.error('Logout error:', error);
+    } finally {
       setAuthState({
         user: null,
         loading: false,
-        error: null
-      })
-
-      return { success: true }
+        error: null,
+        isAuthenticated: false
+      });
     }
-  }, [])
+  }, []);
 
-  const clearError = useCallback(() => {
-    setAuthState(prev => ({ ...prev, error: null }))
-  }, [])
+  // Refresh user data
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.user) {
+          setAuthState(prev => ({
+            ...prev,
+            user: data.data.user,
+            isAuthenticated: true
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+  }, []);
 
   return {
     user: authState.user,
     loading: authState.loading,
     error: authState.error,
+    isAuthenticated: authState.isAuthenticated,
     login,
-    register,
     logout,
-    clearError,
-    isAuthenticated: !!authState.user
-  }
-}
+    refreshUser
+  };
+};

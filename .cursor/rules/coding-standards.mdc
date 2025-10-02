@@ -30,11 +30,20 @@ alwaysApply: true
 
 ## DRY (Don't Repeat Yourself) Principle
 
-### Code Reusability
+### Code Reusability - CRITICAL PRIORITY
+- **ALWAYS check existing components first** before creating new ones
+- **Use existing UI components** from [src/components/ui/](mdc:src/components/ui/)
+- **Use existing form components** from [src/components/forms/](mdc:src/components/forms/)
 - Extract common logic into custom hooks
 - Create reusable utility functions
 - Use shared components for repeated UI patterns
 - Implement common validation logic in shared utilities
+
+### Component Usage Priority (MANDATORY)
+1. **First**: Search for existing components that fit the need
+2. **Second**: Extend existing components with additional props
+3. **Third**: Compose existing components to create new functionality
+4. **Last Resort**: Create new components only when no existing solution works
 
 ### Configuration Management
 - Centralize constants and configuration
@@ -307,13 +316,50 @@ export const useValidation = (rules: ValidationRule[]) => {
 }
 ```
 
+## Project Structure
+
+### Directory Organization
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Route groups for authentication
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles and design system
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable UI components
+│   ├── ui/               # Base UI components (buttons, inputs)
+│   ├── forms/            # Form-specific components
+│   ├── layout/           # Layout components (navigation, headers)
+│   └── features/         # Feature-specific components
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility libraries and configurations
+│   ├── actions.ts        # Server actions
+│   ├── supabase.ts       # Database configuration
+│   ├── validation.ts     # Validation utilities
+│   └── utils.ts          # General utilities
+├── types/                # TypeScript type definitions
+└── styles/               # Additional styling files
+```
+
 ### Import Organization
-1. React imports
-2. Next.js imports
-3. Third-party library imports
-4. Internal component imports
-5. Internal utility imports
-6. Type imports
+```typescript
+// 1. React and Next.js imports
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// 2. Third-party library imports
+import { Button } from '@/components/ui/button';
+
+// 3. Internal component imports
+import { FormField } from '@/components/forms/FormField';
+
+// 4. Internal utility imports
+import { validateEmail } from '@/lib/validation';
+
+// 5. Type imports
+import type { Song, User } from '@/types';
+```
 
 ### Error Handling
 - Always use try-catch blocks in async functions

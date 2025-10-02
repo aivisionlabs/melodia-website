@@ -72,7 +72,7 @@ export async function createSongRequest(
       requester_name: sanitizeInput(formData.requester_name),
       recipient_details: sanitizeInput(formData.recipient_details),
       occasion: formData.occasion ? sanitizeInput(formData.occasion) : null,
-      languages: sanitizeInput(formData.languages),
+      languages: Array.isArray(formData.languages) ? formData.languages.map(lang => sanitizeInput(lang)) : [sanitizeInput(formData.languages)],
       mood: formData.mood || null,
       song_story: formData.song_story ? sanitizeInput(formData.song_story) : null
     }

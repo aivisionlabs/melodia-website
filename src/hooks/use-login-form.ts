@@ -35,7 +35,7 @@ export const useLoginForm = (): LoginFormState => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dependencies
-  const { login, clearError } = useAuth();
+  const { login } = useAuth();
   const validation = useFormValidation();
 
   // Single Responsibility: Handle email changes with validation
@@ -60,7 +60,6 @@ export const useLoginForm = (): LoginFormState => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    clearError();
     validation.clearErrors();
 
     // Validate all fields
@@ -80,7 +79,7 @@ export const useLoginForm = (): LoginFormState => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [email, password, validation, clearError, login]);
+  }, [email, password, validation, login]);
 
   // Computed values
   const isFormValid = 

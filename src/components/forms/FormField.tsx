@@ -50,8 +50,8 @@ export const FormField: React.FC<FormFieldProps> = ({
           onChange={onChange}
           required={required}
           maxLength={maxLength}
-          className={`w-full bg-white border-2 text-melodia-teal placeholder-melodia-teal/50 rounded-lg py-4 px-4 text-base focus:ring-2 focus:ring-melodia-yellow focus:border-melodia-teal transition ${
-            error ? 'border-red-500' : 'border-melodia-teal/40'
+          className={`w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body ${
+            error ? 'border-red-500' : ''
           } ${className}`}
         />
       )}

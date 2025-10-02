@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
       // Create response with user data
       const response = NextResponse.json({
         success: true,
-        user: result.user
+        data: {
+          user: result.user
+        }
       })
 
       // Set cookie in the response

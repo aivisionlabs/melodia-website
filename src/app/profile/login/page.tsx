@@ -111,7 +111,7 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center">
             <span className="text-melodia-teal font-body">
-              Don't have an account?
+              Don&apos;t have an account?
             </span>
             <Link
               href="/profile/signup"

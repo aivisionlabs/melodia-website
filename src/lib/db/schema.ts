@@ -3,6 +3,7 @@ import {
   serial,
   text,
   timestamp,
+  date,
   boolean,
   integer,
   jsonb,
@@ -54,9 +55,12 @@ export const songsTable = pgTable('songs', {
 // Users table for regular user accounts
 export const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),
+  name: text('name').notNull(),
   email: text('email').notNull().unique(),
-  password_hash: text('password_hash').notNull(),
-  name: text('name'),
+  date_of_birth: date('date_of_birth').notNull(),
+  phone_number: text('phone_number'),
+  email_verified: boolean('email_verified').notNull().default(false),
+  password_hash: text('password_hash'), // Optional for now, will be added later for login
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -77,7 +81,7 @@ export const songRequestsTable = pgTable('song_requests', {
   requester_name: text('requester_name').notNull(),
   recipient_details: text('recipient_details').notNull(),
   occasion: text('occasion'),
-  languages: text('languages').notNull(),
+  languages: text('languages').array().notNull(),
   mood: text('mood').array(),
   song_story: text('song_story'),
   status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
@@ -98,6 +102,16 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   created_by: integer('created_by'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Email verification codes table (database implementation of OTP storage)
+export const emailVerificationCodesTable = pgTable('email_verification_codes', {
+  id: serial('id').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
+  code: text('code').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  expires_at: timestamp('expires_at').notNull(),
+  created_at: timestamp('created_at').notNull().defaultNow(),
 });
 
 // Admin users table
@@ -123,6 +137,9 @@ export type SelectSongRequest = typeof songRequestsTable.$inferSelect;
 
 export type InsertLyricsDraft = typeof lyricsDraftsTable.$inferInsert;
 export type SelectLyricsDraft = typeof lyricsDraftsTable.$inferSelect;
+
+export type InsertEmailVerificationCode = typeof emailVerificationCodesTable.$inferInsert;
+export type SelectEmailVerificationCode = typeof emailVerificationCodesTable.$inferSelect;
 
 export type InsertAdminUser = typeof adminUsersTable.$inferInsert;
 export type SelectAdminUser = typeof adminUsersTable.$inferSelect;

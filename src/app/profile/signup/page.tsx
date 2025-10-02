@@ -1,70 +1,58 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
 import { useProfileInfoForm } from "@/hooks/use-profile-info-form";
 import { FormField } from "@/components/forms/FormField";
+import { PasswordField } from "@/components/forms/PasswordField";
 
-// Single Responsibility: Component handles signup page UI and authentication
+// Single Responsibility: Component handles signup page UI (no auth check needed)
 export default function SignupPage() {
-  const { user, error, isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  
+  // State for independent password visibility toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Dependency Inversion: Use custom hook for form management
   const form = useProfileInfoForm();
-
-  // Single Responsibility: Handle authentication redirect
-  useEffect(() => {
-    if (!loading && isAuthenticated && user) {
-      router.replace("/profile/logged-in");
-    }
-  }, [loading, isAuthenticated, user, router]);
 
   // Single Responsibility: Handle close/cancel action
   const handleClose = () => {
     router.back();
   };
 
-  // Show loading while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-melodia-teal">Loading...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-white">
       {/* Close Button */}
-      <div className="absolute top-4 right-4 z-10">
+      <header className="flex items-center justify-between p-4">
+        <div></div>
         <button
           onClick={handleClose}
-          className="text-melodia-teal text-2xl font-bold hover:text-melodia-teal/80 transition-colors"
+          className="text-melodia-teal hover:text-melodia-coral transition-colors"
           aria-label="Close"
         >
-          ✕
+          <svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
+          </svg>
         </button>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8">
-        {/* Title Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-melodia-teal mb-2">
+      <main className="flex-grow flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-full max-w-sm">
+          {/* Title Section */}
+          <h1 className="font-display text-4xl font-bold text-melodia-teal mb-4">
             Tell us about you
           </h1>
-          <p className="text-base text-melodia-teal max-w-xs">
+          <p className="text-melodia-teal/80 mb-10">
             We need a little more info to set up your account.
           </p>
-        </div>
 
-        {/* Form Section */}
-        <div className="w-full max-w-sm">
-          <form onSubmit={form.handleSubmit} className="space-y-4">
+          {/* Form Section */}
+          <form onSubmit={form.handleSubmit} className="space-y-6">
             <FormField
               id="name"
               placeholder="Full name"
@@ -102,38 +90,61 @@ export default function SignupPage() {
               onChange={form.handlePhoneNumberChange}
               error={form.validation.errors.phoneNumber}
             />
+            
+            <PasswordField
+              id="password"
+              placeholder="Password (minimum 6 characters)"
+              value={form.password}
+              onChange={form.handlePasswordChange}
+              error={form.validation.errors.password}
+              required
+              showPassword={showPassword}
+              onToggleVisibility={() => setShowPassword(!showPassword)}
+            />
+            
+            <PasswordField
+              id="confirmPassword"
+              placeholder="Confirm password"
+              value={form.confirmPassword}
+              onChange={form.handleConfirmPasswordChange}
+              error={form.validation.errors.confirmPassword}
+              required
+              showPassword={showConfirmPassword}
+              onToggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
+            />
 
             <Button
               type="submit"
+              size="lg"
               disabled={!form.isFormValid || form.isSubmitting}
-              className="w-full bg-melodia-yellow text-melodia-teal font-bold py-4 px-4 rounded-lg hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-14 bg-primary text-text font-display font-bold text-lg rounded-full shadow-md hover:bg-yellow-400 transition-colors duration-300"
             >
               {form.isSubmitting ? "Continuing..." : "Continue"}
             </Button>
 
-            {error && (
+            {form.validation.errors.email && (
               <div className="text-sm text-melodia-coral text-center">
-                {error}
+                {form.validation.errors.email}
               </div>
             )}
           </form>
         </div>
+      </main>
 
-        {/* Footer with Legal Text */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-melodia-teal">
-            By continuing, you agree to Melodia's{" "}
-            <Link href="/terms" className="text-melodia-coral hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-melodia-coral hover:underline">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
+      {/* Footer with Legal Text - Fixed at bottom */}
+      <footer className="p-6 text-center">
+        <p className="text-xs text-melodia-teal/60">
+            By continuing, you agree to Melodia&apos;s{" "}
+          <Link href="/terms" className="underline text-melodia-coral hover:text-melodia-coral/80">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline text-melodia-coral hover:text-melodia-coral/80">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </footer>
     </div>
   );
 }

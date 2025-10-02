@@ -1,0 +1,431 @@
+---
+alwaysApply: true
+---
+# Component Usage Patterns for Melodia
+
+## CRITICAL RULE: Always Use Existing Components First
+
+**MANDATORY CHECKLIST** before creating any new UI component:
+
+1. **Check existing UI components** in [src/components/ui/](mdc:src/components/ui/)
+2. **Check existing form components** in [src/components/forms/](mdc:src/components/forms/)
+3. **Review existing layout components** in [src/components/](mdc:src/components/)
+4. **Search for similar patterns** in the codebase
+5. **Only create new components** if no existing solution fits
+
+## Design System Consistency
+
+### Required Input Field Styling
+**ALWAYS use this exact styling for input fields** to match the design system:
+
+```typescript
+// ✅ CORRECT: Use design system classes
+className="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body"
+
+// ❌ WRONG: Custom or inconsistent styling
+className="w-full bg-white border-2 text-melodia-teal placeholder-melodia-teal/50 rounded-lg py-4 px-4"
+```
+
+### Required Button Styling
+**ALWAYS use this exact styling for primary buttons** to match the design system:
+
+```typescript
+// ✅ CORRECT: Use design system classes
+className="w-full h-14 bg-primary text-text font-display font-bold text-lg rounded-full shadow-md hover:bg-yellow-400 transition-colors duration-300"
+
+// ❌ WRONG: Custom or inconsistent styling
+className="w-full bg-melodia-yellow text-melodia-teal font-bold py-4 px-4 rounded-lg"
+```
+
+## Existing Components to Use
+
+### Form Components
+**Location**: [src/components/forms/](mdc:src/components/forms/)
+
+#### FormField Component
+```typescript
+// ✅ ALWAYS use FormField for input fields
+import { FormField } from '@/components/forms/FormField';
+
+<FormField
+  id="email"
+  type="email"
+  placeholder="Email address"
+  value={email}
+  onChange={handleEmailChange}
+  error={errors.email}
+  required
+/>
+```
+
+#### PasswordField Component
+```typescript
+// ✅ Use PasswordField for password inputs
+import { PasswordField } from '@/components/forms/PasswordField';
+
+<PasswordField
+  id="password"
+  placeholder="Password"
+  value={password}
+  onChange={handlePasswordChange}
+  error={errors.password}
+  required
+/>
+```
+
+### UI Components
+**Location**: [src/components/ui/](mdc:src/components/ui/)
+
+#### Button Component
+```typescript
+// ✅ ALWAYS use Button component with proper variants
+import { Button } from '@/components/ui/button';
+
+// Primary button (default)
+<Button type="submit" size="lg">
+  Continue
+</Button>
+
+// Secondary button
+<Button variant="secondary" size="md">
+  Cancel
+</Button>
+
+// Outline button
+<Button variant="outline" size="sm">
+  Learn More
+</Button>
+```
+
+#### Input Component
+```typescript
+// ✅ Use Input component for basic inputs
+import { Input } from '@/components/ui/input';
+
+<Input
+  type="text"
+  placeholder="Enter text"
+  value={value}
+  onChange={onChange}
+  className="design-system-classes"
+/>
+```
+
+## Layout Patterns
+
+### Page Layout Structure
+**ALWAYS follow this structure** for consistent page layouts:
+
+```typescript
+// ✅ CORRECT: Proper page structure
+return (
+  <div className="flex flex-col min-h-screen bg-white">
+    {/* Header */}
+    <header className="flex items-center justify-between p-4">
+      <div></div>
+      <CloseButton onClick={handleClose} />
+    </header>
+
+    {/* Main Content */}
+    <main className="flex-grow flex flex-col items-center justify-center px-6 text-center">
+      <div className="w-full max-w-sm">
+        {/* Content goes here */}
+      </div>
+    </main>
+
+    {/* Footer - Fixed at bottom */}
+    <footer className="p-6 text-center">
+      {/* Footer content */}
+    </footer>
+  </div>
+);
+```
+
+### Form Layout Structure
+**ALWAYS follow this structure** for forms:
+
+```typescript
+// ✅ CORRECT: Proper form structure
+<form onSubmit={handleSubmit} className="space-y-6">
+  <FormField
+    id="field1"
+    placeholder="Field 1"
+    value={field1}
+    onChange={handleField1Change}
+    error={errors.field1}
+    required
+  />
+  
+  <FormField
+    id="field2"
+    placeholder="Field 2"
+    value={field2}
+    onChange={handleField2Change}
+    error={errors.field2}
+  />
+
+  <Button
+    type="submit"
+    size="lg"
+    disabled={!isFormValid || isSubmitting}
+    className="w-full h-14 bg-primary text-text font-display font-bold text-lg rounded-full shadow-md hover:bg-yellow-400 transition-colors duration-300"
+  >
+    {isSubmitting ? "Loading..." : "Submit"}
+  </Button>
+</form>
+```
+
+## Component Creation Guidelines
+
+### When to Create New Components
+
+#### ✅ CREATE new components when:
+- No existing component serves the purpose
+- The component will be reused in 3+ places
+- The component has complex, reusable logic
+- The component represents a distinct UI pattern
+
+#### ❌ DON'T CREATE new components when:
+- An existing component can be extended with props
+- The component is only used once
+- The component is just a simple wrapper around existing components
+- The styling can be achieved with existing components + className
+
+### Component Composition Pattern
+```typescript
+// ✅ GOOD: Compose existing components
+import { Button } from '@/components/ui/button';
+import { FormField } from '@/components/forms/FormField';
+
+export const LoginForm = () => {
+  return (
+    <form className="space-y-6">
+      <FormField
+        id="email"
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={setEmail}
+        error={errors.email}
+      />
+      
+      <Button type="submit" size="lg">
+        Login
+      </Button>
+    </form>
+  );
+};
+
+// ❌ BAD: Creating custom components unnecessarily
+export const CustomInput = ({ ...props }) => {
+  return <input className="custom-styles" {...props} />;
+};
+```
+
+## Design System Color Usage
+
+### Required Color Classes
+**ALWAYS use these exact color classes** from the design system:
+
+```typescript
+// Primary colors
+"bg-primary"           // #FFD166 (Yellow)
+"text-primary"         // #FFD166
+"border-primary"       // #FFD166
+
+// Text colors
+"text-text"            // #073B4C (Dark blue)
+"text-text/80"         // 80% opacity
+"text-text/60"         // 60% opacity
+"text-text/50"         // 50% opacity for placeholders
+"text-text/20"         // 20% opacity for borders
+
+// Accent colors
+"text-accent"          // #EF476F (Coral/Pink)
+"bg-accent"            // #EF476F
+"border-accent"        // #EF476F
+
+// Background colors
+"bg-secondary"         // #FDFDFD (Off-white)
+"bg-white"             // Pure white
+```
+
+### Legacy Color Migration
+**MIGRATE these old colors** to design system colors:
+
+```typescript
+// ❌ OLD: Melodia-specific colors (migrate these)
+"text-melodia-teal"     → "text-text"
+"text-melodia-coral"    → "text-accent"
+"bg-melodia-yellow"     → "bg-primary"
+"border-melodia-teal"   → "border-text/20"
+
+// ✅ NEW: Design system colors
+"text-text"
+"text-accent"
+"bg-primary"
+"border-text/20"
+```
+
+## Typography Patterns
+
+### Required Font Classes
+```typescript
+// Headings - Use display font
+"font-display text-4xl font-bold text-text"     // Main headings
+"font-display text-2xl font-bold text-text"     // Sub headings
+"font-display font-bold text-lg"                // Button text
+
+// Body text - Use body font
+"font-body text-base text-text"                 // Regular text
+"font-body text-sm text-text/80"                // Secondary text
+"font-body text-xs text-text/60"                // Small text
+```
+
+## Spacing and Layout
+
+### Required Spacing Classes
+```typescript
+// Form spacing
+"space-y-6"            // Between form fields
+"space-y-4"            // Between related elements
+"space-y-1"            // Between label and input
+
+// Padding
+"p-4"                  // Header/footer padding
+"p-6"                  // Section padding
+"px-6 py-8"           // Main content padding
+"px-5"                // Input field padding
+
+// Margins
+"mb-4"                // Bottom margin for headings
+"mb-10"               // Bottom margin for descriptions
+"mt-8"                // Top margin for sections
+```
+
+## Accessibility Requirements
+
+### Required ARIA Attributes
+```typescript
+// ✅ ALWAYS include these for accessibility
+<button
+  onClick={handleClose}
+  aria-label="Close"
+  className="..."
+>
+  ✕
+</button>
+
+<input
+  id="email"
+  type="email"
+  required
+  aria-describedby={error ? "email-error" : undefined}
+  className="..."
+/>
+
+{error && (
+  <p
+    id="email-error"
+    role="alert"
+    aria-live="polite"
+    className="text-red-500 text-xs mt-1"
+  >
+    {error}
+  </p>
+)}
+```
+
+## Component Reusability Checklist
+
+### Before Creating Any Component:
+- [ ] **Searched existing components** in `src/components/`
+- [ ] **Checked UI components** in `src/components/ui/`
+- [ ] **Reviewed form components** in `src/components/forms/`
+- [ ] **Confirmed no existing solution** fits the need
+- [ ] **Planned for reusability** - will this be used elsewhere?
+- [ ] **Used design system colors** and typography
+- [ ] **Followed accessibility guidelines**
+- [ ] **Implemented proper TypeScript interfaces**
+
+### When Extending Existing Components:
+- [ ] **Used composition over inheritance**
+- [ ] **Extended props interface properly**
+- [ ] **Maintained backward compatibility**
+- [ ] **Added proper TypeScript types**
+- [ ] **Documented new props and usage**
+
+## Code Review Requirements
+
+### Component Usage Review:
+- [ ] **Uses existing components** where possible
+- [ ] **Follows design system** color and typography
+- [ ] **Implements proper accessibility** attributes
+- [ ] **Has consistent spacing** and layout
+- [ ] **Uses proper TypeScript** interfaces
+- [ ] **Follows naming conventions**
+- [ ] **Is properly documented**
+
+### Design System Compliance:
+- [ ] **Input fields** use exact design system classes
+- [ ] **Buttons** use exact design system classes
+- [ ] **Colors** match design system palette
+- [ ] **Typography** uses correct font families
+- [ ] **Spacing** follows consistent patterns
+- [ ] **Layout** follows established structure
+
+## Anti-Patterns to Avoid
+
+### ❌ Creating Duplicate Components
+```typescript
+// BAD: Creating new input component
+export const MyCustomInput = ({ ...props }) => {
+  return (
+    <input 
+      className="w-full h-12 px-4 bg-white border rounded"
+      {...props}
+    />
+  );
+};
+
+// GOOD: Using existing FormField component
+<FormField
+  id="email"
+  placeholder="Email"
+  value={email}
+  onChange={setEmail}
+  error={errors.email}
+/>
+```
+
+### ❌ Inconsistent Styling
+```typescript
+// BAD: Custom styling that doesn't match design system
+<button className="px-4 py-2 bg-blue-500 text-white rounded">
+  Submit
+</button>
+
+// GOOD: Using design system Button component
+<Button type="submit" size="lg">
+  Submit
+</Button>
+```
+
+### ❌ Ignoring Existing Patterns
+```typescript
+// BAD: Custom layout structure
+<div className="container">
+  <div className="header">...</div>
+  <div className="content">...</div>
+  <div className="footer">...</div>
+</div>
+
+// GOOD: Following established layout pattern
+<div className="flex flex-col min-h-screen bg-white">
+  <header className="flex items-center justify-between p-4">...</header>
+  <main className="flex-grow flex flex-col items-center justify-center px-6">...</main>
+  <footer className="p-6 text-center">...</footer>
+</div>
+```
+
+Remember: **Consistency is key**. Always use existing components and patterns to maintain a cohesive user experience across the entire application.

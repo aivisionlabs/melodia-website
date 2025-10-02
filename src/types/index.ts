@@ -67,10 +67,53 @@ export interface PublicSong {
 // User authentication interfaces
 export interface User {
   id: number
+  name: string
   email: string
-  name: string | null
+  date_of_birth: string
+  phone_number: string | null
+  email_verified: boolean
   created_at: string
   updated_at: string
+}
+
+// Signup request interface
+export interface SignupRequest {
+  name: string
+  email: string
+  dateOfBirth: string // YYYY-MM-DD format
+  phoneNumber?: string
+}
+
+// API Response interfaces
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: {
+    message: string
+    code: string
+    details?: Record<string, any>
+  }
+  meta?: {
+    timestamp: string
+    requestId: string
+  }
+}
+
+// OTP related interfaces
+export interface OTPData {
+  userId: string
+  code: string
+  attempts: number
+  createdAt: number
+}
+
+export interface EmailVerificationCode {
+  id: number
+  user_id: number
+  code: string
+  attempts: number
+  expires_at: string
+  created_at: string
 }
 
 export interface UserSession {
@@ -116,13 +159,23 @@ export interface SongRequestFormData {
   requester_name: string
   recipient_details: string
   occasion?: string
-  languages: string
+  languages: string | string[]
   mood?: string[]
   song_story?: string
 }
 
 
 
+
+// Verification request interfaces
+export interface VerifyEmailRequest {
+  code: string;
+}
+
+export interface SendVerificationRequest {
+  // User comes from JWT, no additional data needed
+  [key: string]: never;
+}
 
 // Export payment types
 export * from './payment'

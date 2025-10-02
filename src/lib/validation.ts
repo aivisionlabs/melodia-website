@@ -25,6 +25,12 @@ export const validatePassword = (password: string): string => {
   return "";
 };
 
+export const validateConfirmPassword = (confirmPassword: string, password: string): string => {
+  if (!confirmPassword.trim()) return "Please confirm your password";
+  if (confirmPassword !== password) return "Passwords do not match";
+  return "";
+};
+
 export const validateName = (name: string): string => {
   if (!name.trim()) return "Name is required";
   if (name.trim().length < 2) return "Name must be at least 2 characters";
@@ -148,4 +154,29 @@ export const formatDateOfBirth = (value: string): string => {
 export const formatPhoneNumber = (value: string): string => {
   // Only allow digits, spaces, +, -, (, )
   return value.replace(/[^\d\s+\-()]/g, '');
+};
+
+// Date conversion utility
+export const convertDateFormat = (dateString: string, fromFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD', toFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD'): string => {
+  if (!dateString.trim()) return dateString;
+  
+  if (fromFormat === 'DD/MM/YYYY' && toFormat === 'YYYY-MM-DD') {
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dateString.match(dateRegex);
+    if (match) {
+      const [, day, month, year] = match;
+      return `${year}-${month}-${day}`;
+    }
+  } else if (fromFormat === 'YYYY-MM-DD' && toFormat === 'DD/MM/YYYY') {
+    // Convert YYYY-MM-DD to DD/MM/YYYY
+    const dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const match = dateString.match(dateRegex);
+    if (match) {
+      const [, year, month, day] = match;
+      return `${day}/${month}/${year}`;
+    }
+  }
+  
+  return dateString; // Return original if no conversion needed or format doesn't match
 };

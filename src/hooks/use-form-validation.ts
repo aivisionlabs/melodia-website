@@ -1,22 +1,29 @@
 import { useState, useCallback } from 'react';
-import { validateField } from '@/lib/validation';
+import { validateField, validateConfirmPassword } from '@/lib/validation';
 
 // Single Responsibility: Hook manages form validation state and logic
 export interface FormValidationState {
   errors: Record<string, string>;
   isValid: boolean;
-  validateField: (fieldName: string, value: string) => boolean;
+  validateField: (fieldName: string, value: string, compareValue?: string) => boolean;
   validateAll: (formData: Record<string, string>) => boolean;
   clearErrors: () => void;
   clearFieldError: (fieldName: string) => void;
+  setFieldError: (fieldName: string, error: string) => void;
 }
 
 export const useFormValidation = (): FormValidationState => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Single Responsibility: Validate a single field
-  const validateFieldValue = useCallback((fieldName: string, value: string): boolean => {
-    const error = validateField(fieldName, value);
+  const validateFieldValue = useCallback((fieldName: string, value: string, compareValue?: string): boolean => {
+    let error = "";
+    
+    if (fieldName === "confirmPassword" && compareValue !== undefined) {
+      error = validateConfirmPassword(value, compareValue);
+    } else {
+      error = validateField(fieldName, value);
+    }
     
     setErrors(prev => ({
       ...prev,
@@ -57,6 +64,14 @@ export const useFormValidation = (): FormValidationState => {
     });
   }, []);
 
+  // Single Responsibility: Set specific field error
+  const setFieldError = useCallback((fieldName: string, error: string) => {
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: error
+    }));
+  }, []);
+
   // Interface Segregation: Return only what's needed
   return {
     errors,
@@ -64,6 +79,7 @@ export const useFormValidation = (): FormValidationState => {
     validateField: validateFieldValue,
     validateAll: validateAllFields,
     clearErrors,
-    clearFieldError
+    clearFieldError,
+    setFieldError
   };
 };
