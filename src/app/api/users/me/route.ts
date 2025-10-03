@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm'
 export async function GET(request: NextRequest) {
   // Get current user from session using existing function
   const user = await getCurrentUser()
-  
+
   if (!user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
   }
 
   const userData = fullUser[0]
-  return NextResponse.json({ 
-    success: true, 
+  return NextResponse.json({
+    success: true,
     user: {
       ...userData,
       created_at: userData.created_at.toISOString(),
@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   // Get current user from session using existing function
   const user = await getCurrentUser()
-  
   if (!user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
@@ -90,19 +89,19 @@ export async function PATCH(request: NextRequest) {
 
     // Prepare update data
     const updateData: any = {}
-    
+
     if (name) {
       updateData.name = name.trim()
     }
-    
+
     if (phone_number !== undefined) {
       updateData.phone_number = phone_number.trim() || null
     }
-    
+
     if (date_of_birth !== undefined) {
       updateData.date_of_birth = date_of_birth || null
     }
-    
+
     if (profile_picture !== undefined) {
       updateData.profile_picture = profile_picture || null
     }
@@ -114,26 +113,26 @@ export async function PATCH(request: NextRequest) {
       .update(usersTable)
       .set(updateData)
       .where(eq(usersTable.id, user.id))
-      .returning({ 
-        id: usersTable.id, 
-        email: usersTable.email, 
-        name: usersTable.name, 
+      .returning({
+        id: usersTable.id,
+        email: usersTable.email,
+        name: usersTable.name,
         phone_number: usersTable.phone_number,
         date_of_birth: usersTable.date_of_birth,
         profile_picture: usersTable.profile_picture,
         email_verified: usersTable.email_verified,
-        created_at: usersTable.created_at, 
-        updated_at: usersTable.updated_at 
+        created_at: usersTable.created_at,
+        updated_at: usersTable.updated_at
       })
 
-    return NextResponse.json({ 
-      success: true, 
-      user: { 
-        ...updated, 
-        created_at: updated.created_at.toISOString(), 
+    return NextResponse.json({
+      success: true,
+      user: {
+        ...updated,
+        created_at: updated.created_at.toISOString(),
         updated_at: updated.updated_at.toISOString(),
         date_of_birth: updated.date_of_birth ? updated.date_of_birth.toString() : null
-      } 
+      }
     })
   } catch (error) {
     console.error('Update profile failed:', error)

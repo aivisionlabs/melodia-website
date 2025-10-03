@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,9 +14,21 @@ import { GoogleAuthButton } from "@/components/forms/GoogleAuthButton";
 export default function LoginPage() {
   const { user, error, isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Dependency Inversion: Use custom hook for form management
   const form = useLoginForm();
+
+  // Check for success message from URL params
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message === 'password-reset-success') {
+      setSuccessMessage('Password reset successful! You can now log in with your new password.');
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+  }, [searchParams]);
 
   // Single Responsibility: Handle authentication redirect
   useEffect(() => {
@@ -121,7 +133,7 @@ export default function LoginPage() {
             />
 
             <Link 
-              href="#" 
+              href="/profile/forgot-password" 
               className="block text-right text-melodia-coral text-sm font-medium hover:underline font-body"
             >
               Forgot Password?
@@ -134,6 +146,13 @@ export default function LoginPage() {
             >
               {form.isSubmitting ? "Logging in..." : "Log In"}
             </Button>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="text-sm text-green-600 text-center bg-green-50 border border-green-200 rounded-lg p-3">
+                {successMessage}
+              </div>
+            )}
 
             {/* Form Error Message */}
             {form.error && (
