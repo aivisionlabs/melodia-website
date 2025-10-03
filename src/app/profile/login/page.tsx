@@ -21,14 +21,48 @@ export default function LoginPage() {
   // Single Responsibility: Handle authentication redirect
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
+      // Redirect to logged-in profile page
       router.replace("/profile/logged-in");
     }
   }, [loading, isAuthenticated, user, router]);
 
+  // Additional effect to handle redirect after successful login
+  useEffect(() => {
+    if (!loading && isAuthenticated && user && !form.isSubmitting) {
+      // Small delay to ensure state is fully updated
+      const timer = setTimeout(() => {
+        router.replace("/profile/logged-in");
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isAuthenticated, user, form.isSubmitting, router]);
+
+  // Fallback redirect mechanism - check for successful login in localStorage
+  useEffect(() => {
+    const checkForSuccessfulLogin = () => {
+      // Check if we have user data in localStorage (indicating successful login)
+      const userSession = localStorage.getItem('user-session');
+      if (userSession && !loading && !isAuthenticated) {
+        try {
+          JSON.parse(userSession);
+          router.replace("/profile/logged-in");
+        } catch (error) {
+          // Invalid session data, ignore
+        }
+      }
+    };
+
+    // Check immediately and also after a delay
+    checkForSuccessfulLogin();
+    const timer = setTimeout(checkForSuccessfulLogin, 500);
+    
+    return () => clearTimeout(timer);
+  }, [loading, isAuthenticated, router]);
+
   // Single Responsibility: Handle Google authentication
   const handleGoogleAuth = () => {
     // Placeholder for Google authentication
-    console.log("Google authentication not implemented yet");
     // TODO: Implement Google OAuth
   };
 
@@ -104,6 +138,12 @@ export default function LoginPage() {
             {error && (
               <div className="text-sm text-melodia-coral text-center">
                 {error}
+              </div>
+            )}
+            
+            {form.isSubmitting && (
+              <div className="text-sm text-melodia-teal text-center">
+                Logging you in...
               </div>
             )}
           </form>

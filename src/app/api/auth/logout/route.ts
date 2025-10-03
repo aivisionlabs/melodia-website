@@ -7,7 +7,8 @@ export async function POST() {
       success: true
     })
 
-    // Clear the cookie
+    // Clear both authentication cookies
+    response.cookies.delete('auth-token')
     response.cookies.delete('user-session')
 
     return response

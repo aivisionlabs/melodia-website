@@ -91,12 +91,16 @@ export const useAuth = () => {
             const data = await response.json();
 
             if (data.success) {
+                // Store user data in localStorage for consistency
+                localStorage.setItem('user-session', JSON.stringify(data.data.user));
+                
                 setAuthState({
                     user: data.data.user,
                     loading: false,
                     error: null,
                     isAuthenticated: true,
                 });
+                
                 return { success: true };
             } else {
                 setAuthState((prev) => ({

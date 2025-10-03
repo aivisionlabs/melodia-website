@@ -72,8 +72,19 @@ export const useLoginForm = (): LoginFormState => {
     }
 
     try {
-      await login(email, password);
-      // Note: Navigation is handled by the parent component
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Clear form on successful login
+        setEmail("");
+        setPassword("");
+        
+        // Force a small delay to ensure auth state is updated
+        setTimeout(() => {
+          // Force page reload to ensure auth state is properly updated
+          window.location.href = '/profile/logged-in';
+        }, 200);
+      }
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -82,11 +93,12 @@ export const useLoginForm = (): LoginFormState => {
   }, [email, password, validation, login]);
 
   // Computed values
-  const isFormValid = 
+  const isFormValid = Boolean(
     email.trim() && 
     password.trim() && 
     !validation.errors.email && 
-    !validation.errors.password;
+    !validation.errors.password
+  );
 
   // Interface Segregation: Return only what's needed for login
   return {
