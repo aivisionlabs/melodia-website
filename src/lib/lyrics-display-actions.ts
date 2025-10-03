@@ -5,16 +5,14 @@ import { eq, desc } from 'drizzle-orm';
 export interface LyricsDisplayData {
   songRequest: {
     id: number;
-    recipient_name: string;
-    languages: string[];
-    additional_details: string;
+    recipient_details: string;
+    languages: string;
     requester_name: string;
     created_at: string;
   };
   lyricsDraft: {
     id: number;
     generated_text: string;
-    edited_text: string | null;
     status: string;
     version: number;
     created_at: string;
@@ -49,16 +47,14 @@ export async function getLyricsDisplayData(requestId: number): Promise<LyricsDis
     return {
       songRequest: {
         id: songRequest[0].id,
-        recipient_name: songRequest[0].recipient_name,
-        languages: songRequest[0].languages || [],
-        additional_details: songRequest[0].additional_details || '',
+        recipient_details: songRequest[0].recipient_details,
+        languages: songRequest[0].languages || '',
         requester_name: songRequest[0].requester_name,
         created_at: songRequest[0].created_at.toISOString()
       },
       lyricsDraft: {
         id: lyricsDraft[0].id,
         generated_text: lyricsDraft[0].generated_text,
-        edited_text: lyricsDraft[0].edited_text,
         status: lyricsDraft[0].status,
         version: lyricsDraft[0].version,
         created_at: lyricsDraft[0].created_at.toISOString()

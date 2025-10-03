@@ -1,59 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateLyrics } from '@/lib/llm-integration';
+import { generateLyrics } from '@/lib/services/llm/llm-lyrics-opearation';
 import { db } from '@/lib/db';
-import { lyricsDraftsTable, songRequestsTable } from '@/lib/db/schema';
+import { lyricsDraftsTable } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipient_name, languages, additional_details, demoMode } = await request.json();
+    const { requestId, recipientDetails, languages, occassion, songStory, mood, userId, anonymousUserId } = await request.json();
 
-    if (!requestId || !recipient_name || !languages) {
+    if (!requestId || !recipientDetails || !languages) {
       return NextResponse.json(
-        { error: true, message: 'Missing required fields: requestId, recipient_name, languages' },
+        { error: true, message: 'Missing required fields: requestId, recipient_details, languages' },
         { status: 400 }
       );
     }
 
     let generatedResponse;
 
+    // Get the LLM model name from environment or use default
+    const llmModelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash';
+
     // Demo mode - use mock lyrics instead of real API
-    if (demoMode) {
+    if (process.env.DEMO_MODE === 'true') {
       console.log('🎭 DEMO MODE: Using mock lyrics instead of Gemini API');
       generatedResponse = {
-        title: `Demo Song for ${recipient_name}`,
-        styleOfMusic: 'Personal',
-        lyrics: `Demo lyrics for ${recipient_name}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipient_name}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`,
-        error: false
+        title: `Demo Song for ${recipientDetails}`,
+        musicStyle: 'Temp Music Style',
+        lyrics: `Demo lyrics for ${recipientDetails}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipientDetails}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`
       };
     } else {
       // Try to generate lyrics using the existing LLM integration
       try {
         generatedResponse = await generateLyrics({
-          recipient_name,
+          recipientDetails,
+          occassion,
           languages,
-          additional_details
+          songStory,
+          mood: mood || []
         });
       } catch (apiError) {
         console.error('Gemini API failed:', apiError);
-        
         // Return proper error instead of fake lyrics
         return NextResponse.json(
-          { 
-            error: true, 
+          {
+            error: true,
             message: 'Lyrics generation service is temporarily unavailable. Please try again in a few minutes.',
             details: 'The AI service is currently experiencing issues. We apologize for the inconvenience.'
           },
           { status: 503 }
         );
       }
-    }
-
-    if (generatedResponse.error) {
-      return NextResponse.json(
-        { error: true, message: generatedResponse.message || 'Failed to generate lyrics' },
-        { status: 500 }
-      );
     }
 
     // Get the latest version number for this request
@@ -72,29 +68,29 @@ export async function POST(request: NextRequest) {
       .values({
         song_request_id: requestId,
         version: newVersion,
-        language: languages,
-        structure: null,
-        prompt_input: { 
-          recipient_name, 
-          languages, 
-          additional_details,
-          refineText: null 
-        },
+        lyrics_edit_prompt: null,
         generated_text: generatedResponse.lyrics || '',
-        status: 'draft'
+        song_title: generatedResponse.title,
+        music_style: generatedResponse.musicStyle,
+        llm_model_name: llmModelName,
+        status: 'draft',
+        created_by_user_id: userId || null,
+        created_by_anonymous_user_id: anonymousUserId || null
       })
       .returning();
 
-    // Update song request status
-    await db
-      .update(songRequestsTable)
-      .set({ lyrics_status: 'needs_review' })
-      .where(eq(songRequestsTable.id, requestId));
+    // Update lyrics draft status (lyrics_status moved to lyrics_drafts table)
+    if (draft) {
+      await db
+        .update(lyricsDraftsTable)
+        .set({ status: 'needs_review' })
+        .where(eq(lyricsDraftsTable.id, draft.id));
+    }
 
     return NextResponse.json({
       success: true,
-      title: generatedResponse.title || `Song for ${recipient_name}`,
-      styleOfMusic: generatedResponse.styleOfMusic || 'Personal',
+      title: generatedResponse.title,
+      styleOfMusic: generatedResponse.musicStyle,
       lyrics: generatedResponse.lyrics || '',
       draftId: draft.id,
       requestId: requestId

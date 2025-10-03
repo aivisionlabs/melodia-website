@@ -1,233 +1,57 @@
 ---
-alwaysApply: true
-description: Comprehensive context about the Melodia project architecture, database schema, and key implementation details
+alwaysApply: false
 ---
+Refer this brand kit before doing any major UI side changes in the code.
 
-# Melodia Project Context
 
-## 🎵 Project Overview
-Melodia is a personalized song generation platform that allows users to create custom songs for their loved ones. The platform uses AI (Gemini) for lyrics generation and Suno API for audio generation.
+# **Joyful Jam Session \- Brand Kit**
 
-## 🏗️ Architecture
+**Concept:** Inspired by shared moments of happiness, this brand is energetic, social, and unapologetically joyful. It's all about celebrating connections.
 
-### Database Schema
-- **songs**: Main songs table with all generated songs
-- **song_requests**: User requests for song creation
-- **lyrics_drafts**: Generated lyrics with versioning system
-- **users**: User accounts and authentication
-- **admin_users**: Admin panel access
+Reference website for this document:
 
-### Key Tables Structure
-```sql
-songs: id, title, lyrics, music_style, slug, status, suno_task_id, duration, etc.
-song_requests: id, user_id, recipient_name, languages, additional_details, status, lyrics_status
-lyrics_drafts: id, song_request_id, version, generated_text, edited_text, status
-```
+[https://g.co/gemini/share/8e99eaea6474](https://g.co/gemini/share/8e99eaea6474)
 
-## 🔄 Current Flow Implementation
+## **Color Palette**
 
-### 1. Form Submission Flow
-- User fills form on [page.tsx](mdc:src/app/page.tsx)
-- Creates song request via `/api/create-song-request`
-- Generates lyrics via `/api/generate-lyrics-with-storage`
-- Stores in `lyrics_drafts` table
-- Redirects to `/lyrics-display?requestId=123`
+Our color palette is designed to be vibrant, energetic, and full of life.
 
-### 2. Database Storage Strategy
-- **Song Requests**: Created immediately on form submission
-- **Lyrics Drafts**: Stored when lyrics are generated
-- **Songs**: Created when user clicks "Generate Song" button
-- **Status Tracking**: Different statuses for different stages
+| Role | Color Name | Hex Code | Preview |
+| :---- | :---- | :---- | :---- |
+| Primary | Bright Yellow | \#FFD166 | \<div style="background-color:\#FFD166; width:100%; height:20px; border-radius: 4px;"\>\</div\> |
+| Secondary | Light Cream | \#FDFDFD | \<div style="background-color:\#FDFDFD; width:100%; height:20px; border: 1px solid \#eee; border-radius: 4px;"\>\</div\> |
+| Accent | Vibrant Coral | \#EF476F | \<div style="background-color:\#EF476F; width:100%; height:20px; border-radius: 4px;"\>\</div\> |
+| Text | Dark Teal | \#073B4C | \<div style="background-color:\#073B4C; width:100%; height:20px; border-radius: 4px;"\>\</div\> |
 
-### 3. Page Routing
-- **Form Submission**: Redirects to `/lyrics-display?requestId={id}`
-- **Lyrics Display**: Shows generated lyrics with edit/generate options
-- **My Songs**: Displays user's content with dynamic buttons
+## **Typography**
 
-### 3. API Architecture
-- **Server-side**: All database operations in API routes
-- **Client-side**: Uses fetch() calls to API endpoints
-- **No direct DB imports**: Prevents TLS/browser compatibility issues
+Our typography choices are modern, friendly, and highly legible, balancing personality with clarity.
 
-## 📁 Key Files and Their Purpose
+* **Heading Font:** **Poppins**
+  * *Use for:* Titles, headlines, and key callouts.
+  * *Feeling:* Bold, friendly, and energetic.
+* **Body Font:** **Montserrat**
+  * *Use for:* Paragraphs, descriptions, and UI text.
+  * *Feeling:* Clean, geometric, and approachable.
 
-### Core Pages
-- [page.tsx](mdc:src/app/page.tsx): Main homepage with form and "My Songs" section
-- [lyrics-display-new/page.tsx](mdc:src/app/lyrics-display-new/page.tsx): Lyrics display and editing page
+## **Logo & Iconography**
 
-### API Routes
-- `/api/create-song-request`: Creates song requests
-- `/api/generate-lyrics`: Generates lyrics using Gemini API (no DB storage)
-- `/api/store-lyrics`: Stores generated lyrics in database
-- `/api/generate-lyrics-with-storage`: Generates and stores lyrics (legacy)
-- `/api/generate-song`: Creates songs and calls Suno API
-- `/api/song-variants/[songId]`: Fetches and manages song variants
-- `/api/user-content`: Fetches user's content (lyrics + songs)
-- `/api/lyrics-display`: Fetches lyrics display data
+The logo and icon style is simple, modern, and expressive.
 
-### Database Actions
-- [user-content-actions.ts](mdc:src/lib/user-content-actions.ts): Server-side user content management
-- [lyrics-display-actions.ts](mdc:src/lib/lyrics-display-actions.ts): Server-side lyrics display data
-- [song-request-actions.ts](mdc:src/lib/song-request-actions.ts): Song request management
+* **Logo Style:** A bold, friendly sans-serif wordmark that feels approachable and confident.
+* **Icon Style:** Icons are simple, geometric, and pop with energy, like a stylized musical note or sound wave. They should be instantly recognizable and fun.
 
-### Client-side Functions
-- [user-content-client.ts](mdc:src/lib/user-content-client.ts): Client-side user content functions
-- [lyrics-display-client.ts](mdc:src/lib/lyrics-display-client.ts): Client-side lyrics display functions
+## **Imagery Style**
 
-## 🎯 Status Flow and Dynamic Buttons
+Photography should feel authentic, candid, and full of positive energy.
 
-### Status Progression
-```
-Song Request (pending) → Lyrics Draft (draft) → Song Generation (generating) → Song Ready (ready)
-```
+* **Subject:** Vibrant, authentic photos of friends laughing, sharing headphones, and enjoying music together.
+* **Mood:** Full of life and genuine connection. Avoid overly staged or corporate-looking shots.
+* **Lighting:** Bright, natural light that enhances the vibrant color palette.
 
-### Dynamic Button Logic
-- **Draft Lyrics**: "Generate Song" button
-- **Generating**: "View Progress" button  
-- **Ready**: "Listen" button
-- **Failed**: "Retry" button
+## **Voice & Tone**
 
-## 🔧 Recent Implementation Details
+Our voice is like that of an enthusiastic and supportive friend.
 
-### Problem Solved: Server-Side Database Issue
-- **Issue**: Database connections imported in client components caused TLS errors
-- **Solution**: Moved all database operations to API routes
-- **Result**: Clean separation of client/server concerns
-
-### Current State
-- ✅ Form submission creates song requests
-- ✅ Lyrics generation stores in database
-- ✅ "My Songs" section shows all content with dynamic buttons
-- ✅ Lyrics display page loads from database
-- ✅ **"Generate Song" button** on lyrics display page (fully functional)
-- ✅ **User ID storage** - Fixed to properly store user ID in song requests
-- ✅ **Authentication required** - Song requests now require user authentication
-- ✅ **My Songs page** - Fixed to display user's content from database instead of localStorage
-- ✅ **Song generation flow** - Complete database integration with proper status tracking
-- ✅ **UI/UX improvements** - Redirect to home page after song generation starts
-- ✅ **Delete functionality** - Working delete button that removes content from database
-- ✅ **Duplicate content fix** - Fixed duplicate display of lyrics draft + song for same request
-- ✅ **Button functionality** - Implemented proper actions for all button types (Listen, View Progress, Retry, etc.)
-- ✅ **Individual song polling** - Songs in processing status are polled individually instead of refreshing entire page
-- ✅ **Infinite loop fix** - Fixed infinite loop in user-content API calls caused by useEffect dependencies
-- ✅ **Polling cleanup fix** - Fixed polling continuing when user navigates away from my-songs page
-- ✅ **Redundant DB entries fix** - Fixed creating song requests before lyrics generation, preventing redundant entries on API failures
-- ✅ **Song status API fix** - Fixed song status checking to use correct Suno API status values (SUCCESS instead of completed)
-- ✅ **Song variants support** - Added support for multiple song variants with selection UI and database storage
-- ✅ **Search and filters** - Added search bar and filter dropdowns for better content discovery and organization
-- ✅ **Always visible filters** - Fixed filter UI to always show even when no results found, with clear filter indicators
-- ✅ **Simplified filters** - Removed redundant type filter, keeping only status filter for better UX
-- ✅ **Variant selection modal** - Replaced inline variant buttons with a clean modal for better UX when selecting song variants
-
-## 🚀 Next Steps for Feature Development
-
-### Immediate Needs
-1. ✅ **"Generate Song" button** - Already implemented and functional
-2. ✅ **Song generation flow** - Already implemented with Suno API integration
-3. ✅ **Audio player** - Already implemented for completed songs
-4. ✅ **Status polling** - Already implemented with `pollSongStatusOnce()`
-
-### Future Enhancements
-1. User authentication system
-2. Payment integration
-3. Song sharing features
-4. Advanced lyrics editing
-5. Multiple song variants
-
-## 🛠️ Development Patterns
-
-### Database Operations
-- Always use API routes for database access
-- Use client-side fetch() functions for data retrieval
-- Implement proper error handling and loading states
-
-### State Management
-- Use React hooks for local state
-- Implement proper loading and error states
-- Use toast notifications for user feedback
-
-### File Organization
-- Server-side functions in `/lib/*-actions.ts`
-- Client-side functions in `/lib/*-client.ts`
-- API routes in `/app/api/*/route.ts`
-- Components in `/components/`
-
-## 🔍 Key Dependencies
-- **Database**: PostgreSQL with Drizzle ORM
-- **AI**: Gemini API for lyrics generation
-- **Audio**: Suno API for song generation
-- **Framework**: Next.js 15 with App Router
-- **Styling**: Tailwind CSS
-- **UI**: Custom components with Lucide icons
-
-## 📝 Important Notes
-- All database operations must be server-side only
-- Use proper TypeScript types for all data structures
-- Implement proper error handling throughout
-- Maintain backward compatibility with existing features
-- Test all flows thoroughly before deployment
-
-## ⚠️ CRITICAL: API Usage Guidelines
-
-### 🚫 NEVER Hit Real APIs During Development
-- **Suno API**: Has rate limiting and costs money per request
-- **Gemini API**: Has rate limiting and costs money per request
-- **Database APIs**: Can be hit for testing, but avoid unnecessary calls
-
-### 🧪 Use Demo Mode Instead
-The APIs now support demo mode to avoid hitting real APIs:
-
-#### Generate Song Demo Mode:
-```bash
-curl -X POST http://localhost:3001/api/generate-song \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Demo Song","lyrics":"Demo lyrics","style":"Personal","recipient_name":"Demo User","requestId":1,"demoMode":true}'
-```
-
-#### Demo Mode Features:
-- ✅ Creates song record in database
-- ✅ Updates song request status
-- ✅ Returns mock taskId (demo-task-{timestamp})
-- ✅ No real API calls made
-- ✅ No costs incurred
-
-#### Song Status Demo Mode:
-- Demo tasks automatically complete after 2 minutes
-- Returns mock audio URLs for testing
-- Updates database with demo completion status
-
-#### Lyrics Generation Demo Mode:
-```bash
-curl -X POST http://localhost:3000/api/generate-lyrics-with-storage \
-  -H "Content-Type: application/json" \
-  -d '{"requestId":1,"recipient_name":"Test User","languages":["English"],"additional_details":"Test details","demoMode":true}'
-```
-
-#### Demo Mode Features:
-- ✅ Uses mock lyrics instead of Gemini API
-- ✅ No API costs or rate limiting
-- ✅ Still stores lyrics in database
-- ⚠️ **Only for development/testing** - Never use in production
-
-#### Error Handling:
-- ✅ **Proper error messages** when APIs fail
-- ✅ **No fake lyrics** shown to users
-- ✅ **Clear user feedback** about service issues
-- ✅ **Graceful degradation** with retry options
-
-#### Important API Requirements:
-- ⚠️ **Recipient name format**: Must include relationship (e.g., "John, my friend")
-- ⚠️ **Additional details**: Cannot be empty string, use meaningful content
-- ⚠️ **Languages array**: Must contain valid language codes
-
-### 🔧 Testing Strategy
-1. **Database Testing**: Use direct database queries or verify-db API
-2. **API Testing**: Use curl with demo data, not real generation
-3. **UI Testing**: Use existing demo data or mock responses
-4. **Integration Testing**: Test with real APIs only when necessary
-
-### 💰 Cost Management
-- Each Suno API call costs money
-- Each Gemini API call costs money
-- Use demo responses for development and testing
-- Only use real APIs for final integration testing
+* **Keywords:** Energetic, Social, Joyful, Vibrant
+* **Example:**Your friendship's greatest hit.

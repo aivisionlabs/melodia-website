@@ -18,7 +18,10 @@ export default function BottomNavigation({
       href: "/",
       icon: "home",
       label: "Home",
-      isActive: pathname === "/create-song-v2",
+      isActive:
+        pathname === "/" ||
+        pathname.includes("/generate-lyrics") ||
+        pathname.includes("/song-options"),
     },
     {
       href: "/best-songs",

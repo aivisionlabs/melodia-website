@@ -1,4 +1,4 @@
-import { shouldUseMockAPI, getAPIToken, SUNO_CONFIG } from './config';
+import { shouldUseMockAPI, SUNO_CONFIG } from './config';
 
 export interface SunoGenerateRequest {
   prompt: string;
@@ -21,15 +21,18 @@ export interface SunoGenerateResponse {
 
 export interface SunoVariant {
   id: string;
-  audioUrl: string;
-  streamAudioUrl: string;
-  imageUrl: string;
-  prompt: string;
-  modelName: string;
-  title: string;
-  tags: string;
-  createTime: string;
-  duration: number;
+  audioUrl?: string | null;
+  sourceAudioUrl?: string | null;
+  streamAudioUrl?: string | null;
+  sourceStreamAudioUrl?: string | null;
+  imageUrl?: string | null;
+  sourceImageUrl?: string | null;
+  prompt?: string;
+  modelName?: string;
+  title?: string;
+  tags?: string;
+  createTime?: string | number;
+  duration?: number;
 }
 
 export interface SunoRecordInfoResponse {
@@ -124,25 +127,17 @@ class MockSunoAPI {
     });
     this.saveTasks();
 
-    // Simulate progression through states
+    // Simulate progression through new two-level status system
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'TEXT_SUCCESS';
-        this.saveTasks();
-      }
-    }, SUNO_CONFIG.MOCK_DELAYS.TEXT_SUCCESS * 1000);
-
-    setTimeout(() => {
-      const task = this.tasks.get(taskId);
-      if (task) {
-        task.status = 'FIRST_SUCCESS';
-        // Generate first variant
+        task.status = 'STREAM_AVAILABLE';
+        // Generate first variant with streaming only
         task.variants.push({
           id: `variant_1_${taskId}`,
-          audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
-          streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Acoustic Version`,
@@ -152,18 +147,27 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.FIRST_SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.STREAM_AVAILABLE * 1000);
 
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'SUCCESS';
-        // Generate second variant
+        task.status = 'COMPLETE';
+        // Add download URLs to first variant
+        if (task.variants.length > 0) {
+          task.variants[0].audioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+          task.variants[0].sourceAudioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+        }
+
+        // Generate second variant with both streaming and download
         task.variants.push({
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
+          sourceAudioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Electric Version`,
@@ -173,10 +177,10 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.COMPLETE * 1000);
 
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         taskId
@@ -194,7 +198,7 @@ class MockSunoAPI {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         taskId,
@@ -223,7 +227,7 @@ class MockSunoAPI {
 
     console.log('Mock aligned words:', _);
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         alignedWords: mockAlignedWords,
@@ -314,25 +318,17 @@ class MockSunoAPI {
     });
     this.saveTasks();
 
-    // Simulate progression through states
+    // Simulate progression through new two-level status system
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'TEXT_SUCCESS';
-        this.saveTasks();
-      }
-    }, SUNO_CONFIG.MOCK_DELAYS.TEXT_SUCCESS * 1000);
-
-    setTimeout(() => {
-      const task = this.tasks.get(taskId);
-      if (task) {
-        task.status = 'FIRST_SUCCESS';
-        // Generate first variant
+        task.status = 'STREAM_AVAILABLE';
+        // Generate first variant with streaming only
         task.variants.push({
           id: `variant_1_${taskId}`,
-          audioUrl: `https://mock-suno.com/audio/${taskId}_variant1.mp3`,
-          streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant1`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_1`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Acoustic Version`,
@@ -342,18 +338,27 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.FIRST_SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.STREAM_AVAILABLE * 1000);
 
     setTimeout(() => {
       const task = this.tasks.get(taskId);
       if (task) {
-        task.status = 'SUCCESS';
-        // Generate second variant
+        task.status = 'COMPLETE';
+        // Add download URLs to first variant
+        if (task.variants.length > 0) {
+          task.variants[0].audioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+          task.variants[0].sourceAudioUrl = `https://mock-suno.com/audio/${taskId}_variant1.mp3`;
+        }
+
+        // Generate second variant with both streaming and download
         task.variants.push({
           id: `variant_2_${taskId}`,
           audioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
+          sourceAudioUrl: `https://mock-suno.com/audio/${taskId}_variant2.mp3`,
           streamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
-          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`, // Use placeholder images
+          sourceStreamAudioUrl: `https://mock-suno.com/stream/${taskId}_variant2`,
+          imageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
+          sourceImageUrl: `https://picsum.photos/400/400?random=${taskId}_2`,
           prompt: request.prompt,
           modelName: 'chirp-v4-5plus',
           title: `${request.title} - Electric Version`,
@@ -363,7 +368,7 @@ class MockSunoAPI {
         });
         this.saveTasks();
       }
-    }, SUNO_CONFIG.MOCK_DELAYS.SUCCESS * 1000);
+    }, SUNO_CONFIG.MOCK_DELAYS.COMPLETE * 1000);
   }
 }
 
@@ -424,14 +429,6 @@ export class SunoAPI {
     return response.json();
   }
 
-  // Method to create a task with a specific ID (for client-side task creation)
-  // This is a no-op for the real API since tasks are created server-side
-  createTaskWithId(taskId: string) {
-    // For real API, this method does nothing since tasks are created server-side
-    // and should already exist when this is called
-    console.log(`Real API: Task ${taskId} should already exist from server-side creation`);
-  }
-
   // Method to clear all mock data (for testing)
   // This is a no-op for the real API
   clearMockData() {
@@ -459,7 +456,10 @@ export class SunoAPIFactory {
       if (shouldUseMockAPI()) {
         this.instance = new MockSunoAPI();
       } else {
-        const apiToken = getAPIToken();
+        const apiToken = process.env.SUNO_API_TOKEN;
+        if (!apiToken) {
+          throw new Error("Service Provider API Token not found")
+        }
         this.instance = new SunoAPI(apiToken);
       }
     }

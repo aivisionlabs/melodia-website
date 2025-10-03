@@ -10,7 +10,6 @@ import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { validateEmail, validatePassword, validateName, sanitizeInput } from './security'
 
 
-
 /**
  * Register a new user
  */

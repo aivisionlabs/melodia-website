@@ -119,7 +119,6 @@ export interface Database {
           email: string | null
           delivery_preference: 'email' | 'whatsapp' | 'both' | null
           recipient_name: string
-          recipient_relationship: string
           languages: string[]
           person_description: string | null
           song_type: string | null
@@ -127,7 +126,6 @@ export interface Database {
           additional_details: string | null
           status: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id: string | null
-          generated_song_id: number | null
           created_at: string
           updated_at: string
         }
@@ -139,7 +137,6 @@ export interface Database {
           email?: string | null
           delivery_preference?: 'email' | 'whatsapp' | 'both' | null
           recipient_name: string
-          recipient_relationship: string
           languages: string[]
           person_description?: string | null
           song_type?: string | null
@@ -147,7 +144,6 @@ export interface Database {
           additional_details?: string | null
           status?: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id?: string | null
-          generated_song_id?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -159,7 +155,6 @@ export interface Database {
           email?: string | null
           delivery_preference?: 'email' | 'whatsapp' | 'both' | null
           recipient_name?: string
-          recipient_relationship?: string
           languages?: string[]
           person_description?: string | null
           song_type?: string | null
@@ -167,7 +162,6 @@ export interface Database {
           additional_details?: string | null
           status?: 'pending' | 'processing' | 'completed' | 'failed'
           suno_task_id?: string | null
-          generated_song_id?: number | null
           created_at?: string
           updated_at?: string
         }

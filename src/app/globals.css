@@ -320,3 +320,42 @@ main {
 .text-melodia-coral {
   color: var(--color-melodia-coral);
 }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  h1 {
+    font-size: var(--font-size-4xl); /* 36px */
+  }
+
+  h2 {
+    font-size: var(--font-size-3xl); /* 30px */
+  }
+
+  h3 {
+    font-size: var(--font-size-2xl); /* 24px */
+  }
+
+  h4 {
+    font-size: var(--font-size-xl); /* 20px */
+  }
+
+  h5 {
+    font-size: var(--font-size-lg); /* 18px */
+  }
+
+  h6 {
+    font-size: var(--font-size-base); /* 16px */
+  }
+
+  .text-large {
+    font-size: var(--font-size-base); /* 16px */
+  }
+
+  .text-base {
+    font-size: var(--font-size-sm); /* 14px */
+  }
+
+  .text-small {
+    font-size: var(--font-size-xs); /* 12px */
+  }
+}

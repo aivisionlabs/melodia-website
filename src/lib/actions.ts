@@ -1,339 +1,6 @@
 'use server'
 
-import { Song, PublicSong } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
-import { createServerSupabaseClient } from './supabase';
-import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting';
-import { validateSongId, sanitizeSearchQuery } from './utils';
-
-/**
- * Get all songs with optional search and pagination
- */
-export async function getSongs(
-  search?: string,
-  limit: number = 50,
-  offset: number = 0,
-  ip: string = 'unknown'
-): Promise<{
-  songs: PublicSong[]
-  total: number
-  hasMore: boolean
-  error?: string
-}> {
-  try {
-    // Rate limiting
-    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
-      return {
-        songs: [],
-        total: 0,
-        hasMore: false,
-        error: 'Too many requests. Please try again later.'
-      }
-    }
-
-    // Input validation
-    if (limit > 100 || limit < 1) {
-      return {
-        songs: [],
-        total: 0,
-        hasMore: false,
-        error: 'Invalid limit parameter'
-      }
-    }
-
-    if (offset < 0) {
-      return {
-        songs: [],
-        total: 0,
-        hasMore: false,
-        error: 'Invalid offset parameter'
-      }
-    }
-
-    // Create server-side Supabase client
-    const supabase = createServerSupabaseClient()
-
-    // Build query with only public fields
-    let query = supabase
-      .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
-      .range(offset, offset + limit - 1)
-
-    // Add search filter if provided
-    if (search?.trim()) {
-      const sanitizedSearch = sanitizeSearchQuery(search)
-      query = query.ilike('title', `%${sanitizedSearch}%`)
-    }
-
-    // Execute query
-    const { data, error } = await query.order('title', { ascending: true })
-
-    if (error) {
-      console.error('Database error:', error)
-      return {
-        songs: [],
-        total: 0,
-        hasMore: false,
-        error: 'Unable to retrieve songs'
-      }
-    }
-
-    // Transform data to public format
-    const publicSongs: PublicSong[] = (data as any[] || []).map(song => ({
-      id: song.id,
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants,
-      selected_variant: song.selected_variant,
-      music_style: song.music_style,
-      service_provider: song.service_provider ?? null,
-      song_url: song.song_url,
-      duration: song.duration,
-      slug: song.slug
-    }))
-
-    return {
-      songs: publicSongs,
-      total: publicSongs.length,
-      hasMore: publicSongs.length === limit
-    }
-
-  } catch (error) {
-    console.error('Server action error:', error)
-    return {
-      songs: [],
-      total: 0,
-      hasMore: false,
-      error: 'Internal server error'
-    }
-  }
-}
-
-/**
- * Get a specific song by ID
- */
-export async function getSong(
-  id: string,
-  ip: string = 'unknown'
-): Promise<{
-  song: PublicSong | null
-  error?: string
-}> {
-  try {
-    // Rate limiting
-    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
-      return {
-        song: null,
-        error: 'Too many requests. Please try again later.'
-      }
-    }
-
-    // Input validation
-    if (!validateSongId(id)) {
-      return {
-        song: null,
-        error: 'Invalid song ID'
-      }
-    }
-
-    // Create server-side Supabase client
-    const supabase = createServerSupabaseClient()
-
-    // Query with only public fields
-    const { data, error } = await supabase
-      .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      console.error('Database error:', error)
-      if (error.code === 'PGRST116') {
-        return {
-          song: null,
-          error: 'Song not found'
-        }
-      }
-      return {
-        song: null,
-        error: 'Unable to retrieve song'
-      }
-    }
-
-    if (!data) {
-      return {
-        song: null,
-        error: 'Song not found'
-      }
-    }
-
-    // Transform data to public format
-    const publicSong: PublicSong = {
-      id: (data as any).id,
-      title: (data as any).title,
-      lyrics: (data as any).lyrics,
-      timestamp_lyrics: (data as any).timestamp_lyrics,
-      timestamped_lyrics_variants: (data as any).timestamped_lyrics_variants,
-      selected_variant: (data as any).selected_variant,
-      music_style: (data as any).music_style,
-      service_provider: (data as any).service_provider,
-      song_url: (data as any).song_url,
-      duration: (data as any).duration,
-      slug: (data as any).slug
-    }
-
-    return { song: publicSong }
-
-  } catch (error) {
-    console.error('Server action error:', error)
-    return {
-      song: null,
-      error: 'Internal server error'
-    }
-  }
-}
-
-/**
- * Search songs by title
- */
-export async function searchSongs(
-  query: string,
-  ip: string = 'unknown'
-): Promise<{
-  songs: PublicSong[]
-  error?: string
-}> {
-  try {
-    // Rate limiting
-    if (!checkRateLimit(ip, RATE_LIMITS.GENERAL_API)) {
-      return {
-        songs: [],
-        error: 'Too many requests. Please try again later.'
-      }
-    }
-
-    // Input validation
-    if (!query || typeof query !== 'string' || query.length < 2) {
-      return { songs: [] }
-    }
-
-    // Sanitize search query
-    const sanitizedQuery = sanitizeSearchQuery(query)
-
-    // Create server-side Supabase client
-    const supabase = createServerSupabaseClient()
-
-    const { data, error } = await supabase
-      .from('songs')
-      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, music_style, service_provider, song_url, duration, slug')
-      .ilike('title', `%${sanitizedQuery}%`)
-      .limit(20)
-
-    if (error) {
-      console.error('Search error:', error)
-      return {
-        songs: [],
-        error: 'Search failed'
-      }
-    }
-
-    // Transform data to public format
-    const publicSongs: PublicSong[] = (data as any[] || []).map(song => ({
-      id: song.id,
-      title: song.title,
-      lyrics: song.lyrics,
-      timestamp_lyrics: song.timestamp_lyrics,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants,
-      selected_variant: song.selected_variant,
-      music_style: song.music_style,
-      service_provider: song.service_provider,
-      song_url: song.song_url,
-      duration: song.duration,
-      slug: song.slug
-    }))
-
-    return { songs: publicSongs }
-
-  } catch (error) {
-    console.error('Search error:', error)
-    return {
-      songs: [],
-      error: 'Search failed'
-    }
-  }
-}
-
-/**
- * Get song statistics
- */
-export async function getSongStats(): Promise<{
-  totalSongs: number
-  totalDuration: number
-  popularStyles: string[]
-  error?: string
-}> {
-  try {
-    const supabase = createServerSupabaseClient()
-
-    // Get total count
-    const { count, error: countError } = await supabase
-      .from('songs')
-      .select('*', { count: 'exact', head: true })
-
-    if (countError) {
-      throw countError
-    }
-
-    // Get duration sum
-    const { data: durationData, error: durationError } = await supabase
-      .from('songs')
-      .select('duration')
-
-    if (durationError) {
-      throw durationError
-    }
-
-    const totalDuration = (durationData as any[])?.reduce((sum, song) => sum + (song.duration || 0), 0) || 0
-
-    // Get popular styles
-    const { data: stylesData, error: stylesError } = await supabase
-      .from('songs')
-      .select('music_style')
-      .not('music_style', 'is', null)
-
-    if (stylesError) {
-      throw stylesError
-    }
-
-    const styleCounts = (stylesData as any[])?.reduce((acc, song) => {
-      if (song.music_style) {
-        acc[song.music_style] = (acc[song.music_style] || 0) + 1
-      }
-      return acc
-    }, {} as Record<string, number>) || {}
-
-    const popularStyles = Object.entries(styleCounts)
-      .sort(([, a], [, b]) => (b as number) - (a as number))
-      .slice(0, 5)
-      .map(([style]) => style)
-
-    return {
-      totalSongs: count || 0,
-      totalDuration,
-      popularStyles
-    }
-
-  } catch (error) {
-    console.error('Stats error:', error)
-    return {
-      totalSongs: 0,
-      totalDuration: 0,
-      popularStyles: [],
-      error: 'Unable to retrieve statistics'
-    }
-  }
-}
 
 // Song creation action with Suno integration
 export async function createSongAction(formData: FormData) {
@@ -388,7 +55,7 @@ export async function createSongAction(formData: FormData) {
       title: title,
       customMode: true,
       instrumental: false,
-      model: "V4_5PLUS",
+      model: "V5",
       negativeTags: negativeTags || undefined,
       callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
     };
@@ -445,6 +112,37 @@ export async function createSongAction(formData: FormData) {
   }
 }
 
+export async function selectSongVariantAction(
+  songId: number,
+  taskId: string,
+  variantIndex: number,
+) {
+  try {
+    const { updateSong } = await import("@/lib/db/queries/update");
+    await updateSong(songId, { selected_variant: variantIndex });
+
+    const lyricsResult =
+      await generateTimestampedLyricsAction(taskId, variantIndex);
+
+    if (!lyricsResult.success) {
+      return {
+        success: false,
+        error:
+          lyricsResult.error ||
+          "Failed to generate timestamped lyrics after selecting variant.",
+      };
+    }
+
+    return {
+      success: true,
+      songId,
+    };
+  } catch (error) {
+    console.error("Error in selectSongVariantAction:", error);
+    return { success: false, error: "Failed to select song variant." };
+  }
+}
+
 // Analytics tracking actions
 export async function trackSongView(songId: number) {
   try {
@@ -488,46 +186,6 @@ export async function getSongByTaskIdAction(taskId: string) {
   } catch (error) {
     console.error('Error in getSongByTaskIdAction:', error);
     return { success: false, error: 'Failed to get song by task ID' };
-  }
-}
-
-export async function getActiveSongsAction(): Promise<
-  | { success: true; songs: Song[] }
-  | { success: false; error: string; songs: Song[] }
-> {
-  try {
-    const { getAllSongs } = await import('@/lib/db/queries/select');
-    const dbSongs = await getAllSongs();
-
-    // Transform database songs to match Song type
-    const songs: Song[] = dbSongs.map(song => ({
-      id: song.id,
-      created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics ?? null,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style ?? null,
-      service_provider: song.service_provider ?? null,
-      song_requester: song.song_requester ?? null,
-      prompt: song.prompt ?? null,
-      song_url: song.song_url ?? null,
-      duration: song.duration ?? null, // Keep as number
-      slug: song.slug,
-      is_active: song.is_active ?? undefined,
-      status: song.status ?? undefined,
-      categories: song.categories ?? undefined,
-      tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      metadata: song.metadata as any,
-      user_id: song.user_id ?? undefined,
-    }));
-
-    return { success: true, songs };
-  } catch (error) {
-    console.error('Error in getActiveSongsAction:', error);
-    return { success: false, error: 'Failed to get active songs', songs: [] };
   }
 }
 
@@ -585,24 +243,26 @@ export async function updateSongWithVariantsAction(
         const { getSongById } = await import('@/lib/db/services');
         const song = await getSongById(songId);
 
-        if (song && song.suno_task_id) {
+        if (song && song.metadata?.suno_task_id) {
           console.log(`Generating timestamped lyrics for selected variant ${selectedVariant}`);
 
           // Generate timestamped lyrics for the selected variant
           const lyricsResult = await generateTimestampedLyricsAction(
-            song.suno_task_id,
+            song.metadata.suno_task_id,
             selectedVariant
           );
 
           if (lyricsResult.success) {
             console.log(`Successfully generated timestamped lyrics for variant ${selectedVariant}`);
 
-            // Update the main timestamp_lyrics field for compatibility with existing components
+            // Update the song with the new timestamped lyrics data
             const { updateSong } = await import('@/lib/db/queries/update');
             await updateSong(songId, {
-              timestamp_lyrics: lyricsResult.lyricLines,
-              song_url: variants[selectedVariant]?.sourceAudioUrl || song.song_url,
-              duration: (variants[selectedVariant]?.duration || song.duration)?.toString()
+              // Store in the new schema field for compatibility
+              variant_timestamp_lyrics_processed: {
+                ...song.variant_timestamp_lyrics_processed,
+                [selectedVariant]: lyricsResult.lyricLines
+              }
             });
 
             return {
@@ -660,7 +320,7 @@ export async function restoreSongAction(songId: number) {
   }
 }
 
-// Action to generate timestamped lyrics for a variant
+// // Action to generate timestamped lyrics for a variant
 export async function generateTimestampedLyricsAction(
   taskId: string,
   variantIndex: number
@@ -676,20 +336,20 @@ export async function generateTimestampedLyricsAction(
     }
 
     // Check if lyrics already exist for this variant
-    if (songResult.song.timestamped_lyrics_variants &&
-      songResult.song.timestamped_lyrics_variants[variantIndex]) {
+    if (songResult.song.variant_timestamp_lyrics_processed &&
+      songResult.song.variant_timestamp_lyrics_processed[variantIndex]) {
       console.log(`Lyrics for variant ${variantIndex} already exist in database, returning cached data`);
       return {
         success: true,
-        lyricLines: songResult.song.timestamped_lyrics_variants[variantIndex],
-        apiResponse: songResult.song.timestamped_lyrics_api_responses?.[variantIndex] || null,
-        variant: songResult.song.suno_variants?.[variantIndex],
+        lyricLines: songResult.song.variant_timestamp_lyrics_processed[variantIndex],
+        apiResponse: songResult.song.variant_timestamp_lyrics_api_response?.[variantIndex] || null,
+        variant: songResult.song.song_variants?.[variantIndex],
         fromCache: true
       };
     }
 
     // Get variants from the song
-    const variants = songResult.song.suno_variants;
+    const variants = songResult.song.song_variants;
     if (!variants || !variants[variantIndex]) {
       return {
         success: false,
@@ -800,26 +460,30 @@ export async function generateTimestampedLyricsAction(
 
 
     if (lyricLines.length > 0) {
-      console.log('First converted line:', lyricLines[0]);
-      console.log('Last converted line:', lyricLines[lyricLines.length - 1]);
+      console.log("First converted line:", lyricLines[0]);
+      console.log(
+        "Last converted line:",
+        lyricLines[lyricLines.length - 1],
+      );
     }
 
-
-
     // Store the timestamped lyrics and only the alignedWords for this variant
-    const { updateTimestampedLyricsForVariant } = await import('@/lib/db/queries/update');
+    const { updateTimestampedLyricsForVariant } = await import(
+      "@/lib/db/queries/update"
+    );
 
     // Validate that we have valid timing data before storage
-    const linesWithNullValues = lyricLines.filter(line =>
-      line.start === null || line.end === null ||
-      typeof line.start === 'undefined' || typeof line.end === 'undefined'
+    const linesWithNullValues = lyricLines.filter(
+      line =>
+        line.start === null || line.end === null ||
+        typeof line.start === 'undefined' || typeof line.end === 'undefined'
     );
 
     if (linesWithNullValues.length > 0) {
-      console.error('Cannot store lyrics with null timing values');
+      console.error("Cannot store lyrics with null timing values");
       return {
         success: false,
-        error: 'Cannot store lyrics with null timing values'
+        error: "Cannot store lyrics with null timing values",
       };
     }
 
@@ -827,10 +491,8 @@ export async function generateTimestampedLyricsAction(
       songResult.song.id,
       variantIndex,
       lyricLines,
-      response.data.alignedWords // Store only the alignedWords, not the entire response
+      response.data.alignedWords, // Store only the alignedWords, not the entire response
     );
-
-
 
     return {
       success: true,
@@ -995,68 +657,3 @@ function cleanLyrics(lines: any[]) {
     .filter((line) => line !== null && line.text.length > 0);
 }
 
-// Action to complete song creation with synchronized lyrics
-export async function completeSongWithLyricsAction(
-  songId: number,
-  selectedVariant: number,
-  addToLibrary: boolean = true
-) {
-  try {
-    const { updateSongWithVariants } = await import('@/lib/db/queries/update');
-
-    // Get the song to access variants and check if selected variant has lyrics
-    const { getSongById } = await import('@/lib/db/services');
-    const song = await getSongById(songId);
-
-    if (!song || !song.suno_variants) {
-      return {
-        success: false,
-        error: 'Song or variants not found'
-      };
-    }
-
-    // Validate that the selected variant has synchronized lyrics
-    if (!song.timestamped_lyrics_variants || !song.timestamped_lyrics_variants[selectedVariant]) {
-      return {
-        success: false,
-        error: `Selected variant ${selectedVariant + 1} does not have synchronized lyrics. Please generate lyrics for this variant first.`
-      };
-    }
-
-    // Get the selected variant's lyrics to copy to main timestamp_lyrics field
-    const selectedVariantLyrics = song.timestamped_lyrics_variants[selectedVariant];
-    const selectedVariantData = song.suno_variants[selectedVariant];
-
-    // Update the song with the selected variant and copy lyrics to main field
-    await updateSongWithVariants(
-      songId,
-      song.suno_variants,
-      selectedVariant,
-      addToLibrary
-    );
-
-    // Also update the main timestamp_lyrics field for compatibility with existing components
-    const { updateSong } = await import('@/lib/db/queries/update');
-    await updateSong(songId, {
-      timestamp_lyrics: selectedVariantLyrics,
-      song_url: selectedVariantData?.audioUrl || song.song_url,
-      duration: selectedVariantData?.duration || song.duration
-    });
-
-    return {
-      success: true,
-      song: {
-        ...song,
-        timestamp_lyrics: selectedVariantLyrics,
-        song_url: selectedVariantData?.audioUrl || song.song_url,
-        duration: selectedVariantData?.duration || song.duration
-      }
-    };
-  } catch (error) {
-    console.error('Error completing song with lyrics:', error);
-    return {
-      success: false,
-      error: 'Failed to complete song'
-    };
-  }
-}

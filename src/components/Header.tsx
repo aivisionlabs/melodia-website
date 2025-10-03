@@ -68,7 +68,7 @@ const Header = () => {
                 Dashboard
               </Button>
             </Link>
-            <Link href="/create-song-v2">
+            <Link href="/">
               <Button
                 size="sm"
                 className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
@@ -113,11 +113,6 @@ const Header = () => {
       <div className="flex items-center gap-2 sm:gap-4 md:hidden">
         {isAuthenticated ? (
           <div className="flex items-center gap-2">
-            {/* <Link href="/create-song">
-              <Button size="sm" className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground text-xs">
-                Create
-              </Button>
-            </Link> */}
             <Button
               variant="ghost"
               size="sm"
@@ -196,7 +191,7 @@ const Header = () => {
                   Dashboard
                 </Link>
                 <Link
-                  href="/create-song"
+                  href="/"
                   className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Create New Song"

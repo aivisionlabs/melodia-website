@@ -1,69 +1,80 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useAutosave } from '@/hooks/use-autosave';
-import { Button } from '@/components/ui/button';
-import { LyricsDraft } from '@/types';
+import { useState, useEffect } from "react";
+import { useAutosave } from "@/hooks/use-autosave";
+import { Button } from "@/components/ui/button";
+import { LyricsDraft } from "@/types";
 
 interface LyricsEditorProps {
   requestId: string;
   currentDraft: LyricsDraft | null;
-  onSave: (draftId: number, text: string) => Promise<any>;
+  onSave: (draftId: number, text: string, editPrompt?: string) => Promise<any>;
   onApprove: (draftId: number) => Promise<any>;
   loading?: boolean;
 }
 
-export function LyricsEditor({ 
-  currentDraft, 
-  onSave, 
-  onApprove, 
-  loading = false 
+export function LyricsEditor({
+  currentDraft,
+  onSave,
+  onApprove,
+  loading = false,
 }: LyricsEditorProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
+  const [editPrompt, setEditPrompt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedText, setLastSavedText] = useState('');
-  
+  const [lastSavedText, setLastSavedText] = useState("");
+
   // Update text when current draft changes
   useEffect(() => {
     if (currentDraft) {
-      const displayText = currentDraft.edited_text || currentDraft.generated_text;
+      const displayText = currentDraft.generated_text;
       setText(displayText);
       setLastSavedText(displayText);
+
+      // Load existing edit prompt if available
+      if (currentDraft.lyrics_edit_prompt) {
+        setEditPrompt(currentDraft.lyrics_edit_prompt);
+      }
     } else {
-      setText('');
-      setLastSavedText('');
+      setText("");
+      setLastSavedText("");
+      setEditPrompt("");
     }
   }, [currentDraft]);
-  
+
   // Auto-save hook
-  useAutosave(text, async () => {
-    if (currentDraft && text !== lastSavedText && text.trim()) {
-      await handleSave();
-    }
-  }, 3000); // 3 seconds delay
-  
+  useAutosave(
+    text,
+    async () => {
+      if (currentDraft && text !== lastSavedText && text.trim()) {
+        await handleSave();
+      }
+    },
+    3000
+  ); // 3 seconds delay
+
   const handleSave = async () => {
     if (!currentDraft || !text.trim()) return;
-    
+
     setIsSaving(true);
     try {
-      await onSave(currentDraft.id, text);
+      await onSave(currentDraft.id, text, editPrompt.trim() || undefined);
       setLastSavedText(text);
     } catch (error) {
-      console.error('Failed to save:', error);
+      console.error("Failed to save:", error);
     } finally {
       setIsSaving(false);
     }
   };
-  
+
   const handleApprove = async () => {
     if (!currentDraft) return;
-    
+
     // Save first, then approve
     await handleSave();
     await onApprove(currentDraft.id);
   };
-  
+
   if (!currentDraft) {
     return (
       <div className="space-y-4">
@@ -74,7 +85,7 @@ export function LyricsEditor({
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -86,10 +97,25 @@ export function LyricsEditor({
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          {isSaving ? 'Saving...' : 'Auto-saved'}
+          {isSaving ? "Saving..." : "Auto-saved"}
         </div>
       </div>
-      
+
+      {/* Edit Prompt Input */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Edit Instructions (Optional)
+        </label>
+        <textarea
+          value={editPrompt}
+          onChange={(e) => setEditPrompt(e.target.value)}
+          placeholder="Describe what changes you want to make to the lyrics..."
+          className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+          rows={2}
+          disabled={loading}
+        />
+      </div>
+
       {/* Editor */}
       <div className="relative">
         <textarea
@@ -99,41 +125,50 @@ export function LyricsEditor({
           placeholder="Your lyrics will appear here..."
           disabled={loading}
         />
-        
+
         {/* Character count overlay */}
         <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-white px-2 py-1 rounded">
           {text.length} chars
         </div>
       </div>
-      
+
       {/* Stats */}
       <div className="flex justify-between items-center text-sm text-gray-500">
-        <span>{text.split('\n').filter(line => line.trim()).length} lines</span>
-        <span>{text.split(' ').filter(word => word.trim()).length} words</span>
+        <span>
+          {text.split("\n").filter((line) => line.trim()).length} lines
+        </span>
+        <span>
+          {text.split(" ").filter((word) => word.trim()).length} words
+        </span>
       </div>
-      
+
       {/* Actions */}
       <div className="flex gap-3">
-        <Button 
+        <Button
           onClick={handleSave}
           disabled={loading || isSaving || !text.trim()}
           variant="outline"
           className="flex-1"
         >
-          {isSaving ? 'Saving...' : 'Save Draft'}
+          {isSaving ? "Saving..." : "Save Draft"}
         </Button>
-        
-        <Button 
+
+        <Button
           onClick={handleApprove}
-          disabled={loading || isSaving || !text.trim() || currentDraft.status === 'approved'}
+          disabled={
+            loading ||
+            isSaving ||
+            !text.trim() ||
+            currentDraft.status === "approved"
+          }
           className="flex-1 bg-green-600 hover:bg-green-700 text-white"
         >
           Approve Lyrics
         </Button>
       </div>
-      
+
       {/* Status indicator */}
-      {currentDraft.status === 'approved' && (
+      {currentDraft.status === "approved" && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
           <p className="text-green-800 text-sm font-medium">
             ✓ Lyrics approved and ready for song creation

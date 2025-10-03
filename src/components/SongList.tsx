@@ -65,7 +65,7 @@ export default function SongList({ songs }: SongListProps) {
                   <div className="flex-shrink-0">
                     <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
                       <span className="text-yellow-600 font-medium">
-                        {song.title.charAt(0)}
+                        {song.title?.charAt(0) || ""}
                       </span>
                     </div>
                   </div>
@@ -99,7 +99,7 @@ export default function SongList({ songs }: SongListProps) {
                   </Link>
                   <DeleteSongButton
                     songId={song.id}
-                    songTitle={song.title}
+                    songTitle={song.title || ""}
                     variant="dropdown"
                     onDelete={() => handleSongDelete(song.id)}
                   />

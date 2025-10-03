@@ -56,9 +56,8 @@ Both variants ready → Redirect to selection page → User chooses → Saves to
 
 The Suno API returns these states:
 - `PENDING`: Task is waiting to be processed
-- `TEXT_SUCCESS`: Lyrics/text generation completed
-- `FIRST_SUCCESS`: First track generation completed
-- `SUCCESS`: All tracks generated successfully
+- `STREAM_AVAILABLE`: First variant ready for streaming
+- `COMPLETE`: All variants ready for download
 - `CREATE_TASK_FAILED`: Failed to create the generation task
 - `GENERATE_AUDIO_FAILED`: Failed to generate music tracks
 - `CALLBACK_EXCEPTION`: Error occurred during callback
@@ -99,7 +98,7 @@ The current implementation uses a mock API that:
 - Can simulate errors for testing error handling
 
 ### Mock API Features
-- **Realistic Timing**: PENDING → TEXT_SUCCESS → FIRST_SUCCESS → SUCCESS
+- **Realistic Timing**: PENDING → STREAM_AVAILABLE → COMPLETE
 - **Error Simulation**: Call `mockSunoAPI.simulateError(taskId, errorType)` to test error states
 - **Variant Generation**: Creates two variants with different metadata
 

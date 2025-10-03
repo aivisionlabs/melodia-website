@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { registerUser } from '@/lib/user-actions'
 import { db } from '@/lib/db'
-import { songRequestsTable } from '@/lib/db/schema'
+import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function POST(request: NextRequest) {
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       // Handle anonymous user data merge
       if (anonymous_user_id) {
         try {
+          // Update song requests
           const updateResult = await db
             .update(songRequestsTable)
             .set({
@@ -46,6 +47,18 @@ export async function POST(request: NextRequest) {
             .returning({ id: songRequestsTable.id })
 
           console.log(`Merged ${updateResult.length} anonymous requests for new user ${result.user.id}`)
+
+          // Update payments
+          const paymentUpdateResult = await db
+            .update(paymentsTable)
+            .set({
+              user_id: result.user.id,
+              anonymous_user_id: null
+            })
+            .where(eq(paymentsTable.anonymous_user_id, anonymous_user_id))
+            .returning({ id: paymentsTable.id })
+
+          console.log(`Merged ${paymentUpdateResult.length} anonymous payments for new user ${result.user.id}`)
         } catch (mergeError) {
           console.error('Failed to merge anonymous user data (register):', mergeError)
           // Don't fail registration if merge fails, just log the error

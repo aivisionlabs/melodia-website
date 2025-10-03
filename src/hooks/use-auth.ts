@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@/types'
+import { apiPost } from '@/lib/api-utils'
 
 interface AuthState {
   user: User | null
@@ -65,12 +66,10 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
+      const response = await apiPost('/api/auth/login', {
+        email,
+        password,
+        anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined
       })
 
       const result = await response.json()
@@ -113,12 +112,11 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, name, anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined })
+      const response = await apiPost('/api/auth/register', {
+        email,
+        password,
+        name,
+        anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined
       })
 
       const result = await response.json()
@@ -161,9 +159,7 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true }))
 
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      })
+      const response = await apiPost('/api/auth/logout', {})
 
       const result = await response.json()
 

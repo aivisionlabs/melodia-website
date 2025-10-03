@@ -2,890 +2,362 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Play,
-  ArrowLeft,
-  Music,
-  Trash2,
-  RefreshCw,
-  Loader2,
-  Search,
-  Filter,
-  X,
-} from "lucide-react";
-import Header from "@/components/Header";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  fetchUserContent,
-  UserContentItem,
-  getButtonForContent,
-} from "@/lib/user-content-client";
-import { useToast } from "@/components/ui/toast";
-import { pollSongStatus } from "@/lib/song-status-client";
-import { VariantSelectionModal } from "@/components/VariantSelectionModal";
-import { MiniPlayer } from "@/components/MiniPlayer";
+import { useAnonymousUser } from "@/hooks/use-anonymous-user";
+import BottomNavigation from "@/components/BottomNavigation";
+import { SongRequestInProgressCard } from "@/components/SongRequestInProgressCard";
+import SongPlayerCard from "@/components/SongPlayerCard";
+import type { SongVariant as SongVariantBase } from "@/lib/song-status-client";
+import { LoginPromptCard } from "@/components/LoginPromptCard";
+
+type ApiSongVariant = {
+  index: number;
+  id?: string;
+  title?: string;
+  imageUrl?: string | null;
+  duration?: number;
+  sourceStreamAudioUrl?: string | null;
+  sourceAudioUrl?: string | null;
+  streamAudioUrl?: string | null;
+  audioUrl?: string | null;
+  variantStatus: "PENDING" | "STREAM_READY" | "DOWNLOAD_READY";
+  lyrics?: string;
+  artist?: string;
+  tags?: string;
+  suno_id?: string;
+};
+
+type ApiSongItem = {
+  songId: number;
+  requestId: number;
+  title: string;
+  createdAt: string;
+  variants: ApiSongVariant[];
+};
+
+type FetchResponse = {
+  success: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  songs: ApiSongItem[];
+  inProgressRequests: {
+    id: number;
+    status: string | null;
+    created_at: string;
+    title: string;
+  }[];
+};
 
 export default function MySongsPage() {
   const router = useRouter();
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
-  const { addToast } = useToast();
-  const [userContent, setUserContent] = useState<UserContentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [progressItem, setProgressItem] = useState<UserContentItem | null>(
-    null
-  );
-  const [pollingSongs, setPollingSongs] = useState<Set<string>>(new Set());
-  const cleanupFunctionsRef = useRef<Map<string, () => void>>(new Map());
+  const { user, loading: authLoading } = useAuth();
+  const { anonymousUserId, loading: anonLoading } = useAnonymousUser();
 
-  // Variant selection modal state
-  const [showVariantModal, setShowVariantModal] = useState(false);
-  const [selectedSongForVariants, setSelectedSongForVariants] =
-    useState<UserContentItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [songs, setSongs] = useState<ApiSongItem[]>([]);
+  const [inProgressRequests, setInProgressRequests] = useState<
+    { id: number; status: string | null; created_at: string; title: string }[]
+  >([]);
 
-  // Media player state
-  const [selectedSong, setSelectedSong] = useState<any>(null);
-  const [, setSongLyrics] = useState<any[]>([]);
+  const isAuthResolved = !authLoading && !anonLoading;
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [filteredContent, setFilteredContent] = useState<UserContentItem[]>([]);
+  const fetchPage = useCallback(async () => {
+    if (!isAuthResolved || loading || !hasMore) return;
+    setLoading(true);
 
-  const stopPollingSong = (songId: string) => {
-    // Call cleanup function if it exists
-    const cleanup = cleanupFunctionsRef.current.get(songId);
-    if (cleanup) {
-      console.log(`Stopping polling for song ${songId}`);
-      cleanup();
-      cleanupFunctionsRef.current.delete(songId);
-    }
-
-    // Remove from polling set
-    setPollingSongs((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(songId);
-      return newSet;
-    });
-  };
-
-  const loadUserContent = useCallback(async () => {
-    if (!user?.id) return;
+    const qp = new URLSearchParams();
+    qp.set("page", String(page));
+    qp.set("pageSize", "10");
+    if (user?.id) qp.set("userId", String(user.id));
+    else if (anonymousUserId) qp.set("anonymousUserId", anonymousUserId);
 
     try {
-      setIsLoading(true);
-      console.log("Loading user content for user:", user.id);
-      const content = await fetchUserContent(user.id);
-      console.log("Loaded user content:", content.length, "items");
-      setUserContent(content);
-      setFilteredContent(content); // Initialize filtered content
+      const res = await fetch(`/api/fetch-user-song?${qp.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch songs");
+      const data: FetchResponse = await res.json();
+
+      if (data?.success) {
+        setSongs((prev) => [...prev, ...data.songs]);
+        setHasMore(data.hasMore);
+        if (page === 1) setInProgressRequests(data.inProgressRequests || []);
+        setPage((p) => p + 1);
+      }
     } catch (error) {
-      console.error("Error loading user content:", error);
-      addToast({
-        type: "error",
-        title: "Error",
-        message: "Failed to load your songs. Please try again.",
-      });
+      console.error("Error fetching user songs:", error);
+      // Optionally, handle the error in the UI
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [user?.id, addToast]);
+  }, [isAuthResolved, loading, hasMore, page, user?.id, anonymousUserId]);
 
-  // Filter content based on search query and filters
-  const applyFilters = useCallback(() => {
-    let filtered = [...userContent];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query) ||
-          item.recipient_name.toLowerCase().includes(query)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((item) => {
-        const button = getButtonForContent(item);
-        const statusText = button.text.toLowerCase();
-
-        switch (statusFilter) {
-          case "ready":
-            return statusText.includes("listen") || statusText.includes("play");
-          case "processing":
-            return (
-              statusText.includes("progress") ||
-              statusText.includes("generating")
-            );
-          case "draft":
-            return (
-              statusText.includes("generate") || statusText.includes("review")
-            );
-          case "failed":
-            return (
-              statusText.includes("retry") || statusText.includes("failed")
-            );
-          default:
-            return true;
-        }
-      });
-    }
-
-    setFilteredContent(filtered);
-  }, [userContent, searchQuery, statusFilter]);
-
-  // Apply filters when search query or filters change
   useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-  };
-
-  // Helper function to safely parse lyrics
-  const parseLyrics = (lyrics: any): any[] => {
-    if (!lyrics) return [];
-
-    if (typeof lyrics === "string") {
-      try {
-        return JSON.parse(lyrics);
-      } catch {
-        // If it's not valid JSON, treat it as plain text and create a proper lyrics array
-        const lines = lyrics.split("\n").filter((line) => line.trim() !== "");
-        const lyricsArray = lines.map((line, index) => ({
-          index: index,
-          text: line.trim(),
-          start: index * 5000, // 5 seconds per line
-          end: (index + 1) * 5000,
-        }));
-        return lyricsArray;
-      }
+    if (isAuthResolved) {
+      setSongs([]);
+      setInProgressRequests([]);
+      setPage(1);
+      setHasMore(true);
     }
+  }, [isAuthResolved, user?.id, anonymousUserId]);
 
-    return Array.isArray(lyrics) ? lyrics : [];
-  };
-
-  // Handle variant selection for MediaPlayer
-  const handleVariantSelectForPlayer = (variant: any, variantIndex: number) => {
-    if (!selectedSongForVariants) return;
-
-    // Get the correct lyrics for this variant
-    let variantLyrics = null;
-    if (
-      selectedSongForVariants.timestamped_lyrics_variants &&
-      selectedSongForVariants.timestamped_lyrics_variants[variantIndex]
-    ) {
-      // Use variant-specific timestamped lyrics if available
-      variantLyrics =
-        selectedSongForVariants.timestamped_lyrics_variants[variantIndex];
-    } else if (selectedSongForVariants.timestamp_lyrics) {
-      // Fallback to main timestamped lyrics
-      variantLyrics = selectedSongForVariants.timestamp_lyrics;
-    } else {
-      // Fallback to parsed plain text lyrics
-      variantLyrics = parseLyrics(selectedSongForVariants.lyrics);
+  useEffect(() => {
+    if (isAuthResolved && page === 1 && hasMore && !loading) {
+      fetchPage();
     }
+  }, [isAuthResolved, page, hasMore, loading, fetchPage]);
 
-    // Create song object for MediaPlayer
-    const songForPlayer = {
-      title: selectedSongForVariants.title,
-      artist: selectedSongForVariants.recipient_name,
-      song_url: variant.audioUrl || variant.streamAudioUrl,
-      slug: selectedSongForVariants.title.toLowerCase().replace(/\s+/g, "-"),
-      lyrics: variantLyrics,
-      timestamp_lyrics: selectedSongForVariants.timestamp_lyrics || null,
-      timestamped_lyrics_variants:
-        selectedSongForVariants.timestamped_lyrics_variants || null,
-      selected_variant: variantIndex,
-      // Suno-specific fields for timestamped lyrics
-      suno_task_id: selectedSongForVariants.suno_task_id,
-      suno_audio_id: variant.id, // Use variant ID as audio ID
+  // Infinite scroll
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          fetchPage();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [fetchPage, hasMore, loading]);
+
+  // Player State
+  const [audioElements, setAudioElements] = useState<{
+    [key: string]: HTMLAudioElement;
+  }>({});
+  const [playerState, setPlayerState] = useState<{
+    [key: string]: {
+      isPlaying: boolean;
+      isLoading: boolean;
+      currentTime: number;
+      duration: number;
     };
+  }>({});
+  const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
 
-    setSelectedSong(songForPlayer);
-    setSongLyrics(variantLyrics || []);
-  };
+  const getPlayerState = useCallback(
+    (id: string) => {
+      return (
+        playerState[id] || {
+          isPlaying: false,
+          isLoading: false,
+          currentTime: 0,
+          duration: 0,
+        }
+      );
+    },
+    [playerState]
+  );
 
-  // Handle listen button click
-  const handleListenClick = (item: UserContentItem) => {
-    if (item.variants && item.variants.length > 1) {
-      // Show variant selection modal for songs with multiple variants
-      setSelectedSongForVariants(item);
-      setShowVariantModal(true);
-    } else if (item.variants && item.variants.length === 1) {
-      // Direct play for songs with single variant
-      handleVariantSelectForPlayer(item.variants[0], 0);
-    } else {
-      // Fallback for songs without variants
-      let songLyrics = null;
-      if (
-        item.timestamped_lyrics_variants &&
-        item.timestamped_lyrics_variants[0]
-      ) {
-        // Use variant-specific timestamped lyrics if available
-        songLyrics = item.timestamped_lyrics_variants[0];
-      } else if (item.timestamp_lyrics) {
-        // Fallback to main timestamped lyrics
-        songLyrics = item.timestamp_lyrics;
-      } else {
-        // Fallback to parsed plain text lyrics
-        songLyrics = parseLyrics(item.lyrics);
-      }
-
-      const songForPlayer = {
-        title: item.title,
-        artist: item.recipient_name,
-        song_url: item.audio_url,
-        slug: item.title.toLowerCase().replace(/\s+/g, "-"),
-        lyrics: songLyrics,
-        timestamp_lyrics: item.timestamp_lyrics || null,
-        timestamped_lyrics_variants: item.timestamped_lyrics_variants || null,
-        selected_variant: 0,
-        // Suno-specific fields for timestamped lyrics
-        suno_task_id: item.suno_task_id,
-        suno_audio_id: item.song_id?.toString(), // Use song ID as audio ID
+  const updatePlayerState = useCallback((id: string, updates: object) => {
+    setPlayerState((prev) => {
+      const currentState = prev[id] || {
+        isPlaying: false,
+        isLoading: false,
+        currentTime: 0,
+        duration: 0,
       };
-      setSelectedSong(songForPlayer);
-      setSongLyrics(songLyrics || []);
-    }
-  };
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/sign-in");
-      return;
-    }
-
-    if (user?.id) {
-      loadUserContent();
-    }
-  }, [user, authLoading, isAuthenticated, router, loadUserContent]);
-
-  // Refresh data when page becomes visible (e.g., when user navigates back from home)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.id) {
-        loadUserContent();
-      } else if (document.hidden) {
-        // Stop all polling when page becomes hidden
-        console.log("Page hidden - stopping all polling");
-        cleanupFunctionsRef.current.forEach((cleanup, songId) => {
-          console.log(`Stopping polling for song ${songId} - page hidden`);
-          cleanup();
-        });
-        cleanupFunctionsRef.current.clear();
-        setPollingSongs(new Set());
-      }
-    };
-
-    const handleFocus = () => {
-      if (user?.id) {
-        loadUserContent();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [user?.id, loadUserContent]);
-
-  // Start individual song polling for processing songs
-  useEffect(() => {
-    if (user?.id && userContent.length > 0) {
-      // Find songs that need polling
-      const songsToPoll = userContent.filter(
-        (item) =>
-          item.type === "song" &&
-          (item.status === "processing" || item.status === "generating") &&
-          !pollingSongs.has(item.id)
-      );
-
-      if (songsToPoll.length > 0) {
-        console.log(
-          `Found ${songsToPoll.length} songs to poll:`,
-          songsToPoll.map((s) => s.id)
-        );
-
-        songsToPoll.forEach((song) => {
-          // Extract taskId from song metadata or use a fallback
-          const taskId = song.suno_task_id || `demo-task-${Date.now()}`;
-
-          console.log(
-            `Starting polling for song ${song.id} with taskId ${taskId}`
-          );
-
-          // Mark as polling immediately to prevent duplicate polling
-          setPollingSongs((prev) => new Set(prev.add(song.id)));
-
-          // Start polling this individual song
-          const cleanup = pollSongStatus(
-            taskId,
-            (status) => {
-              console.log(`Song ${song.id} status update:`, status);
-
-              // Song status will be updated in setUserContent below
-
-              // If completed, update the user content
-              if (status.status === "completed" && status.audioUrl) {
-                setUserContent((prev) =>
-                  prev.map((item) =>
-                    item.id === song.id
-                      ? { ...item, status: "ready", audio_url: status.audioUrl }
-                      : item
-                  )
-                );
-
-                addToast({
-                  type: "success",
-                  title: "Song Ready!",
-                  message: `${song.title} has been generated and is ready to listen!`,
-                });
-
-                // Stop polling this song
-                stopPollingSong(song.id);
-              } else if (status.status === "failed") {
-                setUserContent((prev) =>
-                  prev.map((item) =>
-                    item.id === song.id ? { ...item, status: "failed" } : item
-                  )
-                );
-
-                addToast({
-                  type: "error",
-                  title: "Song Generation Failed",
-                  message: `${song.title} failed to generate. You can try again.`,
-                });
-
-                // Stop polling this song
-                stopPollingSong(song.id);
-              }
-            },
-            (error) => {
-              console.error(`Error polling song ${song.id}:`, error);
-              addToast({
-                type: "error",
-                title: "Status Check Failed",
-                message:
-                  "Failed to check song status. Please refresh the page.",
-              });
-
-              // Stop polling this song on error
-              stopPollingSong(song.id);
-            },
-            10000 // Poll every 10 seconds
-          );
-
-          // Store cleanup function in ref
-          cleanupFunctionsRef.current.set(song.id, cleanup);
-        });
-      }
-    }
-  }, [userContent, user?.id, addToast, pollingSongs]); // Added missing dependencies
-
-  // Cleanup polling when component unmounts
-  useEffect(() => {
-    const cleanupFunctions = cleanupFunctionsRef.current;
-    return () => {
-      console.log("Cleaning up all polling on component unmount");
-      // Call all cleanup functions
-      cleanupFunctions.forEach((cleanup, songId) => {
-        console.log(`Stopping polling for song ${songId}`);
-        cleanup();
-      });
-      // Clear the ref
-      cleanupFunctions.clear();
-    };
-  }, []); // Empty dependency array - only run on unmount
-
-  const handlePlaySong = (item: UserContentItem) => {
-    const button = getButtonForContent(item);
-
-    switch (button.action) {
-      case "listen":
-        handleListenClick(item);
-        break;
-
-      case "progress":
-        // Show progress modal
-        setProgressItem(item);
-        setShowProgressModal(true);
-        break;
-
-      case "retry":
-        // Navigate to lyrics display page to retry generation
-        if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`);
-        }
-        break;
-
-      case "generate":
-        // Navigate to lyrics display page to generate song
-        if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`);
-        }
-        break;
-
-      case "view":
-      case "review":
-      default:
-        // Navigate to lyrics display page
-        if (item.request_id) {
-          router.push(`/lyrics-display?requestId=${item.request_id}`);
-        }
-        break;
-    }
-  };
-
-  const handleDeleteSong = async (item: UserContentItem) => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      try {
-        const response = await fetch("/api/delete-content", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contentId: item.id,
-            contentType: item.type,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorResult = await response.json();
-          throw new Error(errorResult.message || "Failed to delete item");
-        }
-
-        // Remove from local state
-        const updatedContent = userContent.filter(
-          (content) => content.id !== item.id
-        );
-        setUserContent(updatedContent);
-
-        addToast({
-          type: "success",
-          title: "Deleted",
-          message: "Item deleted successfully",
-        });
-      } catch (error) {
-        console.error("Error deleting item:", error);
-        addToast({
-          type: "error",
-          title: "Delete Failed",
-          message:
-            error instanceof Error ? error.message : "Failed to delete item",
-        });
-      }
-    }
-  };
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleRefresh = () => {
-    loadUserContent();
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      return {
+        ...prev,
+        [id]: { ...currentState, ...updates },
+      };
     });
+  }, []);
+
+  const handlePlayPause = useCallback(
+    (song: ApiSongItem, variant: ApiSongVariant) => {
+      const audioSrc =
+        variant.sourceStreamAudioUrl ||
+        variant.streamAudioUrl ||
+        variant.sourceAudioUrl ||
+        variant.audioUrl;
+      const playerId = `${song.songId}-${variant.index}`;
+
+      if (!audioSrc) return;
+
+      if (activePlayerId && activePlayerId !== playerId) {
+        const activeAudio = audioElements[activePlayerId];
+        if (activeAudio) activeAudio.pause();
+      }
+
+      let audio = audioElements[playerId];
+      if (!audio) {
+        audio = new Audio(audioSrc);
+        audio.preload = "metadata";
+        setAudioElements((prev) => ({ ...prev, [playerId]: audio }));
+
+        audio.onloadedmetadata = () =>
+          updatePlayerState(playerId, {
+            duration: audio.duration,
+            isLoading: false,
+          });
+        audio.ontimeupdate = () =>
+          updatePlayerState(playerId, { currentTime: audio.currentTime });
+        audio.onplaying = () => {
+          setActivePlayerId(playerId);
+          updatePlayerState(playerId, { isPlaying: true, isLoading: false });
+        };
+        audio.onpause = () => {
+          if (activePlayerId === playerId) {
+            setActivePlayerId(null);
+          }
+          updatePlayerState(playerId, { isPlaying: false });
+        };
+        audio.onended = () => {
+          setActivePlayerId(null);
+          updatePlayerState(playerId, { isPlaying: false, currentTime: 0 });
+        };
+        audio.onerror = () => {
+          console.error("Audio error:", audio.error);
+          setActivePlayerId(null);
+          updatePlayerState(playerId, { isLoading: false, isPlaying: false });
+        };
+      }
+
+      const currentState = getPlayerState(playerId);
+
+      if (currentState.isPlaying) {
+        audio.pause();
+      } else {
+        updatePlayerState(playerId, { isLoading: true });
+        audio.play().catch((e) => {
+          console.error("Play error:", e);
+          updatePlayerState(playerId, { isLoading: false });
+        });
+      }
+    },
+    [activePlayerId, audioElements, updatePlayerState, getPlayerState]
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(audioElements).forEach((audio) => audio.pause());
+    };
+  }, [audioElements]);
+
+  const handleDownload = (audioUrl: string, title: string) => {
+    const link = document.createElement("a");
+    link.href = audioUrl;
+    link.download = `${title}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const getStatusBadge = (item: UserContentItem) => {
-    const button = getButtonForContent(item);
-    return (
-      <Badge
-        variant={button.variant === "destructive" ? "destructive" : "default"}
-        className={
-          button.variant === "destructive" ? "bg-red-500" : "bg-green-500"
-        }
-      >
-        {button.text}
-      </Badge>
-    );
-  };
-
-  // Show loading state
-  if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-foreground">Loading your songs...</p>
-        </div>
-      </div>
-    );
-  }
+  const allVariants = songs.flatMap((song) =>
+    song.variants.map((variant) => ({ song, variant }))
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-melodia-teal-light to-background">
-      {/* Navigation Header */}
-      <Header />
-
-      {/* Page Header */}
-      <div className="bg-secondary/20 backdrop-blur-sm border-b border-accent/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              onClick={handleBack}
-              variant="ghost"
-              className="text-foreground hover:bg-accent/10"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground">My Songs</h1>
-              <p className="text-muted-foreground">
-                All your generated songs in one place
-              </p>
-            </div>
-
-            <Button
-              onClick={handleRefresh}
-              variant="ghost"
-              className="text-foreground hover:bg-accent/10"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-secondary-light-cream text-dark-teal font-body pt-20 pb-24">
+      <div className="px-6">
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="text-2xl font-bold font-heading">My Songs</h1>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters - Always Visible */}
-        {userContent.length > 0 && (
-          <div className="mb-6 space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                placeholder="Search by title or recipient name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-input border-melodia-teal-medium text-foreground placeholder-muted-foreground focus:border-accent"
-              />
-              {searchQuery && (
-                <Button
-                  onClick={() => setSearchQuery("")}
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
+        {!user && anonymousUserId && (
+          <div className="mb-8">
+            <LoginPromptCard />
+          </div>
+        )}
 
-            {/* Filter Chips */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground text-sm">Filters:</span>
-              </div>
-
-              {/* Filter Chips Container */}
-              <div className="flex flex-wrap gap-2">
-                <span className="text-xs text-muted-foreground font-medium self-center mr-2">
-                  Status:
-                </span>
-                {[
-                  { value: "all", label: "All Status", icon: "🔍" },
-                  { value: "ready", label: "Ready to Play", icon: "▶️" },
-                  { value: "processing", label: "Processing", icon: "⏳" },
-                  { value: "draft", label: "Draft/Review", icon: "📄" },
-                  { value: "failed", label: "Failed", icon: "❌" },
-                ].map((status) => (
-                  <button
-                    key={status.value}
-                    onClick={() => setStatusFilter(status.value)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                      statusFilter === status.value
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-secondary text-secondary-foreground hover:bg-accent/10 border border-melodia-teal-medium"
-                    }`}
-                  >
-                    <span className="mr-1">{status.icon}</span>
-                    {status.label}
-                  </button>
-                ))}
-
-                {/* Clear All Filters */}
-                {(searchQuery || statusFilter !== "all") && (
-                  <button
-                    onClick={clearFilters}
-                    className="px-3 py-1.5 rounded-full text-sm font-bold bg-accent text-accent-foreground hover:bg-accent/90 transition-all duration-200 border-2 border-accent shadow-coral hover:shadow-glow transform hover:scale-105"
-                  >
-                    <X className="w-4 h-4 mr-1 inline" />
-                    Clear All
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Results Count */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <p className="text-muted-foreground">
-                  Showing {filteredContent.length} of {userContent.length} item
-                  {userContent.length !== 1 ? "s" : ""}
-                </p>
-                {(searchQuery || statusFilter !== "all") && (
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
-                      {
-                        [searchQuery, statusFilter !== "all"].filter(Boolean)
-                          .length
-                      }{" "}
-                      filter
-                      {[searchQuery, statusFilter !== "all"].filter(Boolean)
-                        .length !== 1
-                        ? "s"
-                        : ""}{" "}
-                      active
-                    </span>
-                  </div>
-                )}
-              </div>
+        {inProgressRequests.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold font-heading mb-4">
+              In progress
+            </h2>
+            <div className="space-y-4">
+              {inProgressRequests.map((r) => (
+                <SongRequestInProgressCard
+                  key={r.id}
+                  variant="in-progress"
+                  title={r.title}
+                  onView={() => router.push(`/generate-lyrics/${r.id}`)}
+                />
+              ))}
             </div>
           </div>
         )}
 
-        {/* Content Display */}
-        {userContent.length === 0 ? (
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
-            <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
-              <h3 className="text-xl font-bold text-card-foreground mb-2">
-                No Content Yet
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Generate your first personalized song to see it here!
-              </p>
-              <Button
-                onClick={() => router.push("/")}
-                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
-              >
-                Create Your First Song
-              </Button>
-            </CardContent>
-          </Card>
-        ) : filteredContent.length === 0 ? (
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
-            <CardContent className="p-8 text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-primary" />
-              <h3 className="text-xl font-bold text-card-foreground mb-2">
-                No Results Found
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Try adjusting your search or filters to find what you&apos;re
-                looking for.
-              </p>
-              {(searchQuery || statusFilter !== "all") && (
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Current filters:
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {searchQuery && (
-                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
-                        Search: &quot;{searchQuery}&quot;
-                      </span>
-                    )}
-                    {statusFilter !== "all" && (
-                      <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
-                        Status: {statusFilter}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-              <Button
-                onClick={clearFilters}
-                className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
-              >
-                Clear All Filters
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredContent.map((item) => {
-              const button = getButtonForContent(item);
-              return (
-                <Card
-                  key={`${item.type}-${item.id}`}
-                  className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-accent/10 transition-all duration-300 cursor-pointer group"
-                  onClick={() => handlePlaySong(item)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-card-foreground text-lg font-bold line-clamp-1 group-hover:text-accent transition-colors">
-                        {item.title}
-                      </CardTitle>
-                      {getStatusBadge(item)}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      Created: {formatDate(item.created_at)}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      For: {item.recipient_name}
-                    </p>
-                  </CardHeader>
+        {songs.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold font-heading mb-4">
+              Completed songs
+            </h2>
+            <div className="space-y-4">
+              {allVariants.map(({ song, variant }) => {
+                const playerId = `${song.songId}-${variant.index}`;
+                const state = getPlayerState(playerId);
+                const downloadUrl = variant.sourceAudioUrl || variant.audioUrl;
+                const songVariant: SongVariantBase = {
+                  id: variant.suno_id || variant.id || "",
+                  title: song.title,
+                  imageUrl: variant.imageUrl || "",
+                  audioUrl: variant.audioUrl || "",
+                  streamAudioUrl: variant.streamAudioUrl || undefined,
+                  sourceAudioUrl: variant.sourceAudioUrl || undefined,
+                  sourceStreamAudioUrl:
+                    variant.sourceStreamAudioUrl || undefined,
+                  duration: variant.duration || 0,
+                  variantStatus: variant.variantStatus,
+                };
+                return (
+                  <SongPlayerCard
+                    key={playerId}
+                    variant={songVariant}
+                    variantIndex={variant.index}
+                    variantLabel={`Song Option ${variant.index + 1}`}
+                    showSharing={false}
+                    showEmailInput={false}
+                    onPlayPause={() => handlePlayPause(song, variant)}
+                    onDownload={
+                      downloadUrl
+                        ? () => handleDownload(downloadUrl, song.title)
+                        : undefined
+                    }
+                    isPlaying={state.isPlaying}
+                    isLoading={state.isLoading}
+                    currentTime={state.currentTime}
+                    duration={state.duration || variant.duration || 0}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  <CardContent className="space-y-4">
-                    <div className="bg-primary/10 rounded-lg p-3">
-                      <p className="text-card-foreground text-sm">
-                        Type: {item.type.replace("_", " ").toUpperCase()}
-                      </p>
-                      {item.audio_url && (
-                        <p className="text-accent text-xs mt-1">
-                          🎵 Audio available
-                        </p>
-                      )}
-                    </div>
+        {songs.length === 0 && inProgressRequests.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-heading font-bold mb-2">
+              No songs yet
+            </h2>
+            <p className="text-dark-teal/70 mb-6">Ready to make some music?</p>
+            <Button
+              className="bg-accent-vibrant-coral text-white"
+              onClick={() => router.push("/")}
+              size="lg"
+            >
+              Create Your First Song
+            </Button>
+          </div>
+        )}
 
-                    <div className="space-y-2">
-                      <div className="flex space-x-2">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (button.action === "listen") {
-                              handleListenClick(item);
-                            } else {
-                              handlePlaySong(item);
-                            }
-                          }}
-                          className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200"
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          {button.text}
-                        </Button>
-
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSong(item);
-                          }}
-                          variant="outline"
-                          size="icon"
-                          className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {(loading || hasMore) && (
+          <div
+            ref={sentinelRef}
+            className="py-6 text-center text-sm opacity-70"
+          >
+            {loading ? "Loading more songs..." : ""}
           </div>
         )}
       </div>
 
-      {/* Progress Modal */}
-      {showProgressModal && progressItem && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <Card className="bg-card/95 backdrop-blur-sm border-primary/30 max-w-md w-full mx-4">
-            <CardHeader>
-              <CardTitle className="text-card-foreground flex items-center">
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Song Generation in Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-card-foreground mb-2">
-                  {progressItem.title}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Your personalized song is being generated. This usually takes
-                  2-3 minutes.
-                </p>
-
-                <div className="bg-primary/10 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-primary text-sm">
-                      Processing your song...
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-muted-foreground text-sm">
-                  We&apos;ll automatically update this page when your song is
-                  ready!
-                </p>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => setShowProgressModal(false)}
-                  variant="outline"
-                  className="flex-1 border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground font-semibold shadow-coral hover:shadow-glow transform hover:scale-105 transition-all duration-200"
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowProgressModal(false);
-                    loadUserContent(); // Refresh the data
-                  }}
-                  className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground font-bold shadow-glow hover:shadow-coral transform hover:scale-105 transition-all duration-200 border-2 border-primary/20 hover:border-accent/40"
-                >
-                  Refresh Status
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Variant Selection Modal */}
-      {showVariantModal && selectedSongForVariants && (
-        <VariantSelectionModal
-          isOpen={showVariantModal}
-          onClose={() => {
-            setShowVariantModal(false);
-            setSelectedSongForVariants(null);
-          }}
-          songTitle={selectedSongForVariants.title}
-          variants={selectedSongForVariants.variants || []}
-          onSelectVariant={handleVariantSelectForPlayer}
-        />
-      )}
-
-      {/* Sticky Mini Player */}
-      {selectedSong && (
-        <MiniPlayer
-          song={{
-            title: selectedSong.title,
-            artist: selectedSong.artist,
-            song_url: selectedSong.song_url,
-          }}
-        />
-      )}
+      <BottomNavigation />
     </div>
   );
 }

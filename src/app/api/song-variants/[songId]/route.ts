@@ -21,12 +21,10 @@ export async function GET(
     const songs = await db
       .select({
         id: songsTable.id,
-        title: songsTable.title,
-        song_url: songsTable.song_url,
-        duration: songsTable.duration,
-        suno_variants: songsTable.suno_variants,
+        song_variants: songsTable.song_variants,
         selected_variant: songsTable.selected_variant,
-        status: songsTable.status
+        status: songsTable.status,
+        metadata: songsTable.metadata
       })
       .from(songsTable)
       .where(eq(songsTable.id, parseInt(songId)))
@@ -39,23 +37,35 @@ export async function GET(
     }
 
     const song = songs[0]
-    const variants = song.suno_variants || []
+    const variants = song.song_variants || []
     const selectedVariant = song.selected_variant || 0
 
     return NextResponse.json({
       success: true,
       song: {
         id: song.id,
-        title: song.title,
         status: song.status,
-        primaryUrl: song.song_url,
-        duration: song.duration,
         selectedVariant,
-        variants: Array.isArray(variants) ? variants.map((variant: any, index: number) => ({
-          ...variant,
+        suno_task_id: (song.metadata as any)?.suno_task_id
+      },
+      variants: Array.isArray(variants) ? variants.map((variant: any, index: number) => {
+        // Handle both demo data format and current format
+        const audioUrl = variant.audioUrl || variant.audio_url || variant.source_audio_url || "";
+        const streamAudioUrl = variant.streamAudioUrl || variant.stream_audio_url || variant.source_stream_audio_url || "";
+        const imageUrl = variant.imageUrl || variant.image_url || variant.source_image_url || "/images/melodia-logo.png";
+
+        return {
+          id: variant.id || `variant-${index}`,
+          title: variant.title || `${(song.metadata as any)?.title || 'Untitled Song'} - Variant ${index + 1}`,
+          audioUrl: audioUrl,
+          streamAudioUrl: streamAudioUrl,
+          imageUrl: imageUrl,
+          duration: variant.duration || 180,
+          downloadStatus: audioUrl ? "ready" : "generating",
+          isLoading: !audioUrl,
           isSelected: index === selectedVariant
-        })) : []
-      }
+        };
+      }) : []
     })
 
   } catch (error) {
@@ -87,7 +97,7 @@ export async function POST(
     const songs = await db
       .select({
         id: songsTable.id,
-        suno_variants: songsTable.suno_variants
+        song_variants: songsTable.song_variants
       })
       .from(songsTable)
       .where(eq(songsTable.id, parseInt(songId)))
@@ -100,7 +110,7 @@ export async function POST(
     }
 
     const song = songs[0]
-    const variants = song.suno_variants || []
+    const variants = song.song_variants || []
 
     if (variantIndex < 0 || variantIndex >= (Array.isArray(variants) ? variants.length : 0)) {
       return NextResponse.json(
@@ -109,16 +119,13 @@ export async function POST(
       )
     }
 
-    // Update selected variant and primary URL
+    // Update selected variant
     const selectedVariant = Array.isArray(variants) ? variants[variantIndex] : null
-    const newPrimaryUrl = selectedVariant?.audioUrl || selectedVariant?.streamAudioUrl
 
     await db
       .update(songsTable)
       .set({
-        selected_variant: variantIndex,
-        song_url: newPrimaryUrl,
-        duration: selectedVariant.duration
+        selected_variant: variantIndex
       })
       .where(eq(songsTable.id, parseInt(songId)))
 
