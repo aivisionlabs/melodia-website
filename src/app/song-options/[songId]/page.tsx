@@ -36,21 +36,6 @@ export default function SongOptionsPage({
       },
     });
 
-  console.log("🎨 [PAGE] Current state:", {
-    songId,
-    isLoading,
-    error,
-    showLoadingScreen,
-    songStatus: songStatus
-      ? {
-          status: songStatus.status,
-          hasVariants: !!songStatus.variants,
-          variantsCount: songStatus.variants?.length || 0,
-          success: songStatus.success,
-        }
-      : null,
-  });
-
   // Resolve params
   useEffect(() => {
     const getParams = async () => {
@@ -127,10 +112,6 @@ export default function SongOptionsPage({
 
   // Song creation loading screen - show for PENDING status or when explicitly loading
   if (showLoadingScreen || songStatus?.status === "PENDING") {
-    console.log("⏳ [PAGE] Rendering SongCreationLoadingScreen:", {
-      showLoadingScreen,
-      status: songStatus?.status,
-    });
     return (
       <SongCreationLoadingScreen
         duration={45}

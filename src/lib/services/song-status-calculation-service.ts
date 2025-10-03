@@ -53,14 +53,6 @@ export interface CalculatedSongStatus {
  * Calculates the status of a single variant based on available URLs
  */
 export function calculateVariantStatus(variant: VariantData): VariantStatus {
-  console.log('🔍 [STATUS-CALC] Calculating variant status for:', {
-    id: variant.id,
-    hasSourceStreamAudioUrl: !!variant.sourceStreamAudioUrl,
-    hasAudioUrl: !!variant.audioUrl,
-    hasSourceAudioUrl: !!variant.sourceAudioUrl,
-    hasStreamAudioUrl: !!variant.streamAudioUrl
-  });
-
   // If no sourceStreamAudioUrl, variant is still PENDING
   if (!variant.sourceStreamAudioUrl) {
     return 'PENDING';
@@ -83,10 +75,6 @@ export function calculateVariantStatus(variant: VariantData): VariantStatus {
  * Calculates the overall song status based on variant statuses
  */
 export function calculateSongStatus(variants: VariantData[]): CalculatedSongStatus {
-  console.log('🎯 [STATUS-CALC] Calculating song status with:', {
-    variantsCount: variants?.length || 0
-  });
-
   if (variants.length === 0) {
     return {
       songStatus: SONG_STATUS_MAP.PENDING as SongStatus,

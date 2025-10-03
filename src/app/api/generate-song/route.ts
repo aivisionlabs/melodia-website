@@ -120,29 +120,54 @@ export async function POST(request: NextRequest) {
 
         const mockTaskId = `demo-task-${Date.now()}`
 
-        // Still create song record in database for testing
+        // Check for existing song first, then create or update
         let songId: number | null = null
         try {
-          const timestamp = Date.now()
-          const randomSuffix = Math.random().toString(36).substring(2, 8)
-          const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+          // Check if song already exists for this request
+          const existingSongs = await db
+            .select()
+            .from(songsTable)
+            .where(eq(songsTable.song_request_id, requestId))
+            .limit(1)
 
-          const [song] = await db
-            .insert(songsTable)
-            .values({
-              song_request_id: requestId,
-              slug,
-              status: 'PENDING',
-              song_variants: {},
-              variant_timestamp_lyrics_api_response: {},
-              variant_timestamp_lyrics_processed: {},
-              metadata: {
-                suno_task_id: mockTaskId,
-              }
-            })
-            .returning({ id: songsTable.id })
+          if (existingSongs.length > 0) {
+            // Song already exists - return existing song ID
+            songId = existingSongs[0].id
+            console.log('Demo mode: Found existing song:', { songId, requestId })
 
-          songId = song.id
+            // Update the existing song with new task ID
+            await db
+              .update(songsTable)
+              .set({
+                metadata: {
+                  suno_task_id: mockTaskId,
+                }
+              })
+              .where(eq(songsTable.id, songId))
+          } else {
+            // Create new song record
+            const timestamp = Date.now()
+            const randomSuffix = Math.random().toString(36).substring(2, 8)
+            const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+
+            const [song] = await db
+              .insert(songsTable)
+              .values({
+                song_request_id: requestId,
+                slug,
+                status: 'PENDING',
+                song_variants: {},
+                variant_timestamp_lyrics_api_response: {},
+                variant_timestamp_lyrics_processed: {},
+                metadata: {
+                  suno_task_id: mockTaskId,
+                }
+              })
+              .returning({ id: songsTable.id })
+
+            songId = song.id
+            console.log('Demo song created in database:', { songId, taskId: mockTaskId })
+          }
 
           await db
             .update(songRequestsTable)
@@ -151,9 +176,15 @@ export async function POST(request: NextRequest) {
             })
             .where(eq(songRequestsTable.id, requestId))
 
-          console.log('Demo song created in database:', { songId, taskId: mockTaskId })
         } catch (dbError) {
           console.error('Database error in demo mode:', dbError)
+          // If we still have a songId from existing song, continue
+          if (!songId) {
+            return NextResponse.json(
+              { error: true, message: 'Failed to create or find song in demo mode' },
+              { status: 500 }
+            )
+          }
         }
 
         return NextResponse.json({
@@ -218,9 +249,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const taskId = generateResponse.data.taskId
-      console.log('Generated task ID:', taskId)
-
+      const taskId = generateResponse.data.taskId;
       // Create or update song record in database
       let songId: number | null = null
       if (requestId) {

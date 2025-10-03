@@ -22,6 +22,8 @@ IMPORTANT: The song style that you produce should not include the name of any si
 
 CRITICAL: NEVER repeat the same word, phrase, or pattern more than 2 times in the title or musicStyle fields. If you find yourself repeating, STOP immediately.
 
+The lyrics should be created based on the Language of the user input so that they can be pronounced correctly.
+
 STRICT OUTPUT RULES:
 - Output ONLY a single JSON object. No markdown, no code fences, no commentary, no extra text.
 - Do not include keys other than title, musicStyle, lyrics.

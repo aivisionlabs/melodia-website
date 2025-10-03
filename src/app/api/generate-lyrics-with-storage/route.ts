@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
 
     let generatedResponse;
 
+    // Get the LLM model name from environment or use default
+    const llmModelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash';
+
     // Demo mode - use mock lyrics instead of real API
     if (process.env.DEMO_MODE === 'true') {
       console.log('🎭 DEMO MODE: Using mock lyrics instead of Gemini API');
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
         generated_text: generatedResponse.lyrics || '',
         song_title: generatedResponse.title,
         music_style: generatedResponse.musicStyle,
+        llm_model_name: llmModelName,
         status: 'draft',
         created_by_user_id: userId || null,
         created_by_anonymous_user_id: anonymousUserId || null

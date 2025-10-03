@@ -115,7 +115,7 @@ export async function createSongRequest(
       occasion: sanitizedData.occasion || null,
       languages: sanitizedData.languages,
       mood: sanitizedData.mood || null,
-      story: sanitizedData.story,
+      song_story: sanitizedData.story,
       status: 'pending'
     };
 

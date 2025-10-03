@@ -4,7 +4,7 @@ export const SUNO_CONFIG = {
   USE_MOCK_API: false, // Use real Suno API
 
   // Real API configuration
-  API_TOKEN: process.env.SUNO_API_TOKEN || '581c3b4d123449f16df7738f71d8090d',
+  API_TOKEN: process.env.SUNO_API_TOKEN,
   BASE_URL: 'https://api.sunoapi.org/api/v1',
 
   // Mock API configuration
@@ -14,31 +14,10 @@ export const SUNO_CONFIG = {
   }
 };
 
-// Configuration for Gemini API (Lyrics Generation)
-export const GEMINI_CONFIG = {
-  API_TOKEN: 'AIzaSyDDDsLgpJhrlq5ok7kJ6PHQbjsrkSmJoy0',
-  API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-  GENERATION_CONFIG: {
-    temperature: 0.8,
-    topK: 40,
-    topP: 0.95,
-    maxOutputTokens: 8192,
-  }
-};
-
-// Export config object for lyrics generation
-export const config = {
-  GEMINI_API_TOKEN: GEMINI_CONFIG.API_TOKEN,
-  GEMINI_API_URL: GEMINI_CONFIG.API_URL,
-  LYRICS_GENERATION: GEMINI_CONFIG.GENERATION_CONFIG,
-  AUTOSAVE: {
-    delay: 3000
-  }
-};
 
 // Helper function to check if we should use mock API
 export function shouldUseMockAPI(): boolean {
-  return SUNO_CONFIG.USE_MOCK_API;
+  return process.env.DEMO_MODE === 'true';
 }
 
 // Helper function to get API token

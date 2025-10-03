@@ -55,7 +55,7 @@ export async function createSongAction(formData: FormData) {
       title: title,
       customMode: true,
       instrumental: false,
-      model: "V4_5PLUS",
+      model: "V5",
       negativeTags: negativeTags || undefined,
       callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
     };
@@ -109,6 +109,37 @@ export async function createSongAction(formData: FormData) {
   } catch (error) {
     console.error('Error in createSongAction:', error);
     return { success: false, error: 'Internal server error' };
+  }
+}
+
+export async function selectSongVariantAction(
+  songId: number,
+  taskId: string,
+  variantIndex: number,
+) {
+  try {
+    const { updateSong } = await import("@/lib/db/queries/update");
+    await updateSong(songId, { selected_variant: variantIndex });
+
+    const lyricsResult =
+      await generateTimestampedLyricsAction(taskId, variantIndex);
+
+    if (!lyricsResult.success) {
+      return {
+        success: false,
+        error:
+          lyricsResult.error ||
+          "Failed to generate timestamped lyrics after selecting variant.",
+      };
+    }
+
+    return {
+      success: true,
+      songId,
+    };
+  } catch (error) {
+    console.error("Error in selectSongVariantAction:", error);
+    return { success: false, error: "Failed to select song variant." };
   }
 }
 
@@ -429,26 +460,30 @@ export async function generateTimestampedLyricsAction(
 
 
     if (lyricLines.length > 0) {
-      console.log('First converted line:', lyricLines[0]);
-      console.log('Last converted line:', lyricLines[lyricLines.length - 1]);
+      console.log("First converted line:", lyricLines[0]);
+      console.log(
+        "Last converted line:",
+        lyricLines[lyricLines.length - 1],
+      );
     }
 
-
-
     // Store the timestamped lyrics and only the alignedWords for this variant
-    const { updateTimestampedLyricsForVariant } = await import('@/lib/db/queries/update');
+    const { updateTimestampedLyricsForVariant } = await import(
+      "@/lib/db/queries/update"
+    );
 
     // Validate that we have valid timing data before storage
-    const linesWithNullValues = lyricLines.filter(line =>
-      line.start === null || line.end === null ||
-      typeof line.start === 'undefined' || typeof line.end === 'undefined'
+    const linesWithNullValues = lyricLines.filter(
+      line =>
+        line.start === null || line.end === null ||
+        typeof line.start === 'undefined' || typeof line.end === 'undefined'
     );
 
     if (linesWithNullValues.length > 0) {
-      console.error('Cannot store lyrics with null timing values');
+      console.error("Cannot store lyrics with null timing values");
       return {
         success: false,
-        error: 'Cannot store lyrics with null timing values'
+        error: "Cannot store lyrics with null timing values",
       };
     }
 
@@ -456,10 +491,8 @@ export async function generateTimestampedLyricsAction(
       songResult.song.id,
       variantIndex,
       lyricLines,
-      response.data.alignedWords // Store only the alignedWords, not the entire response
+      response.data.alignedWords, // Store only the alignedWords, not the entire response
     );
-
-
 
     return {
       success: true,

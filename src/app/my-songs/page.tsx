@@ -6,27 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnonymousUser } from "@/hooks/use-anonymous-user";
 import BottomNavigation from "@/components/BottomNavigation";
-import { SongCard } from "@/components/SongCard";
-import { MediaPlayer } from "@/components/MediaPlayer";
+import { SongRequestInProgressCard } from "@/components/SongRequestInProgressCard";
+import SongPlayerCard from "@/components/SongPlayerCard";
 import type { SongVariant as SongVariantBase } from "@/lib/song-status-client";
 import { LoginPromptCard } from "@/components/LoginPromptCard";
-
-type DistinctSongVariant = SongVariantBase & {
-  lyrics?: string;
-  artist?: string;
-};
-
-type MediaPlayerSong = {
-  metadata?: {
-    title?: string;
-    lyrics?: string;
-    suno_task_id?: string;
-    tags?: string;
-  };
-  song_variants?: DistinctSongVariant[];
-  selected_variant?: number;
-  suno_audio_id?: string;
-};
 
 type ApiSongVariant = {
   index: number;
@@ -156,11 +139,6 @@ export default function MySongsPage() {
     };
   }>({});
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
-  const [showMediaPlayer, setShowMediaPlayer] = useState(false);
-  const [mediaPlayerData, setMediaPlayerData] = useState<{
-    song: MediaPlayerSong;
-    selectedVariantIndex: number;
-  } | null>(null);
 
   const getPlayerState = useCallback(
     (id: string) => {
@@ -262,40 +240,6 @@ export default function MySongsPage() {
     };
   }, [audioElements]);
 
-  const handleViewLyrics = (song: ApiSongItem, variant: ApiSongVariant) => {
-    const songForPlayer: MediaPlayerSong = {
-      metadata: {
-        title: song.title,
-        tags: variant.tags,
-        suno_task_id: song.requestId.toString(),
-      },
-      song_variants: song.variants.map(
-        (v) =>
-          ({
-            id: v.suno_id || v.id || "",
-            title: v.title || "",
-            imageUrl: v.imageUrl || "",
-            audioUrl: v.audioUrl || "",
-            streamAudioUrl: v.streamAudioUrl,
-            sourceAudioUrl: v.sourceAudioUrl,
-            sourceStreamAudioUrl: v.sourceStreamAudioUrl,
-            lyrics: v.lyrics,
-            artist: v.artist,
-            duration: v.duration || 0,
-            variantStatus: v.variantStatus,
-            tags: v.tags,
-          } as DistinctSongVariant)
-      ),
-      selected_variant: variant.index,
-      suno_audio_id: variant.suno_id,
-    };
-    setMediaPlayerData({
-      song: songForPlayer,
-      selectedVariantIndex: variant.index,
-    });
-    setShowMediaPlayer(true);
-  };
-
   const handleDownload = (audioUrl: string, title: string) => {
     const link = document.createElement("a");
     link.href = audioUrl;
@@ -329,7 +273,7 @@ export default function MySongsPage() {
             </h2>
             <div className="space-y-4">
               {inProgressRequests.map((r) => (
-                <SongCard
+                <SongRequestInProgressCard
                   key={r.id}
                   variant="in-progress"
                   title={r.title}
@@ -345,31 +289,41 @@ export default function MySongsPage() {
             <h2 className="text-xl font-semibold font-heading mb-4">
               Completed songs
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {allVariants.map(({ song, variant }) => {
                 const playerId = `${song.songId}-${variant.index}`;
                 const state = getPlayerState(playerId);
                 const downloadUrl = variant.sourceAudioUrl || variant.audioUrl;
+                const songVariant: SongVariantBase = {
+                  id: variant.suno_id || variant.id || "",
+                  title: song.title,
+                  imageUrl: variant.imageUrl || "",
+                  audioUrl: variant.audioUrl || "",
+                  streamAudioUrl: variant.streamAudioUrl || undefined,
+                  sourceAudioUrl: variant.sourceAudioUrl || undefined,
+                  sourceStreamAudioUrl:
+                    variant.sourceStreamAudioUrl || undefined,
+                  duration: variant.duration || 0,
+                  variantStatus: variant.variantStatus,
+                };
                 return (
-                  <SongCard
+                  <SongPlayerCard
                     key={playerId}
-                    variant="completed"
-                    title={song.title}
-                    option={variant.index + 1}
-                    status={variant.variantStatus.replace("_", " ")}
-                    imageUrl={variant.imageUrl || undefined}
-                    isPlaying={state.isPlaying}
-                    isLoading={state.isLoading}
-                    currentTime={state.currentTime}
-                    duration={state.duration || variant.duration || 0}
+                    variant={songVariant}
+                    variantIndex={variant.index}
+                    variantLabel={`Song Option ${variant.index + 1}`}
+                    showSharing={false}
+                    showEmailInput={false}
                     onPlayPause={() => handlePlayPause(song, variant)}
-                    onViewLyrics={() => handleViewLyrics(song, variant)}
-                    isDownloadReady={variant.variantStatus === "DOWNLOAD_READY"}
                     onDownload={
                       downloadUrl
                         ? () => handleDownload(downloadUrl, song.title)
                         : undefined
                     }
+                    isPlaying={state.isPlaying}
+                    isLoading={state.isLoading}
+                    currentTime={state.currentTime}
+                    duration={state.duration || variant.duration || 0}
                   />
                 );
               })}
@@ -385,7 +339,7 @@ export default function MySongsPage() {
             <p className="text-dark-teal/70 mb-6">Ready to make some music?</p>
             <Button
               className="bg-accent-vibrant-coral text-white"
-              onClick={() => router.push("/create-song")}
+              onClick={() => router.push("/")}
               size="lg"
             >
               Create Your First Song
@@ -404,20 +358,6 @@ export default function MySongsPage() {
       </div>
 
       <BottomNavigation />
-
-      {showMediaPlayer && mediaPlayerData && (
-        <MediaPlayer
-          song={mediaPlayerData.song}
-          onClose={() => {
-            setShowMediaPlayer(false);
-            setMediaPlayerData(null);
-            // Stop any active audio from the card players
-            if (activePlayerId && audioElements[activePlayerId]) {
-              audioElements[activePlayerId].pause();
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

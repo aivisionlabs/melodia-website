@@ -225,15 +225,9 @@ async function generateWithVertexAI(
   const request: GenerateContentRequest = {
     contents: [
       {
-        role: 'system',
-        parts: [
-          { text: systemPrompt }
-        ]
-      },
-      {
         role: 'user',
         parts: [
-          { text: userPrompt }
+          { text: `${systemPrompt}\n\n${userPrompt}` }
         ]
       }
     ],

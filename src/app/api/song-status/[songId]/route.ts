@@ -40,7 +40,7 @@ export async function GET(
         status: dbFirstResponse.status,
         from: 'database'
       })
-      return NextResponse.json(createApiResponse(dbFirstResponse.status, dbFirstResponse.sunoData))
+      return NextResponse.json(createApiResponse(dbFirstResponse.status, dbFirstResponse.sunoData, song));
     }
 
     if (!taskId) {
@@ -76,7 +76,7 @@ export async function GET(
         variantsCount: sunoData.length
       })
 
-      return NextResponse.json(createApiResponse(databaseStatus, sunoData))
+      return NextResponse.json(createApiResponse(databaseStatus, sunoData, song));
     }
 
     // 3) Not satisfied by DB and refresh needed → hit appropriate source

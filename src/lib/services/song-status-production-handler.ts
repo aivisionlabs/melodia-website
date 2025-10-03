@@ -88,7 +88,7 @@ export async function handleProductionMode(songId: string, taskId: string) {
   })
 
   // Return response using database status
-  return NextResponse.json(createApiResponse(databaseStatus, sunoVariants))
+  return NextResponse.json(createApiResponse(databaseStatus, sunoVariants, updatedSong));
 }
 
 /**

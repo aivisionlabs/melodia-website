@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 
-type SongCardProps =
+type SongRequestInProgressCardProps =
   | {
       variant: "in-progress";
       title: string;
@@ -40,7 +40,9 @@ const formatTime = (time: number) => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
-export function SongCard(props: SongCardProps) {
+export function SongRequestInProgressCard(
+  props: SongRequestInProgressCardProps
+) {
   if (props.variant === "in-progress") {
     return (
       <div className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow border border-neutral-200">
