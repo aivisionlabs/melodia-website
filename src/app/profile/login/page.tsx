@@ -135,6 +135,14 @@ export default function LoginPage() {
               {form.isSubmitting ? "Logging in..." : "Log In"}
             </Button>
 
+            {/* Form Error Message */}
+            {form.error && (
+              <div className="text-sm text-red-500 text-center bg-red-50 border border-red-200 rounded-lg p-3">
+                {form.error}
+              </div>
+            )}
+
+            {/* Auth Error Message */}
             {error && (
               <div className="text-sm text-melodia-coral text-center">
                 {error}

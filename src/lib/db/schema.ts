@@ -44,6 +44,7 @@ export const usersTable = pgTable('users', {
   email: text('email').notNull().unique(),
   date_of_birth: date('date_of_birth').notNull(),
   phone_number: text('phone_number'),
+  profile_picture: text('profile_picture'),
   email_verified: boolean('email_verified').notNull().default(false),
   password_hash: text('password_hash'), // Optional for now, will be added later for login
   created_at: timestamp('created_at').notNull().defaultNow(),

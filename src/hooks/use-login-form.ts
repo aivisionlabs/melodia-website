@@ -9,6 +9,7 @@ export interface LoginFormState {
   password: string;
   showPassword: boolean;
   isSubmitting: boolean;
+  error: string | null;
   
   // Validation
   validation: ReturnType<typeof useFormValidation>;
@@ -17,6 +18,7 @@ export interface LoginFormState {
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setShowPassword: (showPassword: boolean) => void;
+  clearError: () => void;
   
   // Handlers
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -33,6 +35,7 @@ export const useLoginForm = (): LoginFormState => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Dependencies
   const { login } = useAuth();
@@ -56,10 +59,16 @@ export const useLoginForm = (): LoginFormState => {
     }
   }, [validation]);
 
+  // Single Responsibility: Clear error message
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   // Single Responsibility: Handle form submission
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null); // Clear any previous errors
     validation.clearErrors();
 
     // Validate all fields
@@ -84,9 +93,17 @@ export const useLoginForm = (): LoginFormState => {
           // Force page reload to ensure auth state is properly updated
           window.location.href = '/profile/logged-in';
         }, 200);
+      } else {
+        // Set specific error message for failed login
+        if (result.error === 'Invalid email or password.') {
+          setError('This email address is not registered. Please sign up first or check your email address.');
+        } else {
+          setError(result.error || 'Login failed. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -107,6 +124,7 @@ export const useLoginForm = (): LoginFormState => {
     password,
     showPassword,
     isSubmitting,
+    error,
     
     // Validation
     validation,
@@ -115,6 +133,7 @@ export const useLoginForm = (): LoginFormState => {
     setEmail,
     setPassword,
     setShowPassword,
+    clearError,
     
     // Handlers
     handleEmailChange,

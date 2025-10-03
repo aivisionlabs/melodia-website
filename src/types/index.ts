@@ -82,6 +82,7 @@ export interface User {
     email: string;
     date_of_birth: string;
     phone_number: string | null;
+    profile_picture: string | null;
     email_verified: boolean;
     created_at: string;
     updated_at: string;

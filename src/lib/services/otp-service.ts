@@ -15,9 +15,9 @@ import { eq, and, gt } from 'drizzle-orm';
 export class DatabaseOTPService implements OTPService {
   generateCode(): string {
     // Use fixed code for development environment
-    if (process.env.NODE_ENV === 'development') {
-      return '123456';
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   return '123456';
+    // }
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
