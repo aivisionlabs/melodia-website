@@ -96,23 +96,6 @@ export async function tryRespondFromDatabase(song: any): Promise<DatabaseRespons
  * Update database with song status and variant data
  */
 export async function updateDatabase(songId: string, status: SongStatus, sunoData: any[], errorMessage?: string): Promise<void> {
-  const sunoResponse = {
-    status: status,
-    response: {
-      sunoData: sunoData
-    },
-    errorMessage: errorMessage || undefined
-  }
-
-  console.log('💾 [DB] Calling database update service with:', {
-    songId: parseInt(songId),
-    status: sunoResponse.status,
-    hasResponse: !!sunoResponse.response,
-    hasSunoData: !!sunoResponse.response?.sunoData,
-    sunoDataLength: sunoResponse.response?.sunoData?.length || 0,
-    hasErrorMessage: !!sunoResponse.errorMessage
-  })
-
   // Update database with the calculated status using pre-calculated status
   const dbUpdateResult = await SongDatabaseUpdateService.updateDatabaseWithPreCalculatedStatus(
     parseInt(songId),
@@ -120,14 +103,8 @@ export async function updateDatabase(songId: string, status: SongStatus, sunoDat
     sunoData
   )
   if (!dbUpdateResult.success) {
-    console.error('❌ [DB] Database update failed:', dbUpdateResult.error)
+    console.error('❌ [DB] Database update failed:', dbUpdateResult.error, errorMessage)
     // Continue with response even if DB update fails
-  } else {
-    console.log('✅ [DB] Database update successful:', {
-      songId: parseInt(songId),
-      status: status,
-      variantsCount: sunoData.length
-    })
   }
 }
 

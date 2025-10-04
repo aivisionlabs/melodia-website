@@ -261,7 +261,9 @@ export default function CreateSongPage() {
                 To / For
               </label>
               <p className="text-sm text-melodia-teal opacity-70 mb-3">
-                Who is this song for? Enter their name and relationship.
+                Who is this song for? Enter their name and relationship. (e.g.,
+                &quot;Sarah, my best friend&quot; OR &quot;Rohan, my
+                brother&quot;)
               </p>
               <input
                 id="to-for"
@@ -270,10 +272,6 @@ export default function CreateSongPage() {
                 onChange={(e) => setRecipientDetails(e.target.value)}
                 className="form-input w-full"
               />
-              <p className="text-xs text-melodia-teal opacity-60 mt-2">
-                Format: &quot;Name, my relationship&quot; (e.g., &quot;Sarah, my
-                best friend&quot; or &quot;Rohan, my brother&quot;)
-              </p>
             </div>
             <div>
               <label className="block text-lg font-semibold text-melodia-teal mb-3">

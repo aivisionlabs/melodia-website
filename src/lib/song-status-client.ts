@@ -29,6 +29,11 @@ export interface SongStatusResponse {
   status: SongStatus;
   variants?: SongVariant[];
   message?: string;
+  songId?: number;
+  taskId?: string;
+  slug?: string;
+  selectedVariantIndex?: number | null;
+  variantTimestampLyricsProcessed?: any;
 }
 
 

@@ -178,12 +178,15 @@ export function useSongStatusPolling(
           status: databaseStatus,
           variants: variants.length > 0 ? variants : undefined,
           message: "Song status updated",
+          songId: data.songId,
+          taskId: data.taskId,
+          slug: data.slug,
+          selectedVariantIndex: data.selectedVariantIndex,
+          variantTimestampLyricsProcessed: data.variantTimestampLyricsProcessed,
         };
 
         return result;
       }
-
-      console.log('⚠️ [HOOK] No valid data found in API response')
       return null;
     },
     []
@@ -195,23 +198,14 @@ export function useSongStatusPolling(
   const updateUIState = useCallback((status: SongStatusResponse) => {
     if (status.status === "PENDING") {
       // Both variants still generating, show loading screen
-      console.log('⏳ [HOOK] Setting showLoadingScreen = true (PENDING status)')
       setShowLoadingScreen(true);
     } else if (status.status === "NOT_FOUND") {
       // Song not found, don't show loading screen
-      console.log('❌ [HOOK] Setting showLoadingScreen = false (NOT_FOUND status)')
       setShowLoadingScreen(false);
     } else if (status.status === SONG_STATUS_MAP.STREAM_AVAILABLE || status.status === SONG_STATUS_MAP.COMPLETED) {
       // At least one variant has streaming ready, show options display
-      console.log('🎵 [HOOK] Setting showLoadingScreen = false (STREAM_AVAILABLE/COMPLETE status)')
       setShowLoadingScreen(false);
     }
-
-    console.log('🎨 [HOOK] UI state updated:', {
-      status: status.status,
-      showLoadingScreen: status.status === "PENDING" ? true : false,
-      isLoading: false // This should be false after successful response
-    })
   }, []);
 
   /**
@@ -254,24 +248,11 @@ export function useSongStatusPolling(
       }
 
       try {
-        console.log(`🔄 [HOOK] [POLLING] Polling song status for songId: ${songId}`)
         const apiResponse = await checkSongStatus(songId);
-        console.log('📡 [HOOK] [POLLING] API response received:', {
-          hasData: 'data' in apiResponse,
-          hasSuccess: 'success' in apiResponse,
-          success: 'success' in apiResponse ? apiResponse.success : 'N/A'
-        })
 
         const statusResponse = convertToSongStatusResponse(apiResponse);
 
         if (statusResponse) {
-          console.log('✅ [HOOK] Status response converted successfully:', {
-            success: statusResponse.success,
-            status: statusResponse.status,
-            hasVariants: !!statusResponse.variants,
-            variantsCount: statusResponse.variants?.length || 0
-          })
-
           setSongStatus(statusResponse);
           setError(null);
           setIsLoading(false); // Set loading to false when we get a successful response
@@ -284,14 +265,9 @@ export function useSongStatusPolling(
 
 
           if (statusResponse.status === SONG_STATUS_MAP.COMPLETED && stopOnComplete) {
-            console.log('🎉 [HOOK] Song complete, stopping polling')
             stopPolling();
             return;
-          } else {
-            console.log('🔄 [HOOK] Continuing polling, status:', statusResponse.status)
           }
-        } else {
-          console.log('⚠️ [HOOK] No status response returned from conversion')
         }
       } catch (err) {
         console.error('Error polling song status:', err);
@@ -387,8 +363,6 @@ export function useSongStatusPolling(
       return;
     }
 
-    console.log('🔄 [HOOK] Initial data fetch for songId:', songId);
-
     // Fetch initial status
     const fetchInitialStatus = async () => {
       try {
@@ -399,7 +373,6 @@ export function useSongStatusPolling(
         const statusResponse = convertToSongStatusResponse(apiResponse);
 
         if (statusResponse) {
-          console.log('📍 [HOOK] Initial status fetched:', statusResponse.status);
           setSongStatus(statusResponse);
           updateUIState(statusResponse);
           onStatusChange?.(statusResponse);

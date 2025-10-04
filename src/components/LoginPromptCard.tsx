@@ -16,7 +16,7 @@ export function LoginPromptCard() {
           </div>
         </div>
         <h3 className="text-xl font-heading font-bold text-melodia-teal mb-2">
-          Don't Lose Your Masterpieces!
+          Don&apos;t Lose Your Masterpieces!
         </h3>
         <p className="font-body text-neutral-600 mb-6 max-w-sm">
           Log in or create an account to safely back up your songs and access

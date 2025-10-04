@@ -1,21 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Play,
-  ArrowLeft,
-  Home,
-  Disc3,
-  Music,
-  User,
-  Pause,
-  BookOpen,
-  Download,
-  Share2,
-} from "lucide-react";
 import { MediaPlayer } from "@/components/MediaPlayer";
+import SongPlayerCard from "@/components/SongPlayerCard";
+import { Button } from "@/components/ui/button";
+import { selectSongVariantAction } from "@/lib/actions";
 import { SongStatusResponse, SongVariant } from "@/lib/song-status-client";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface SongOptionsDisplayProps {
   songStatus: SongStatusResponse;
@@ -25,12 +16,25 @@ interface SongOptionsDisplayProps {
 
 export default function SongOptionsDisplay({
   songStatus,
-  onBack,
   onBackupWithGoogle,
 }: SongOptionsDisplayProps) {
+  const router = useRouter();
   const [showMediaPlayer, setShowMediaPlayer] = useState(false);
-  const [selectedVariantForLyrics, setSelectedVariantForLyrics] =
-    useState<SongVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<SongVariant | null>(
+    null
+  );
+  const [isProcessingLyrics, setIsProcessingLyrics] = useState(false);
+
+  useEffect(() => {
+    if (
+      songStatus.selectedVariantIndex !== undefined &&
+      songStatus.selectedVariantIndex !== null &&
+      songStatus.variants
+    ) {
+      setSelectedVariant(songStatus.variants[songStatus.selectedVariantIndex]);
+    }
+  }, [songStatus.selectedVariantIndex, songStatus.variants]);
+
   const [audioElements, setAudioElements] = useState<{
     [key: string]: HTMLAudioElement;
   }>({});
@@ -54,10 +58,11 @@ export default function SongOptionsDisplay({
 
   // Helper function to get variant state
   const getVariantState = (variantId: string) => {
+    const variant = songStatus.variants?.find((v) => v.id === variantId);
     return (
       variantStates[variantId] || {
         currentTime: 0,
-        duration: 180, // Default 3 minutes
+        duration: variant?.duration,
         isPlaying: false,
         isLoading: false,
       }
@@ -75,9 +80,10 @@ export default function SongOptionsDisplay({
     }>
   ) => {
     setVariantStates((prev) => {
+      const variant = songStatus.variants?.find((v) => v.id === variantId);
       const currentState = prev[variantId] || {
         currentTime: 0,
-        duration: 180,
+        duration: variant?.duration,
         isPlaying: false,
         isLoading: false,
       };
@@ -198,17 +204,6 @@ export default function SongOptionsDisplay({
     }
   };
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
-
-  const handleLyricsClick = (variant: SongVariant) => {
-    setSelectedVariantForLyrics(variant);
-    setShowMediaPlayer(true);
-  };
-
   const handleDownload = (audioUrl: string, title: string) => {
     const link = document.createElement("a");
     link.href = audioUrl;
@@ -240,6 +235,46 @@ export default function SongOptionsDisplay({
     }
   };
 
+  const handleViewLyricalSong = async () => {
+    if (!selectedVariant) return;
+
+    setIsProcessingLyrics(true);
+    try {
+      const selectedIndex = songStatus.variants?.findIndex(
+        (v) => v.id === selectedVariant.id
+      );
+
+      if (
+        songStatus.songId === undefined ||
+        songStatus.taskId === undefined ||
+        selectedIndex === undefined ||
+        selectedIndex === -1
+      ) {
+        console.error("Missing required data to process lyrics.");
+        alert("Could not process lyrics. Please try again.");
+        return;
+      }
+
+      const result = await selectSongVariantAction(
+        songStatus.songId,
+        songStatus.taskId,
+        selectedIndex
+      );
+
+      if (result.success && songStatus.slug) {
+        router.push(`/song/${songStatus.slug}`);
+      } else {
+        console.error("Failed to process lyrics:", result.error);
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("An unexpected error occurred:", error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsProcessingLyrics(false);
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -259,203 +294,57 @@ export default function SongOptionsDisplay({
       {/* Header */}
       <div className="px-6 pt-24 pb-4">
         <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2 -ml-2"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-large font-heading text-melodia-teal">
-            Your Song Options
-          </h1>
+          <h1 className="font-heading text-melodia-teal">Choose Your Song</h1>
         </div>
+        <p className="text-melodia-teal mb-8">
+          Choose one of the following songs to view a lyrical version of the
+          song.
+        </p>
 
         {/* Song Options */}
         <div className="space-y-4 px-2">
           {songStatus.variants?.map((variant, index) => {
             const variantState = getVariantState(variant.id);
+            const isSelected = selectedVariant?.id === variant.id;
+
             return (
-              <div
-                key={variant.id}
-                className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow"
-              >
-                {/* Song Info */}
-                <div className="flex items-start gap-4 mb-5">
-                  <div className="flex-1">
-                    <p className="text-sm font-body text-neutral-500 mb-1">
-                      Song Option {index + 1}
-                    </p>
-                    <h3 className="text-xl font-heading text-melodia-teal mb-2">
-                      {variant.title}
-                    </h3>
-                    <p className="text-melodia-coral font-body font-medium text-sm">
-                      {variant.variantStatus === "DOWNLOAD_READY"
-                        ? "Ready to download"
-                        : variant.variantStatus === "STREAM_READY"
-                        ? "Stream ready - Download preparing..."
-                        : "Generating..."}
-                    </p>
-                  </div>
-
-                  {/* Album Art with Wood Frame */}
-                  <div className="w-16 h-16 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
-                    <div className="w-full h-full bg-white rounded overflow-hidden">
-                      <Image
-                        src={variant.imageUrl}
-                        alt={`${variant.title} album art`}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to a placeholder if image fails to load
-                          e.currentTarget.src = "/images/melodia-logo.png";
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Conditional UI based on variant status */}
-                {variant.variantStatus === "PENDING" ? (
-                  // PENDING: Show generating state
-                  <div className="w-full h-12 bg-neutral-100 text-neutral-500 font-body font-semibold rounded-xl flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
-                    Generating...
-                  </div>
-                ) : variant.variantStatus === "STREAM_READY" ||
-                  variant.variantStatus === "DOWNLOAD_READY" ? (
-                  // STREAM_READY or DOWNLOAD_READY: Full player with controls
-                  <div className="space-y-3">
-                    {/* Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="w-full bg-neutral-200 rounded-full h-2">
-                        <div
-                          className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
-                          style={{
-                            width: `${
-                              variantState.duration > 0
-                                ? (variantState.currentTime /
-                                    variantState.duration) *
-                                  100
-                                : 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-sm text-neutral-600">
-                        <span>{formatTime(variantState.currentTime)}</span>
-                        <span>{formatTime(variantState.duration)}</span>
-                      </div>
-                    </div>
-
-                    {/* Player Controls */}
-                    <div className="flex items-center justify-between">
-                      {/* Play/Pause Button */}
-                      <button
-                        onClick={() =>
-                          handleStreamingPlayPause(
-                            variant.id,
-                            variant.sourceStreamAudioUrl ||
-                              variant.streamAudioUrl ||
-                              ""
-                          )
-                        }
-                        disabled={
-                          variantState.isLoading ||
-                          (!variant.sourceStreamAudioUrl &&
-                            !variant.streamAudioUrl)
-                        }
-                        className="w-12 h-12 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
-                      >
-                        {variantState.isLoading ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-melodia-teal border-t-transparent"></div>
-                        ) : activeStreamingVariant === variant.id &&
-                          variantState.isPlaying ? (
-                          <Pause className="w-5 h-5" />
-                        ) : (
-                          <Play className="w-5 h-5" />
-                        )}
-                      </button>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        {/* Lyrics Button */}
-                        <button
-                          onClick={() => handleLyricsClick(variant)}
-                          className="h-10 px-4 bg-white border border-melodia-yellow text-melodia-teal font-body font-semibold rounded-full hover:bg-melodia-yellow/10 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <BookOpen className="w-4 h-4" />
-                          Lyrics
-                        </button>
-
-                        {/* Download Button - Only show when DOWNLOAD_READY */}
-                        {variant.variantStatus === "DOWNLOAD_READY" &&
-                          (variant.audioUrl || variant.sourceAudioUrl) && (
-                            <button
-                              onClick={() =>
-                                handleDownload(
-                                  variant.audioUrl ||
-                                    variant.sourceAudioUrl ||
-                                    "",
-                                  variant.title
-                                )
-                              }
-                              className="h-10 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Download className="w-4 h-4" />
-                              Download
-                            </button>
-                          )}
-                      </div>
-                    </div>
-
-                    {/* Sharing Section */}
-                    <div className="space-y-3">
-                      {/* Horizontal Divider */}
-                      <div className="w-full h-px bg-neutral-200"></div>
-
-                      {/* Share Publicly Checkbox */}
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={sharePublicly[variant.id] || false}
-                            onChange={() => handleShareToggle(variant.id)}
-                            className="w-4 h-4 text-melodia-coral bg-melodia-coral border-melodia-coral rounded focus:ring-melodia-coral focus:ring-2"
-                          />
-                          <span className="text-sm font-body text-neutral-700">
-                            Share publicly
-                          </span>
-                        </label>
-                        <Share2 className="w-4 h-4 text-neutral-400" />
-                      </div>
-
-                      {/* Email Input */}
-                      <div className="space-y-2">
-                        <p className="text-sm font-body text-neutral-600">
-                          Get your song link via email
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="email"
-                            placeholder="Enter your email ID"
-                            value={emailInput[variant.id] || ""}
-                            onChange={(e) =>
-                              handleEmailChange(variant.id, e.target.value)
-                            }
-                            className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent font-body"
-                          />
-                          <button
-                            onClick={() => handleSendEmail(variant.id)}
-                            className="px-4 py-2 bg-melodia-yellow text-melodia-teal font-body font-semibold rounded-lg hover:bg-melodia-yellow/90 transition-colors"
-                          >
-                            Send
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
+              <div key={variant.id} onClick={() => setSelectedVariant(variant)}>
+                <SongPlayerCard
+                  variant={variant}
+                  variantIndex={index}
+                  variantLabel={`Song Option ${index + 1}`}
+                  showSharing={false}
+                  showEmailInput={false}
+                  sharePublicly={sharePublicly[variant.id] || false}
+                  emailInput={emailInput[variant.id] || ""}
+                  onPlayPause={() =>
+                    handleStreamingPlayPause(
+                      variant.id,
+                      variant.sourceStreamAudioUrl ||
+                        variant.streamAudioUrl ||
+                        ""
+                    )
+                  }
+                  onDownload={handleDownload}
+                  onShareToggle={handleShareToggle}
+                  onEmailChange={handleEmailChange}
+                  onSendEmail={handleSendEmail}
+                  isPlaying={
+                    activeStreamingVariant === variant.id &&
+                    variantState.isPlaying
+                  }
+                  isLoading={variantState.isLoading}
+                  currentTime={variantState.currentTime}
+                  duration={variantState.duration}
+                  isSelected={isSelected}
+                  showLyricalSongButton={
+                    isSelected &&
+                    songStatus.variantTimestampLyricsProcessed?.[index]
+                  }
+                  onViewLyricalSong={() =>
+                    router.push(`/song/${songStatus.slug}`)
+                  }
+                />
               </div>
             );
           })}
@@ -481,45 +370,34 @@ export default function SongOptionsDisplay({
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 pb-6">
-        <div className="flex justify-around items-center">
-          <div className="flex flex-col items-center gap-1">
-            <Home className="w-6 h-6 text-melodia-teal" />
-            <span className="text-xs font-body text-melodia-teal font-medium">
-              Home
-            </span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Disc3 className="w-6 h-6 text-neutral-400" />
-            <span className="text-xs font-body text-neutral-500">
-              Best Songs
-            </span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <Music className="w-6 h-6 text-neutral-400" />
-            <span className="text-xs font-body text-neutral-500">My Songs</span>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <User className="w-6 h-6 text-neutral-400" />
-            <span className="text-xs font-body text-neutral-500">Profile</span>
-          </div>
+      {selectedVariant && (
+        <div className="bg-white p-4 shadow-lg-top">
+          <Button
+            onClick={handleViewLyricalSong}
+            className="w-full bg-melodia-coral text-white hover:bg-melodia-coral/90 font-medium rounded-2xl"
+            size="lg"
+            disabled={isProcessingLyrics}
+          >
+            {isProcessingLyrics
+              ? "Processing Lyrics..."
+              : "Create Lyrical Version"}
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* Full-screen MediaPlayer for Lyrics */}
-      {showMediaPlayer && selectedVariantForLyrics && (
+      {/* {showMediaPlayer && selectedVariant && (
         <MediaPlayer
           song={{
             metadata: {
-              title: selectedVariantForLyrics.title,
+              title: selectedVariant.title,
               suno_task_id: songStatus.variants?.[0]?.id,
             },
             song_variants: songStatus.variants,
             selected_variant: songStatus.variants?.findIndex(
-              (v) => v.id === selectedVariantForLyrics.id
+              (v) => v.id === selectedVariant.id
             ),
-            suno_audio_id: selectedVariantForLyrics.id,
+            suno_audio_id: selectedVariant.id,
           }}
           onClose={() => {
             // Stop any audio that might be playing in MediaPlayer
@@ -530,10 +408,10 @@ export default function SongOptionsDisplay({
             }
 
             setShowMediaPlayer(false);
-            setSelectedVariantForLyrics(null);
+            setSelectedVariant(null);
           }}
         />
-      )}
+      )} */}
     </div>
   );
 }

@@ -5,7 +5,10 @@
  * for the song status endpoint.
  */
 
-import { SongStatus, SONG_STATUS_MAP } from '@/lib/services/song-status-calculation-service'
+import {
+  SongStatus,
+  SONG_STATUS_MAP,
+} from "@/lib/services/song-status-calculation-service";
 
 export interface FetchSongStatusApiResponse {
   code: number;
@@ -17,27 +20,43 @@ export interface FetchSongStatusApiResponse {
     status: SongStatus;
     errorCode: string | null;
     errorMessage: string | null;
+    songId?: number;
+    taskId?: string;
+    slug?: string;
+    selectedVariantIndex?: number | null;
+    variantTimestampLyricsProcessed?: any;
   };
 }
 
 /**
  * Create standardized API response for both demo and production modes
  */
-export function createApiResponse(status: SongStatus, sunoData: any[]): FetchSongStatusApiResponse {
+export function createApiResponse(
+  status: SongStatus,
+  sunoData: any[],
+  song?: any,
+): FetchSongStatusApiResponse {
   const response = {
     code: 200,
     msg: "success",
     data: {
       response: {
-        songVariantData: sunoData
+        songVariantData: sunoData,
       },
       status: status,
-      errorCode: status === SONG_STATUS_MAP.FAILED ? "GENERATION_FAILED" : null,
-      errorMessage: status === SONG_STATUS_MAP.FAILED ? 'Song generation failed' : null
-    }
-  }
+      errorCode:
+        status === SONG_STATUS_MAP.FAILED ? "GENERATION_FAILED" : null,
+      errorMessage:
+        status === SONG_STATUS_MAP.FAILED ? "Song generation failed" : null,
+      songId: song?.id,
+      taskId: song?.metadata?.suno_task_id,
+      slug: song?.slug,
+      selectedVariantIndex: song?.selected_variant_index,
+      variantTimestampLyricsProcessed: song?.variant_timestamp_lyrics_processed,
+    },
+  };
 
-  return response
+  return response;
 }
 
 /**

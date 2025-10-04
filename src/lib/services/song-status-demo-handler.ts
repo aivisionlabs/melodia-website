@@ -69,7 +69,7 @@ export async function handleDemoMode(songId: string, taskId: string) {
   })
 
   // Return response using database status
-  return NextResponse.json(createApiResponse(databaseStatus, demoSunoData))
+  return NextResponse.json(createApiResponse(databaseStatus, demoSunoData, updatedSong));
 }
 
 /**

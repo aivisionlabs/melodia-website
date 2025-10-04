@@ -1,4 +1,4 @@
-import { shouldUseMockAPI, getAPIToken, SUNO_CONFIG } from './config';
+import { shouldUseMockAPI, SUNO_CONFIG } from './config';
 
 export interface SunoGenerateRequest {
   prompt: string;
@@ -180,7 +180,7 @@ class MockSunoAPI {
     }, SUNO_CONFIG.MOCK_DELAYS.COMPLETE * 1000);
 
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         taskId
@@ -198,7 +198,7 @@ class MockSunoAPI {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         taskId,
@@ -227,7 +227,7 @@ class MockSunoAPI {
 
     console.log('Mock aligned words:', _);
     return {
-      code: 0,
+      code: 200,
       msg: 'success',
       data: {
         alignedWords: mockAlignedWords,
@@ -429,14 +429,6 @@ export class SunoAPI {
     return response.json();
   }
 
-  // Method to create a task with a specific ID (for client-side task creation)
-  // This is a no-op for the real API since tasks are created server-side
-  createTaskWithId(taskId: string) {
-    // For real API, this method does nothing since tasks are created server-side
-    // and should already exist when this is called
-    console.log(`Real API: Task ${taskId} should already exist from server-side creation`);
-  }
-
   // Method to clear all mock data (for testing)
   // This is a no-op for the real API
   clearMockData() {
@@ -464,7 +456,10 @@ export class SunoAPIFactory {
       if (shouldUseMockAPI()) {
         this.instance = new MockSunoAPI();
       } else {
-        const apiToken = getAPIToken();
+        const apiToken = process.env.SUNO_API_TOKEN;
+        if (!apiToken) {
+          throw new Error("Service Provider API Token not found")
+        }
         this.instance = new SunoAPI(apiToken);
       }
     }

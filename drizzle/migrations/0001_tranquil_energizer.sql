@@ -1,0 +1,1 @@
+ALTER TABLE "lyrics_drafts" ADD COLUMN "llm_model_name" text;
