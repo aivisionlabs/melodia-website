@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   /* Joyful Jam Session Brand Colors */
@@ -7,13 +9,13 @@
   --secondary-cream: #FDFDFD;
   --accent-coral: #EF476F;
   --text-teal: #073B4C;
-  
+
   /* Semantic Colors */
   --success: #10B981;
   --warning: #F59E0B;
   --error: #EF4444;
   --info: #3B82F6;
-  
+
   /* Neutral Colors */
   --white: #FFFFFF;
   --gray-50: #F9FAFB;
@@ -26,7 +28,7 @@
   --gray-700: #374151;
   --gray-800: #1F2937;
   --gray-900: #111827;
-  
+
   /* CSS Variables for Tailwind */
   --background: var(--secondary-cream);
   --foreground: var(--text-teal);
@@ -47,33 +49,27 @@
   --card-foreground: var(--text-teal);
   --popover: var(--white);
   --popover-foreground: var(--text-teal);
-  
+
   /* Design System Gradients */
   --gradient-primary: linear-gradient(135deg, #FFD166 0%, #FFC107 50%, #FFB300 100%);
   --gradient-secondary: linear-gradient(135deg, #FDFDFD 0%, #F8F9FA 50%, #E9ECEF 100%);
   --gradient-accent: linear-gradient(135deg, #EF476F 0%, #E91E63 50%, #C2185B 100%);
   --gradient-warm: linear-gradient(135deg, #FFD166 0%, #EF476F 50%, #073B4C 100%);
-  
+
   /* Design System Shadows */
   --shadow-glow: 0 0 20px rgba(255, 209, 102, 0.3);
   --shadow-elegant: 0 4px 6px -1px rgba(7, 59, 76, 0.1), 0 2px 4px -1px rgba(7, 59, 76, 0.06);
   --shadow-coral: 0 4px 6px -1px rgba(239, 71, 111, 0.1), 0 2px 4px -1px rgba(239, 71, 111, 0.06);
   --shadow-card: 0 1px 3px 0 rgba(7, 59, 76, 0.1), 0 1px 2px 0 rgba(7, 59, 76, 0.06);
-  
+
   /* Design System Transitions */
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  
+
   /* Border Radius */
   --radius: 0.75rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-}
 
 body {
   background: var(--background);

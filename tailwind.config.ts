@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
 	darkMode: "class",
 	content: [
 		"./pages/**/*.{ts,tsx}",
@@ -24,13 +24,13 @@ export default {
 				'secondary-cream': '#FDFDFD',
 				'accent-coral': '#EF476F',
 				'text-teal': '#073B4C',
-				
+
 				// Semantic Colors
 				success: '#10B981',
 				warning: '#F59E0B',
 				error: '#EF4444',
 				info: '#3B82F6',
-				
+
 				// Neutral Colors
 				white: '#FFFFFF',
 				gray: {
@@ -45,7 +45,7 @@ export default {
 					800: '#1F2937',
 					900: '#111827',
 				},
-				
+
 				// Tailwind CSS Variables (for shadcn/ui compatibility)
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -158,4 +158,6 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+};
+
+export default config;
