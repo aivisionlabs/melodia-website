@@ -183,6 +183,8 @@ export function useSongStatusPolling(
           slug: data.slug,
           selectedVariantIndex: data.selectedVariantIndex,
           variantTimestampLyricsProcessed: data.variantTimestampLyricsProcessed,
+          userId: data.userId,
+          anonymousUserId: data.anonymousUserId,
         };
 
         return result;

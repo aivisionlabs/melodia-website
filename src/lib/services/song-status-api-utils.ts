@@ -25,6 +25,8 @@ export interface FetchSongStatusApiResponse {
     slug?: string;
     selectedVariantIndex?: number | null;
     variantTimestampLyricsProcessed?: any;
+    userId?: number | null;
+    anonymousUserId?: string | null;
   };
 }
 
@@ -35,6 +37,7 @@ export function createApiResponse(
   status: SongStatus,
   sunoData: any[],
   song?: any,
+  userInfo?: { userId?: number | null; anonymousUserId?: string | null }
 ): FetchSongStatusApiResponse {
   const response = {
     code: 200,
@@ -53,6 +56,8 @@ export function createApiResponse(
       slug: song?.slug,
       selectedVariantIndex: song?.selected_variant_index,
       variantTimestampLyricsProcessed: song?.variant_timestamp_lyrics_processed,
+      userId: userInfo?.userId || null,
+      anonymousUserId: userInfo?.anonymousUserId || null,
     },
   };
 

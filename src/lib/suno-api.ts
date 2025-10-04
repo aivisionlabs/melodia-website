@@ -55,7 +55,6 @@ export interface SunoRecordInfoResponse {
 
 export interface SunoTimestampedLyricsRequest {
   taskId: string;
-  audioId: string;
   musicIndex: number;
 }
 
@@ -413,6 +412,7 @@ export class SunoAPI {
   }
 
   async getTimestampedLyrics(request: SunoTimestampedLyricsRequest): Promise<SunoTimestampedLyricsResponse> {
+    console.log("Fetching timestamped lyrics for request:", request);
     const response = await fetch(`${this.baseUrl}/generate/get-timestamped-lyrics`, {
       method: 'POST',
       headers: {
@@ -423,6 +423,7 @@ export class SunoAPI {
     });
 
     if (!response.ok) {
+      console.error("Suno API error:", response);
       throw new Error(`Suno API error: ${response.status}`);
     }
 

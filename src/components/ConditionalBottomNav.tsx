@@ -7,7 +7,7 @@ export default function ConditionalBottomNav() {
   const pathname = usePathname();
 
   // Hide bottom navigation on onboarding screens
-  const hideOnPaths = ["/onboarding"];
+  const hideOnPaths = ["/onboarding", "/song/"];
   const shouldHide = hideOnPaths.some((path) => pathname.startsWith(path));
 
   if (shouldHide) {

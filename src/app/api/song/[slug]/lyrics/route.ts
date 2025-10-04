@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { songsTable } from '@/lib/db/schema';
+import { songsTable, songRequestsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { convertAlignedWordsToLyricLines } from '@/lib/utils';
+import { getUserContextFromRequest } from '@/lib/middleware-utils';
+import { sanitizeAnonymousUserId } from '@/lib/utils/validation';
 
 export async function GET(
   request: NextRequest,
@@ -18,21 +20,35 @@ export async function GET(
       );
     }
 
-    // Fetch song from database
-    const songs = await db
-      .select()
+    // Get user context from middleware and request parameters
+    const userContext = getUserContextFromRequest(request);
+    const { searchParams } = new URL(request.url);
+    const userIdParam = searchParams.get('userId');
+    const anonymousUserIdParam = searchParams.get('anonymousUserId');
+
+    // Determine the user ID and anonymous user ID to use
+    const userId = userContext.userId || (userIdParam ? parseInt(userIdParam, 10) : null);
+    const anonymousUserId = sanitizeAnonymousUserId(anonymousUserIdParam || userContext.anonymousUserId);
+
+    // Fetch song with song request data to check ownership
+    const songsWithRequest = await db
+      .select({
+        song: songsTable,
+        songRequest: songRequestsTable,
+      })
       .from(songsTable)
+      .innerJoin(songRequestsTable, eq(songsTable.song_request_id, songRequestsTable.id))
       .where(eq(songsTable.slug, slug))
       .limit(1);
 
-    if (!songs || songs.length === 0) {
+    if (!songsWithRequest || songsWithRequest.length === 0) {
       return NextResponse.json(
         { error: 'Song not found' },
         { status: 404 }
       );
     }
 
-    const song = songs[0];
+    const { song, songRequest } = songsWithRequest[0];
 
     // Check if song is deleted
     if (song.is_deleted) {
@@ -42,14 +58,25 @@ export async function GET(
       );
     }
 
-    // Access control: Check if song is public or requires authentication
+    // Access control: Check ownership or public access
     const isPublic = song.add_to_library === true;
+    let hasAccess = false;
 
-    // For now, we'll allow access if it's public
-    // TODO: Add proper authentication check for private songs
-    if (!isPublic) {
-      // In production, check if user is authenticated and owns this song
-      // For now, return a 403 with information about access requirements
+    if (isPublic) {
+      // Public songs are accessible to everyone
+      hasAccess = true;
+    } else {
+      // Private songs require ownership verification
+      if (userId && songRequest.user_id === userId) {
+        // Registered user owns this song
+        hasAccess = true;
+      } else if (anonymousUserId && songRequest.anonymous_user_id === anonymousUserId) {
+        // Anonymous user owns this song
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         {
           error: 'This song is private',

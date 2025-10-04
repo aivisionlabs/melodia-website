@@ -5,10 +5,13 @@ import { extractTaskId, createApiResponse } from '@/lib/services/song-status-api
 import { handleDemoMode } from '@/lib/services/song-status-demo-handler'
 import { handleProductionMode } from '@/lib/services/song-status-production-handler'
 import { refreshInBackground } from '@/lib/services/song-status-background-refresh'
+import { db } from '@/lib/db'
+import { songRequestsTable } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 /* Service provider song status */
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ songId: string }> }
 ) {
   try {
@@ -21,6 +24,8 @@ export async function GET(
       )
     }
 
+    // Note: User context extraction is available if needed for future authentication checks
+
     // First, fetch the song to get the task_id from metadata
     const song = await fetchSongById(songId)
     if (!song) {
@@ -28,6 +33,28 @@ export async function GET(
         { error: true, message: 'Song not found' },
         { status: 404 }
       )
+    }
+
+    // Get user information from the song request
+    let songRequestUserInfo: { userId: number | null; anonymousUserId: string | null } = { userId: null, anonymousUserId: null }
+    try {
+      const songRequest = await db
+        .select({
+          user_id: songRequestsTable.user_id,
+          anonymous_user_id: songRequestsTable.anonymous_user_id,
+        })
+        .from(songRequestsTable)
+        .where(eq(songRequestsTable.id, song.song_request_id))
+        .limit(1)
+
+      if (songRequest.length > 0) {
+        songRequestUserInfo = {
+          userId: songRequest[0].user_id,
+          anonymousUserId: songRequest[0].anonymous_user_id,
+        }
+      }
+    } catch (error) {
+      console.warn('Could not fetch song request user info:', error)
     }
 
     const taskId = extractTaskId(song)
@@ -40,7 +67,7 @@ export async function GET(
         status: dbFirstResponse.status,
         from: 'database'
       })
-      return NextResponse.json(createApiResponse(dbFirstResponse.status, dbFirstResponse.sunoData, song));
+      return NextResponse.json(createApiResponse(dbFirstResponse.status, dbFirstResponse.sunoData, song, songRequestUserInfo));
     }
 
     if (!taskId) {
@@ -76,7 +103,7 @@ export async function GET(
         variantsCount: sunoData.length
       })
 
-      return NextResponse.json(createApiResponse(databaseStatus, sunoData, song));
+      return NextResponse.json(createApiResponse(databaseStatus, sunoData, song, songRequestUserInfo));
     }
 
     // 3) Not satisfied by DB and refresh needed → hit appropriate source

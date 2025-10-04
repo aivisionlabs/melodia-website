@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import LyricalSongPlayer from "@/components/LyricalSongPlayer";
 import { LyricLine } from "@/types";
 import { Loader2 } from "lucide-react";
@@ -23,6 +23,7 @@ export default function SongLyricsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const searchParams = useSearchParams();
 
   const [songData, setSongData] = useState<SongLyricsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,24 +35,37 @@ export default function SongLyricsPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/song/${slug}/lyrics`);
+        // Get user identification from URL parameters
+        const userId = searchParams.get("userId");
+        const anonymousUserId = searchParams.get("anonymousUserId");
+
+        // Build the API URL with user parameters
+        const apiUrl = new URL(
+          `/api/song/${slug}/lyrics`,
+          window.location.origin
+        );
+        if (userId) apiUrl.searchParams.set("userId", userId);
+        if (anonymousUserId)
+          apiUrl.searchParams.set("anonymousUserId", anonymousUserId);
+
+        const response = await fetch(apiUrl.toString());
         const data = await response.json();
 
         if (!response.ok) {
           if (response.status === 403) {
-            setError('This song is private. Please sign in to view it.');
+            setError("This song is private. Please sign in to view it.");
           } else if (response.status === 404) {
-            setError('Song not found');
+            setError("Song not found");
           } else {
-            setError(data.error || 'Failed to load song');
+            setError(data.error || "Failed to load song");
           }
           return;
         }
 
         setSongData(data);
       } catch (err) {
-        console.error('Error fetching song data:', err);
-        setError('Failed to load song. Please try again.');
+        console.error("Error fetching song data:", err);
+        setError("Failed to load song. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -60,7 +74,7 @@ export default function SongLyricsPage() {
     if (slug) {
       fetchSongData();
     }
-  }, [slug]);
+  }, [slug, searchParams]);
 
   const handleBack = () => {
     router.back();
@@ -69,7 +83,7 @@ export default function SongLyricsPage() {
   const handleDownload = () => {
     if (songData?.audioUrl) {
       // Create a temporary link and trigger download
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = songData.audioUrl;
       link.download = `${songData.title}.mp3`;
       document.body.appendChild(link);
@@ -80,7 +94,7 @@ export default function SongLyricsPage() {
 
   const handleShare = async () => {
     const shareData = {
-      title: songData?.title || 'Check out this song',
+      title: songData?.title || "Check out this song",
       text: `Listen to "${songData?.title}" with synchronized lyrics on Melodia`,
       url: window.location.href,
     };
@@ -91,16 +105,16 @@ export default function SongLyricsPage() {
       } else {
         // Fallback: Copy to clipboard
         await navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
+        alert("Link copied to clipboard!");
       }
     } catch (err) {
-      console.error('Error sharing:', err);
+      console.error("Error sharing:", err);
     }
   };
 
   const handleRequestPublicAccess = () => {
     alert(
-      'This song is private. To share it publicly, please go to your song settings and enable public access.'
+      "This song is private. To share it publicly, please go to your song settings and enable public access."
     );
   };
 
@@ -128,7 +142,7 @@ export default function SongLyricsPage() {
             Oops!
           </h2>
           <p className="text-base font-body text-neutral-600 mb-6">
-            {error || 'Song not found'}
+            {error || "Song not found"}
           </p>
           <button
             onClick={handleBack}
@@ -184,5 +198,3 @@ export default function SongLyricsPage() {
     />
   );
 }
-
-

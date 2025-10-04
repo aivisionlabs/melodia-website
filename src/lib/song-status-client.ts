@@ -34,6 +34,8 @@ export interface SongStatusResponse {
   slug?: string;
   selectedVariantIndex?: number | null;
   variantTimestampLyricsProcessed?: any;
+  userId?: number | null;
+  anonymousUserId?: string | null;
 }
 
 

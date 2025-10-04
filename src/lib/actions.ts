@@ -119,7 +119,9 @@ export async function selectSongVariantAction(
 ) {
   try {
     const { updateSong } = await import("@/lib/db/queries/update");
+    console.log("Updating song with selected variant:", variantIndex);
     await updateSong(songId, { selected_variant: variantIndex });
+    console.log("Updated song with selected variant:", variantIndex);
 
     const lyricsResult =
       await generateTimestampedLyricsAction(taskId, variantIndex);
@@ -328,6 +330,8 @@ export async function generateTimestampedLyricsAction(
   try {
     // Get song by task ID
     const songResult = await getSongByTaskIdAction(taskId);
+
+    console.log("Song result:", songResult);
     if (!songResult.success || !songResult.song) {
       return {
         success: false,
@@ -365,10 +369,10 @@ export async function generateTimestampedLyricsAction(
 
     const timestampedLyricsRequest = {
       taskId: taskId,
-      audioId: variant.id || "", // Use variant ID if available, otherwise empty string
       musicIndex: variantIndex
     };
 
+    console.log("FETCHING timestamp lyrics for variant:", variantIndex);
     let response;
     try {
       response = await sunoAPI.getTimestampedLyrics(timestampedLyricsRequest);
