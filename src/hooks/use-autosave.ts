@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { config } from '@/lib/config';
 
 export function useAutosave(
   value: string,
   onSave: () => void,
   delay?: number
 ) {
-  const actualDelay = delay || config.AUTOSAVE.delay;
+  const actualDelay = delay || 1000; // Default 1 second delay
   const timeoutRef = useRef<NodeJS.Timeout>(null);
   
   useEffect(() => {

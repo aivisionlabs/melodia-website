@@ -48,7 +48,7 @@ export const useSignupForm = (): SignupFormState => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dependencies
-  const { register, clearError } = useAuth();
+  const { register, add } = useAuth();
   const validation = useFormValidation();
 
   // Single Responsibility: Handle email changes with validation

@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { usersTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Get current user from session using existing function
   const user = await getCurrentUser()
 

@@ -16,7 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   // Dependency Inversion: Use custom hook for form management
   const form = useLoginForm();
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
     const checkForSuccessfulLogin = () => {
       // Check if we have user data in localStorage (indicating successful login)
       const userSession = localStorage.getItem('user-session');
-      if (userSession && !loading && !isAuthenticated) {
+      if (userSession && !loading && isAuthenticated) {
         try {
           JSON.parse(userSession);
           router.replace("/profile/logged-in");
@@ -68,7 +68,7 @@ export default function LoginPage() {
     // Check immediately and also after a delay
     checkForSuccessfulLogin();
     const timer = setTimeout(checkForSuccessfulLogin, 500);
-    
+
     return () => clearTimeout(timer);
   }, [loading, isAuthenticated, router]);
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
               error={form.validation.errors.email}
               required
             />
-            
+
             <PasswordField
               id="password"
               placeholder="Password"
@@ -132,8 +132,8 @@ export default function LoginPage() {
               onToggleVisibility={() => form.setShowPassword(!form.showPassword)}
             />
 
-            <Link 
-              href="/profile/forgot-password" 
+            <Link
+              href="/profile/forgot-password"
               className="block text-right text-melodia-coral text-sm font-medium hover:underline font-body"
             >
               Forgot Password?
@@ -167,7 +167,7 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            
+
             {form.isSubmitting && (
               <div className="text-sm text-melodia-teal text-center">
                 Logging you in...

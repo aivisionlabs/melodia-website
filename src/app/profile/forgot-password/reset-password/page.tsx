@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
             Reset Password
           </h1>
           <p className="text-text/80 mb-10 font-body">
-            Enter your new password below. Make sure it's at least 6 characters long.
+            Enter your new password below. Make sure it&apos;s at least 6 characters long.
           </p>
 
           {/* Form */}
@@ -165,7 +165,6 @@ export default function ResetPasswordPage() {
               required
               showPassword={showPassword}
               onToggleVisibility={() => setShowPassword(!showPassword)}
-              className="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body"
             />
 
             {/* Confirm Password Field */}
@@ -178,7 +177,6 @@ export default function ResetPasswordPage() {
               required
               showPassword={showConfirmPassword}
               onToggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body"
             />
 
             {/* General Error Message */}

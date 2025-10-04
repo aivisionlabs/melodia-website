@@ -48,7 +48,9 @@ export async function getLyricsDisplayData(requestId: number): Promise<LyricsDis
       songRequest: {
         id: songRequest[0].id,
         recipient_details: songRequest[0].recipient_details,
-        languages: songRequest[0].languages || '',
+        languages: Array.isArray(songRequest[0].languages) 
+          ? songRequest[0].languages.join(',') 
+          : songRequest[0].languages || '',
         requester_name: songRequest[0].requester_name,
         created_at: songRequest[0].created_at.toISOString()
       },

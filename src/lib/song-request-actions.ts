@@ -58,7 +58,7 @@ function validateSongRequestForm(formData: SongRequestPayload): { isValid: boole
   }
 
 
-  if (!formData.languages || formData.languages.trim().length === 0) {
+  if (!formData.languages || (Array.isArray(formData.languages) ? formData.languages.length === 0 : formData.languages.trim().length === 0)) {
     errors.languages = 'Please specify at least one language'
   }
 

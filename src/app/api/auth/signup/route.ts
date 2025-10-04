@@ -9,7 +9,7 @@ import { generateJWT, generateRequestId } from '@/lib/auth/jwt';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { createEmailService } from '@/lib/services/email-service';
 import { createOTPService } from '@/lib/services/otp-service';
-import type { SignupRequest, ApiResponse, User } from '@/types';
+import type { SignupRequest } from '@/types';
 import bcrypt from 'bcryptjs';
 
 // Compose middleware functions

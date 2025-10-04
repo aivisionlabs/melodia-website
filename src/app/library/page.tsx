@@ -9,52 +9,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Song } from "@/types";
 import { Music, Play } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// Note: We'll need to create a server action to get songs
 
 export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   async function loadSongs() {
-  //     try {
-  //       const result = await getActiveSongsAction();
-  //       if (result.success) {
-  //         // Sort songs by sequence field, with fallback to created_at for backward compatibility
-  //         const sortedSongs = (result.songs || []).sort((a, b) => {
-  //           // If both songs have sequence values, sort by sequence
-  //           if (a.sequence !== undefined && b.sequence !== undefined) {
-  //             return a.sequence - b.sequence;
-  //           }
-  //           // If only one has sequence, prioritize the one with sequence
-  //           if (a.sequence !== undefined && b.sequence === undefined) {
-  //             return -1;
-  //           }
-  //           if (a.sequence === undefined && b.sequence !== undefined) {
-  //             return 1;
-  //           }
-  //           // Fallback to created_at for songs without sequence
-  //           return (
-  //             new Date(b.created_at).getTime() -
-  //             new Date(a.created_at).getTime()
-  //           );
-  //         });
-  //         setSongs(sortedSongs);
-  //       } else {
-  //         console.error("Failed to load songs:", result.error);
-  //         setSongs([]);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error loading songs:", error);
-  //       setSongs([]);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
+  useEffect(() => {
+    async function loadSongs() {
+      try {
+        // For now, use empty array until we create a proper server action
+        const songs: Song[] = [];
+        // Sort songs by created_at (newest first)
+        const sortedSongs = songs.sort((a, b) => {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        setSongs(sortedSongs);
+      } catch (error) {
+        console.error("Error loading songs:", error);
+        setSongs([]);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  //   loadSongs();
-  // }, []);
+    loadSongs();
+  }, []);
 
   const handlePlaySong = (song: Song) => {
     setSelectedSong(song);
@@ -92,63 +74,6 @@ export default function SongLibraryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {songs.map((song) => {
-                // Generate gradient colors based on song categories or style
-                const getGradientColor = (
-                  categories: string[] | null,
-                  style: string | null
-                ) => {
-                  if (!categories || categories.length === 0) {
-                    if (!style) return "from-yellow-400 to-yellow-600";
-
-                    const styleLower = style.toLowerCase();
-                    if (styleLower.includes("birthday"))
-                      return "from-pink-400 to-red-500";
-                    if (
-                      styleLower.includes("wedding") ||
-                      styleLower.includes("love")
-                    )
-                      return "from-green-400 to-teal-500";
-                    if (styleLower.includes("lullaby"))
-                      return "from-yellow-400 to-yellow-600";
-                    if (styleLower.includes("motivational"))
-                      return "from-yellow-400 to-yellow-600";
-                    if (styleLower.includes("musical"))
-                      return "from-yellow-400 to-yellow-600";
-                    return "from-yellow-400 to-yellow-600";
-                  }
-
-                  // Use categories for color generation
-                  const categoryText = categories.join(" ").toLowerCase();
-                  if (categoryText.includes("birthday"))
-                    return "from-pink-400 to-red-500";
-                  if (
-                    categoryText.includes("wedding") ||
-                    categoryText.includes("love") ||
-                    categoryText.includes("romantic")
-                  )
-                    return "from-green-400 to-teal-500";
-                  if (
-                    categoryText.includes("lullaby") ||
-                    categoryText.includes("sleep")
-                  )
-                    return "from-yellow-400 to-yellow-600";
-                  if (
-                    categoryText.includes("motivational") ||
-                    categoryText.includes("inspirational")
-                  )
-                    return "from-yellow-400 to-yellow-600";
-                  if (
-                    categoryText.includes("musical") ||
-                    categoryText.includes("party")
-                  )
-                    return "from-yellow-400 to-yellow-600";
-                  if (
-                    categoryText.includes("acoustic") ||
-                    categoryText.includes("ballad")
-                  )
-                    return "from-yellow-400 to-yellow-600";
-                  return "from-yellow-400 to-yellow-600";
-                };
 
                 return (
                   <Card

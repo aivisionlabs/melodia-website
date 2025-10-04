@@ -1,26 +1,28 @@
+import sgMail from '@sendgrid/mail';
+
 // Email Service Interface - Exchangeable contract for SendGrid/Mock implementations
 export interface EmailService {
   sendVerificationEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean>;
-  
+
   sendPasswordResetEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean>;
 }
 
 // Mock implementation for development
 export class MockEmailService implements EmailService {
   async sendVerificationEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean> {
-      console.log(`
+    console.log(`
     📧 Mock Email Service (Development)
     To: ${email}
     Subject: Verify your Melodia account
@@ -32,17 +34,17 @@ export class MockEmailService implements EmailService {
     This code expires in 10 minutes.
   `);
 
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return true;
   }
 
   async sendPasswordResetEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean> {
-      console.log(`
+    console.log(`
     📧 Mock Email Service (Development) - Password Reset
     To: ${email}
     Subject: Reset your Melodia password
@@ -54,30 +56,29 @@ export class MockEmailService implements EmailService {
     This code expires in 10 minutes.
   `);
 
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return true;
   }
 }
 
 // SendGrid implementation
 export class SendGridEmailService implements EmailService {
-  constructor(private apiKey: string, private fromEmail: string) {}
+  constructor(private apiKey: string, private fromEmail: string) { }
 
   async sendVerificationEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean> {
-      try {
-          const sgMail = require('@sendgrid/mail');
-          sgMail.setApiKey(this.apiKey);
+    try {
+      sgMail.setApiKey(this.apiKey);
 
-          const msg = {
-              to: email,
-              from: this.fromEmail,
-              subject: 'Verify your Melodia account',
-              html: `
+      const msg = {
+        to: email,
+        from: this.fromEmail,
+        subject: 'Verify your Melodia account',
+        html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #073B4C; font-size: 28px; margin: 0;">Welcome to Melodia!</h1>
@@ -110,30 +111,29 @@ export class SendGridEmailService implements EmailService {
           </div>
         </div>
       `,
-          };
+      };
 
-          await sgMail.send(msg);
-          return true;
-      } catch (error: any) {
-          console.error('SendGrid error:', error);
-          return false;
-      }
+      await sgMail.send(msg);
+      return true;
+    } catch (error: any) {
+      console.error('SendGrid error:', error);
+      return false;
+    }
   }
 
   async sendPasswordResetEmail(
-      email: string,
-      code: string,
-      name: string
+    email: string,
+    code: string,
+    name: string
   ): Promise<boolean> {
-      try {
-          const sgMail = require('@sendgrid/mail');
-          sgMail.setApiKey(this.apiKey);
+    try {
+      sgMail.setApiKey(this.apiKey);
 
-          const msg = {
-              to: email,
-              from: this.fromEmail,
-              subject: 'Reset your Melodia password',
-              html: `
+      const msg = {
+        to: email,
+        from: this.fromEmail,
+        subject: 'Reset your Melodia password',
+        html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #073B4C; font-size: 28px; margin: 0;">Password Reset</h1>
@@ -166,24 +166,29 @@ export class SendGridEmailService implements EmailService {
           </div>
         </div>
       `,
-          };
+      };
 
-          await sgMail.send(msg);
-          return true;
-      } catch (error: any) {
-          console.error('SendGrid password reset error:', error);
-          return false;
-      }
+      await sgMail.send(msg);
+      return true;
+    } catch (error: any) {
+      console.error('SendGrid password reset error:', error);
+      return false;
+    }
   }
 }
 
 // Factory function to create email service
 export const createEmailService = (): EmailService => {
+  if (process.env.DEMO_MODE === 'true') {
+    return new MockEmailService();
+  }
+
+
   if (process.env.NODE_ENV === 'production' || process.env.SENDGRID_API_KEY) {
-      return new SendGridEmailService(
-          process.env.SENDGRID_API_KEY!,
-          process.env.FROM_EMAIL || 'chavdavarsha860@gmail.com'
-      );
+    return new SendGridEmailService(
+      process.env.SENDGRID_API_KEY!,
+      process.env.FROM_EMAIL!
+    );
   }
   return new MockEmailService();
 };

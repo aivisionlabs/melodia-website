@@ -156,7 +156,7 @@ export default function ForgotPasswordVerifyOTPPage() {
       {/* Footer */}
       <footer className="p-6 text-center">
         <p className="text-text/60 text-sm font-body">
-          Didn't receive the code?{' '}
+          Didn&apos;t receive the code?{' '}
           <button 
             onClick={handleResendOTP}
             className="text-accent font-medium hover:underline"

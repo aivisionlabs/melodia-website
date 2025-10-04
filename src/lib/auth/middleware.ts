@@ -3,17 +3,13 @@ import { verifyJWT, JWTPayload } from './jwt';
 import { generateRequestId } from './jwt';
 
 // Extend NextRequest to include user data
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-      requestId?: string;
-    }
-  }
+interface AuthenticatedRequest extends NextRequest {
+  user?: JWTPayload;
+  requestId?: string;
 }
 
 // Auth middleware wrapper
-export const withAuth = (handler: Function) => {
+export const withAuth = (handler: (request: AuthenticatedRequest, context: any) => Promise<NextResponse>) => {
   return async (request: NextRequest, context: any) => {
     try {
       const requestId = generateRequestId();
@@ -83,7 +79,7 @@ export const withAuth = (handler: Function) => {
 };
 
 // Optional auth middleware (doesn't fail if no token)
-export const withOptionalAuth = (handler: Function) => {
+export const withOptionalAuth = (handler: (request: AuthenticatedRequest, context: any) => Promise<NextResponse>) => {
   return async (request: NextRequest, context: any) => {
     const requestId = generateRequestId();
     const token = request.cookies.get('auth-token')?.value;

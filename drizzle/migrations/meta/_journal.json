@@ -15,6 +15,20 @@
       "when": 1759467356046,
       "tag": "0001_tranquil_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759584209878,
+      "tag": "0002_third_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1759587700338,
+      "tag": "0003_tricky_champions",
+      "breakpoints": true
     }
   ]
 }

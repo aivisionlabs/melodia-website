@@ -82,12 +82,18 @@ export async function registerUser(
       .values({
         email: sanitizedEmail,
         password_hash: passwordHash,
-        name: sanitizedName
+        name: sanitizedName,
+        date_of_birth: '1990-01-01', // Default date, should be provided by caller
+        email_verified: false
       })
       .returning({
         id: usersTable.id,
         email: usersTable.email,
         name: usersTable.name,
+        date_of_birth: usersTable.date_of_birth,
+        phone_number: usersTable.phone_number,
+        profile_picture: usersTable.profile_picture,
+        email_verified: usersTable.email_verified,
         created_at: usersTable.created_at,
         updated_at: usersTable.updated_at
       })
@@ -104,6 +110,10 @@ export async function registerUser(
       id: newUser.id,
       email: newUser.email,
       name: newUser.name,
+      date_of_birth: newUser.date_of_birth, // Already in YYYY-MM-DD format
+      phone_number: newUser.phone_number,
+      profile_picture: newUser.profile_picture,
+      email_verified: newUser.email_verified,
       created_at: newUser.created_at.toISOString(),
       updated_at: newUser.updated_at.toISOString()
     }
@@ -166,6 +176,10 @@ export async function loginUser(
         id: usersTable.id,
         email: usersTable.email,
         name: usersTable.name,
+        date_of_birth: usersTable.date_of_birth,
+        phone_number: usersTable.phone_number,
+        profile_picture: usersTable.profile_picture,
+        email_verified: usersTable.email_verified,
         password_hash: usersTable.password_hash,
         created_at: usersTable.created_at,
         updated_at: usersTable.updated_at
@@ -184,6 +198,13 @@ export async function loginUser(
     const userData = user[0]
 
     // Verify password
+    if (!userData.password_hash) {
+      return {
+        success: false,
+        error: 'Invalid email or password.'
+      }
+    }
+    
     const isPasswordValid = await bcrypt.compare(password, userData.password_hash)
 
     if (!isPasswordValid) {
@@ -194,9 +215,10 @@ export async function loginUser(
     }
 
     // Remove password hash from response and convert dates to strings
-    const { ...userWithoutPassword } = userData
+    const { password_hash: _, ...userWithoutPassword } = userData
     const userForResponse: User = {
       ...userWithoutPassword,
+      date_of_birth: userData.date_of_birth, // Already in YYYY-MM-DD format
       created_at: userData.created_at.toISOString(),
       updated_at: userData.updated_at.toISOString()
     }
@@ -326,6 +348,10 @@ export async function updateUserProfile(
         id: usersTable.id,
         email: usersTable.email,
         name: usersTable.name,
+        date_of_birth: usersTable.date_of_birth,
+        phone_number: usersTable.phone_number,
+        profile_picture: usersTable.profile_picture,
+        email_verified: usersTable.email_verified,
         created_at: usersTable.created_at,
         updated_at: usersTable.updated_at
       })
@@ -342,6 +368,10 @@ export async function updateUserProfile(
       id: updatedUser.id,
       email: updatedUser.email,
       name: updatedUser.name,
+      date_of_birth: updatedUser.date_of_birth, // Already in YYYY-MM-DD format
+      phone_number: updatedUser.phone_number,
+      profile_picture: updatedUser.profile_picture,
+      email_verified: updatedUser.email_verified,
       created_at: updatedUser.created_at.toISOString(),
       updated_at: updatedUser.updated_at.toISOString()
     }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SunoAPIFactory } from '@/lib/suno-api'
 import { db } from '@/lib/db'
-import { songsTable, songRequestsTable, paymentsTable } from '@/lib/db/schema'
+import { songsTable, songRequestsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
 import { getUserContextFromRequest } from '@/lib/middleware-utils'
@@ -95,11 +95,11 @@ export async function POST(request: NextRequest) {
       // Check payment status only if payment is required and not in demo mode
       if (!demoMode) {
         // Check if there's a completed payment for this song request
-        const payment = await db
-          .select()
-          .from(paymentsTable)
-          .where(eq(paymentsTable.song_request_id, requestId))
-          .limit(1);
+        // const payment = await db
+        //   .select()
+        //   .from(paymentsTable)
+        //   .where(eq(paymentsTable.song_request_id, requestId))
+        //   .limit(1);
 
         // if (payment.length === 0 || payment[0].status !== 'completed') {
         //   return NextResponse.json(
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
             // Create new song record
             const timestamp = Date.now()
             const randomSuffix = Math.random().toString(36).substring(2, 8)
-            const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
+            const slug = `${(recipientDetails || 'song').toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
 
             const [song] = await db
               .insert(songsTable)

@@ -9,7 +9,7 @@ import { otpAttemptRateLimit } from '@/lib/utils/rate-limit';
 import { generateJWT, generateRequestId } from '@/lib/auth/jwt';
 import { setAuthCookie } from '@/lib/auth/cookies';
 import { createOTPService } from '@/lib/services/otp-service';
-import type { VerifyEmailRequest, ApiResponse, User } from '@/types';
+import type { VerifyEmailRequest } from '@/types';
 
 // Compose middleware functions
 const handler = withAuth(

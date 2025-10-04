@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: {
-            message: validationResult.error.errors[0]?.message || 'Invalid request data',
+            message: validationResult.error.issues[0]?.message || 'Invalid request data',
             code: 'VALIDATION_ERROR'
           },
           meta: {

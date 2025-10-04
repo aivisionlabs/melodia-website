@@ -118,7 +118,7 @@ export class RedisOTPService implements OTPService {
 
   generateCode(): string {
     // Use fixed code for development environment
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.DEMO_MODE === 'true') {
       return '123456';
     }
     return Math.floor(100000 + Math.random() * 900000).toString();

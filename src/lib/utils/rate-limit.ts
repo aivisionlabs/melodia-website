@@ -13,7 +13,7 @@ interface RateLimitConfig {
 
 // Rate limiting middleware
 export const rateLimit = (config: RateLimitConfig) => {
-  return (handler: Function) => {
+  return (handler: (request: NextRequest, context: any) => Promise<NextResponse>) => {
     return async (request: NextRequest, context: any) => {
       const requestId = (request as any).requestId || generateRequestId();
       

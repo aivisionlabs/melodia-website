@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { paymentsTable, paymentWebhooksTable, songRequestsTable } from '@/lib/db/schema';
+import { paymentsTable, paymentWebhooksTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyWebhookSignature, parseWebhookEvent, mapRazorpayStatusToPaymentStatus } from '@/lib/razorpay';
 import { RazorpayWebhookEvent } from '@/types/payment';

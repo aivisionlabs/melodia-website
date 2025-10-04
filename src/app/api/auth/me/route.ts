@@ -4,7 +4,7 @@ import { usersTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { withOptionalAuth } from '@/lib/auth/middleware';
 import { generateRequestId } from '@/lib/auth/jwt';
-import type { ApiResponse, User } from '@/types';
+import type { User } from '@/types';
 
 // Helper functions for safe date formatting
 const formatDateForResponse = (date: any): string => {
@@ -124,6 +124,7 @@ const handler = withOptionalAuth(
         date_of_birth: formatDateForResponse(userData.date_of_birth), // YYYY-MM-DD format
         phone_number: userData.phone_number,
         email_verified: userData.email_verified,
+        profile_picture: userData.profile_picture || null,
         created_at: formatDateTimeForResponse(userData.created_at),
         updated_at: formatDateTimeForResponse(userData.updated_at)
       };

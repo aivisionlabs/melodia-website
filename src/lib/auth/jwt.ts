@@ -5,6 +5,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   verified: boolean;
+  purpose?: string; // Optional purpose field for different token types
   iat: number;
   exp: number;
 }

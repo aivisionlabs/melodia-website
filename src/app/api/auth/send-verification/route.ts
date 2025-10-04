@@ -7,7 +7,6 @@ import { verificationRateLimit } from '@/lib/utils/rate-limit';
 import { generateRequestId } from '@/lib/auth/jwt';
 import { createEmailService } from '@/lib/services/email-service';
 import { createOTPService } from '@/lib/services/otp-service';
-import type { ApiResponse } from '@/types';
 
 // Compose middleware functions
 const handler = withAuth(

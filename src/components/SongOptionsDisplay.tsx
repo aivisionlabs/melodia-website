@@ -1,6 +1,5 @@
 "use client";
 
-import { MediaPlayer } from "@/components/MediaPlayer";
 import SongPlayerCard from "@/components/SongPlayerCard";
 import { Button } from "@/components/ui/button";
 import { selectSongVariantAction } from "@/lib/actions";
@@ -19,7 +18,6 @@ export default function SongOptionsDisplay({
   onBackupWithGoogle,
 }: SongOptionsDisplayProps) {
   const router = useRouter();
-  const [showMediaPlayer, setShowMediaPlayer] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<SongVariant | null>(
     null
   );

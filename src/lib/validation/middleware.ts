@@ -4,7 +4,7 @@ import { generateRequestId } from '@/lib/auth/jwt';
 
 // Validation middleware wrapper
 export const validateRequest = <T>(schema: z.ZodSchema<T>) => {
-  return (handler: Function) => {
+  return (handler: (request: NextRequest, context: any) => Promise<NextResponse>) => {
     return async (request: NextRequest, context: any) => {
       try {
         const requestId = (request as any).requestId || generateRequestId();
