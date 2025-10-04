@@ -1,0 +1,465 @@
+---
+alwaysApply: false
+description: Database Patterns for Melodia
+---
+
+# Database Patterns for Melodia
+
+## Database Schema
+
+### Current Tables (from [init.sql](mdc:init.sql))
+
+#### Songs Table
+```sql
+CREATE TABLE IF NOT EXISTS songs (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  title TEXT NOT NULL,
+  lyrics TEXT,
+  timestamp_lyrics JSONB,
+  music_style TEXT,
+  service_provider TEXT DEFAULT 'SU',
+  song_requester TEXT,
+  prompt TEXT,
+  song_url TEXT,
+  duration INTEGER,
+  slug TEXT UNIQUE NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  status TEXT DEFAULT 'draft',
+  categories TEXT[],
+  tags TEXT[],
+  suno_task_id TEXT,
+  metadata JSONB
+);
+```
+
+#### Admin Users Table
+```sql
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## Database Operations Patterns
+
+### Server Actions Pattern
+Follow the pattern from [src/lib/actions.ts](mdc:src/lib/actions.ts):
+
+```typescript
+// 1. Input validation
+function validateSongId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false
+  return /^\d+$/.test(id)
+}
+
+// 2. Rate limiting
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const userLimit = rateLimitMap.get(ip)
+  // ... rate limiting logic
+}
+
+// 3. Database query with error handling
+export async function getSongs(
+  search?: string,
+  limit: number = 50,
+  offset: number = 0,
+  ip: string = 'unknown'
+): Promise<{
+  songs: PublicSong[]
+  total: number
+  hasMore: boolean
+  error?: string
+}> {
+  try {
+    // Rate limiting
+    if (!checkRateLimit(ip)) {
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Too many requests. Please try again later.'
+      }
+    }
+
+    // Input validation
+    if (limit > 100 || limit < 1) {
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Invalid limit parameter'
+      }
+    }
+
+    // Create server-side Supabase client
+    const supabase = createServerSupabaseClient()
+
+    // Build query with only public fields
+    let query = supabase
+      .from('songs')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
+      .range(offset, offset + limit - 1)
+
+    // Add search filter if provided
+    if (search?.trim()) {
+      const sanitizedSearch = sanitizeSearchQuery(search)
+      query = query.ilike('title', `%${sanitizedSearch}%`)
+    }
+
+    // Execute query
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Database error:', error)
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Database error'
+      }
+    }
+
+    return {
+      songs: data || [],
+      total: data?.length || 0,
+      hasMore: (data?.length || 0) === limit
+    }
+  } catch (error) {
+    console.error('Error in getSongs:', error)
+    return {
+      songs: [],
+      total: 0,
+      hasMore: false,
+      error: 'Internal server error'
+    }
+  }
+}
+```
+
+## Supabase Client Usage
+
+### Server-Side Client
+Use the pattern from [src/lib/supabase.ts](mdc:src/lib/supabase.ts):
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+export function createServerSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+```
+
+### Type Safety
+Always use the Database interface from [src/lib/supabase.ts](mdc:src/lib/supabase.ts):
+
+```typescript
+export interface Database {
+  public: {
+    Tables: {
+      songs: {
+        Row: {
+          id: number
+          created_at: string
+          title: string
+          // ... other fields
+        }
+        Insert: {
+          // ... insert fields
+        }
+        Update: {
+          // ... update fields
+        }
+      }
+    }
+  }
+}
+```
+
+## Security Patterns
+
+### 1. Input Sanitization
+```typescript
+function sanitizeSearchQuery(query: string): string {
+  return query.trim().toLowerCase().slice(0, 50)
+}
+```
+
+### 2. Rate Limiting
+```typescript
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX = 100 // requests per window
+```
+
+### 3. Public vs Private Data
+- Use `PublicSong` interface for public endpoints
+- Use `Song` interface for admin/private endpoints
+- Never expose sensitive fields like `suno_task_id` or `metadata`
+
+## Migration Patterns
+
+### SQL Migration Files
+Store in `scripts/` directory:
+- Use descriptive names: `migrate-user-table.sql`
+- Include rollback scripts
+- Test migrations on development first
+
+### Database Schema Updates
+1. Create migration SQL file
+2. Update TypeScript interfaces
+3. Update Server Actions
+4. Test thoroughly
+5. Deploy to production
+
+## Query Optimization
+
+### Indexes
+```sql
+CREATE INDEX IF NOT EXISTS idx_songs_slug ON songs(slug);
+CREATE INDEX IF NOT EXISTS idx_songs_status ON songs(status);
+CREATE INDEX IF NOT EXISTS idx_songs_is_active ON songs(is_active);
+CREATE INDEX IF NOT EXISTS idx_songs_created_at ON songs(created_at);
+```
+
+### Query Patterns
+- Use `range()` for pagination
+- Use `ilike()` for case-insensitive search
+- Use `select()` to limit returned fields
+- Use `eq()`, `gt()`, `lt()` for comparisons
+# Database Patterns for Melodia
+
+## Database Schema
+
+### Current Tables (from [init.sql](mdc:init.sql))
+
+#### Songs Table
+```sql
+CREATE TABLE IF NOT EXISTS songs (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  title TEXT NOT NULL,
+  lyrics TEXT,
+  timestamp_lyrics JSONB,
+  music_style TEXT,
+  service_provider TEXT DEFAULT 'SU',
+  song_requester TEXT,
+  prompt TEXT,
+  song_url TEXT,
+  duration INTEGER,
+  slug TEXT UNIQUE NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  status TEXT DEFAULT 'draft',
+  categories TEXT[],
+  tags TEXT[],
+  suno_task_id TEXT,
+  metadata JSONB
+);
+```
+
+#### Admin Users Table
+```sql
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## Database Operations Patterns
+
+### Server Actions Pattern
+Follow the pattern from [src/lib/actions.ts](mdc:src/lib/actions.ts):
+
+```typescript
+// 1. Input validation
+function validateSongId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false
+  return /^\d+$/.test(id)
+}
+
+// 2. Rate limiting
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const userLimit = rateLimitMap.get(ip)
+  // ... rate limiting logic
+}
+
+// 3. Database query with error handling
+export async function getSongs(
+  search?: string,
+  limit: number = 50,
+  offset: number = 0,
+  ip: string = 'unknown'
+): Promise<{
+  songs: PublicSong[]
+  total: number
+  hasMore: boolean
+  error?: string
+}> {
+  try {
+    // Rate limiting
+    if (!checkRateLimit(ip)) {
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Too many requests. Please try again later.'
+      }
+    }
+
+    // Input validation
+    if (limit > 100 || limit < 1) {
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Invalid limit parameter'
+      }
+    }
+
+    // Create server-side Supabase client
+    const supabase = createServerSupabaseClient()
+
+    // Build query with only public fields
+    let query = supabase
+      .from('songs')
+      .select('id, title, lyrics, timestamp_lyrics, timestamped_lyrics_variants, selected_variant, music_style, service_provider, song_url, duration, slug')
+      .range(offset, offset + limit - 1)
+
+    // Add search filter if provided
+    if (search?.trim()) {
+      const sanitizedSearch = sanitizeSearchQuery(search)
+      query = query.ilike('title', `%${sanitizedSearch}%`)
+    }
+
+    // Execute query
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Database error:', error)
+      return {
+        songs: [],
+        total: 0,
+        hasMore: false,
+        error: 'Database error'
+      }
+    }
+
+    return {
+      songs: data || [],
+      total: data?.length || 0,
+      hasMore: (data?.length || 0) === limit
+    }
+  } catch (error) {
+    console.error('Error in getSongs:', error)
+    return {
+      songs: [],
+      total: 0,
+      hasMore: false,
+      error: 'Internal server error'
+    }
+  }
+}
+```
+
+## Supabase Client Usage
+
+### Server-Side Client
+Use the pattern from [src/lib/supabase.ts](mdc:src/lib/supabase.ts):
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+export function createServerSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+```
+
+### Type Safety
+Always use the Database interface from [src/lib/supabase.ts](mdc:src/lib/supabase.ts):
+
+```typescript
+export interface Database {
+  public: {
+    Tables: {
+      songs: {
+        Row: {
+          id: number
+          created_at: string
+          title: string
+          // ... other fields
+        }
+        Insert: {
+          // ... insert fields
+        }
+        Update: {
+          // ... update fields
+        }
+      }
+    }
+  }
+}
+```
+
+## Security Patterns
+
+### 1. Input Sanitization
+```typescript
+function sanitizeSearchQuery(query: string): string {
+  return query.trim().toLowerCase().slice(0, 50)
+}
+```
+
+### 2. Rate Limiting
+```typescript
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX = 100 // requests per window
+```
+
+### 3. Public vs Private Data
+- Use `PublicSong` interface for public endpoints
+- Use `Song` interface for admin/private endpoints
+- Never expose sensitive fields like `suno_task_id` or `metadata`
+
+## Migration Patterns
+
+### SQL Migration Files
+Store in `scripts/` directory:
+- Use descriptive names: `migrate-user-table.sql`
+- Include rollback scripts
+- Test migrations on development first
+
+### Database Schema Updates
+1. Create migration SQL file
+2. Update TypeScript interfaces
+3. Update Server Actions
+4. Test thoroughly
+5. Deploy to production
+
+## Query Optimization
+
+### Indexes
+```sql
+CREATE INDEX IF NOT EXISTS idx_songs_slug ON songs(slug);
+CREATE INDEX IF NOT EXISTS idx_songs_status ON songs(status);
+CREATE INDEX IF NOT EXISTS idx_songs_is_active ON songs(is_active);
+CREATE INDEX IF NOT EXISTS idx_songs_created_at ON songs(created_at);
+```
+
+### Query Patterns
+- Use `range()` for pagination
+- Use `ilike()` for case-insensitive search
+- Use `select()` to limit returned fields
+- Use `eq()`, `gt()`, `lt()` for comparisons

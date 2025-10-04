@@ -23,11 +23,11 @@ export const FormModal = ({ isOpen, onClose, title }: FormModalProps) => {
           <div className="flex justify-between items-start mb-5 md:mb-6">
             <div className="flex items-center gap-3">
               <Image
-                src="/images/optimized/logo-small.png"
+                src="/images/melodia-logo.jpeg"
                 alt="Melodia"
                 width={40}
                 height={40}
-                className="h-8 w-8 md:h-10 md:w-10 rounded"
+                className="h-8 w-8 md:h-10 md:w-10 rounded object-contain"
               />
               <h3 className="text-lg md:text-xl font-semibold text-foreground pr-4 leading-tight">
                 {title}

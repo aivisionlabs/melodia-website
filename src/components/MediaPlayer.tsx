@@ -588,11 +588,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
               <Image
-                src="/images/optimized/logo-small.png"
+                src="/images/melodia-logo.jpeg"
                 alt="Melodia"
                 width={40}
                 height={40}
-                className="h-8 w-8 md:h-10 md:w-10 rounded flex-shrink-0"
+                className="h-8 w-8 md:h-10 md:w-10 rounded flex-shrink-0 object-contain"
               />
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg md:text-2xl font-bold truncate">

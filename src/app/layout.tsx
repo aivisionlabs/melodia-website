@@ -1,19 +1,29 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins, Montserrat } from "next/font/google";
 import "./globals.css";
 import { StructuredData } from "@/components/StructuredData";
 import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-montserrat",
+});
 
 export const metadata: Metadata = {
-  title: "Melodia - Create Personalized Songs for loved ones",
+  title: "Melodia - Your Friendship's Greatest Hit",
   description:
-    "Transform your emotions, stories, and dreams into beautiful music with Melodia's song creation platform.",
+    "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
   keywords:
-    "personalized songs, custom music, music creation, AI music, song writing, personalized gifts, music for loved ones",
+    "personalized songs, custom music, friendship songs, joyful music, AI music, song writing, personalized gifts, music for loved ones, celebration songs",
   authors: [{ name: "Melodia" }],
   creator: "Melodia",
   publisher: "Melodia",
@@ -27,14 +37,14 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Melodia - Create Personalized Songs for loved ones",
+    title: "Melodia - Your Friendship's Greatest Hit",
     description:
-      "Transform your emotions, stories, and dreams into beautiful music with Melodia's song creation platform.",
+      "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
     url: "https://melodia-songs.com",
     siteName: "Melodia",
     images: [
       {
-        url: "/images/melodia-logo-og.jpeg",
+        url: "/images/melodia-logo.jpeg",
         width: 1200,
         height: 630,
         alt: "Melodia Logo",
@@ -45,10 +55,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Melodia - Create Personalized Songs for loved ones",
+    title: "Melodia - Your Friendship's Greatest Hit",
     description:
-      "Transform your emotions, stories, and dreams into beautiful music with Melodia's song creation platform.",
-    images: ["/images/melodia-logo-og.jpeg"],
+      "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
+    images: ["/images/melodia-logo.jpeg"],
     creator: "@melodia",
     site: "@melodia",
   },
@@ -73,11 +83,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-        <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#fbbf24" />
-        <meta name="msapplication-TileColor" content="#fbbf24" />
+        <meta name="theme-color" content="#FFD166" />
+        <meta name="msapplication-TileColor" content="#FFD166" />
         <meta name="apple-mobile-web-app-title" content="Melodia" />
 
         {/* Google tag (gtag.js) - Production only */}
@@ -98,7 +107,9 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${inter.className} antialiased`}>
+      <body
+        className={`${montserrat.variable} ${poppins.variable} font-body antialiased`}
+      >
         <StructuredData type="website" />
         <StructuredData type="organization" />
         <PageTracking />

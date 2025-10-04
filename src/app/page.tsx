@@ -37,20 +37,20 @@ export default function HomePage() {
       {/* Header */}
       <Header />
       <main
-        className="flex flex-1 overflow-hidden flex-col lg:flex-row bg-slate-50"
+        className="flex flex-1 overflow-hidden flex-col lg:flex-row bg-secondary-cream"
         aria-label="Main content"
       >
         {/* Left Panel - Custom Creations */}
         <section
           id="creations"
-          className="w-full lg:w-1/3 bg-gradient-to-b from-yellow-200 to-yellow-300 p-2 sm:p-3 md:p-4 overflow-y-auto flex flex-col order-2 lg:order-1 lg:rounded-2xl"
+          className="w-full lg:w-1/3 bg-gradient-to-b from-primary-yellow to-yellow-300 p-2 sm:p-3 md:p-4 overflow-y-auto flex flex-col order-2 lg:order-1 lg:rounded-2xl"
           aria-labelledby="creations-title"
         >
           <h2
             id="creations-title"
-            className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-3 sm:mb-4 md:mb-6 text-center"
+            className="text-xl sm:text-2xl md:text-3xl font-bold text-teal mb-3 sm:mb-4 md:mb-6 text-center font-heading"
           >
-            Our Creations
+            Joyful Creations
           </h2>
 
           {/* Library CTA Button */}
@@ -66,8 +66,8 @@ export default function HomePage() {
                   );
                 }}
               >
-                <Music className="h-5 w-5 mr-2 text-yellow-600" />
-                View All Songs in Library
+                <Music className="h-5 w-5 mr-2 text-teal" />
+                Explore All Joyful Songs
               </Button>
             </Link>
           </div>
@@ -121,19 +121,19 @@ export default function HomePage() {
 
         {/* Center Panel - Create Custom Song */}
         <section
-          className="w-full lg:w-1/3 flex flex-col items-center pb-4 sm:pb-8 p-2 bg-slate-50 order-1 lg:order-2 min-h-[50vh] sm:min-h-[60vh] lg:min-h-0"
+          className="w-full lg:w-1/3 flex flex-col items-center pb-4 sm:pb-8 p-2 bg-secondary-cream order-1 lg:order-2 min-h-[50vh] sm:min-h-[60vh] lg:min-h-0"
           aria-labelledby="create-title"
         >
-          <div className="flex flex-col items-center mb-4 sm:mb-8 md:mb-10 rounded-lg pt-0 p-2 bg-slate-50">
+          <div className="flex flex-col items-center mb-6 sm:mb-6 md:mb-8 rounded-lg pt-0 p-2 bg-secondary-cream">
             <CenterLogo
               alt="Melodia"
-              className="mx-auto mb-2 sm:mb-4 md:mb-10 transition-opacity duration-300"
+              className="mx-auto mb-3 sm:mb-3 md:mb-4 transition-opacity duration-300"
             />
             <h1
               id="create-title"
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-800 text-center px-2"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-teal text-center px-2 font-heading"
             >
-              Create Personalized
+              Your Friendship&apos;s Greatest Hit
             </h1>
           </div>
           <div className="mx-auto mb-6 md:mb-8">
@@ -145,14 +145,14 @@ export default function HomePage() {
           </div>
           <div className="text-center w-full max-w-md px-2 sm:px-4">
             <div className="space-y-3 sm:space-y-4 md:space-y-5 mb-6 sm:mb-8 md:mb-10">
-              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center bg-gray-100 text-gray-700 border border-gray-200 px-2 sm:px-4 font-medium flex items-center justify-center rounded-lg">
-                1. Tell us, Whom to dedicate this song to?
+              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center bg-primary-yellow text-teal border-2 border-primary-yellow px-2 sm:px-4 font-semibold flex items-center justify-center rounded-lg shadow-elegant">
+                1. Who&apos;s your favorite person? 🎵
               </div>
-              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center text-gray-700 bg-gray-100 border border-gray-200 px-2 sm:px-4 font-medium flex items-center justify-center rounded-lg">
-                2. Tell us, What is the song about?
+              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center text-teal bg-secondary-cream border-2 border-accent-coral px-2 sm:px-4 font-semibold flex items-center justify-center rounded-lg shadow-elegant">
+                2. What makes your bond special? ✨
               </div>
-              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center text-gray-700 bg-gray-100 border border-gray-200 px-2 sm:px-4 font-medium flex items-center justify-center rounded-lg">
-                3. Add personal touch
+              <div className="w-full h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg text-center text-teal bg-secondary-cream border-2 border-primary-yellow px-2 sm:px-4 font-semibold flex items-center justify-center rounded-lg shadow-elegant">
+                3. Add your joyful memories! 🎉
               </div>
             </div>
 
@@ -163,14 +163,14 @@ export default function HomePage() {
         {/* Right Panel - Testimonials */}
         <section
           id="testimonials"
-          className="w-full lg:w-1/3 bg-gradient-to-b from-yellow-200 to-yellow-300 p-2 sm:p-3 md:p-4 overflow-y-auto order-3 lg:order-3 md:rounded-2xl"
+          className="w-full lg:w-1/3 bg-gradient-to-b from-primary-yellow to-yellow-300 p-2 sm:p-3 md:p-4 overflow-y-auto order-3 lg:order-3 md:rounded-2xl"
           aria-labelledby="testimonials-title"
         >
           <h2
             id="testimonials-title"
-            className="mb-2 sm:mb-3 md:mb-4 text-gray-800 font-bold text-base sm:text-lg md:text-xl text-center"
+            className="mb-2 sm:mb-3 md:mb-4 text-teal font-bold text-base sm:text-lg md:text-xl text-center font-heading"
           >
-            We love Impressing people...
+            Spreading Joy, One Song at a Time! ✨
           </h2>
           <div className="space-y-2 sm:space-y-3 md:space-y-4">
             {testimonials.map((testimonial) => (

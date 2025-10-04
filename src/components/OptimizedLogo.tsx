@@ -7,11 +7,11 @@ export const HeaderLogo: React.FC<{ className?: string; alt?: string }> = ({
 }) => {
   return (
     <Image
-      src="/images/optimized/logo-medium.png"
+      src="/images/melodia-logo.jpeg"
       alt={alt}
-      width={64}
-      height={64}
-      className={`w-12 h-12 sm:w-16 sm:h-16 ${className}`}
+      width={80}
+      height={80}
+      className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain ${className}`}
       priority={true}
     />
   );
@@ -24,11 +24,11 @@ export const CenterLogo: React.FC<{ className?: string; alt?: string }> = ({
 }) => {
   return (
     <Image
-      src="/images/optimized/logo-large.png"
+      src="/images/melodia-logo.jpeg"
       alt={alt}
-      width={320}
-      height={320}
-      className={`w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-80 lg:h-80 ${className}`}
+      width={300}
+      height={300}
+      className={`w-48 h-48 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 object-contain ${className}`}
       priority={true}
     />
   );

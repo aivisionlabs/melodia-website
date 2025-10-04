@@ -10,30 +10,27 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-slate-50 flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative">
+    <header className="w-full bg-secondary-cream flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative shadow-elegant">
       <Link
         href="/"
         className="flex items-center gap-2 sm:gap-3"
         aria-label="Go to homepage"
       >
-        <HeaderLogo alt="Melodia Logo" className="w-12 h-12 sm:w-16 sm:h-16" />
-        <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
-          Melodia
-        </span>
+        <HeaderLogo alt="Melodia Logo" />
       </Link>
 
       {/* Desktop Navigation and CTA */}
       <div className="hidden md:flex items-center gap-6">
         <Link
           href="/library"
-          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
+          className="text-teal hover:text-accent-coral font-medium transition-colors focus:underline font-body"
           aria-label="Jump to Creations section"
         >
           Library
         </Link>
         <Link
           href="/#testimonials-title"
-          className="text-gray-700 hover:text-yellow-600 font-medium transition-colors focus:underline"
+          className="text-teal hover:text-accent-coral font-medium transition-colors focus:underline font-body"
           aria-label="Jump to Testimonials section"
         >
           Testimonials

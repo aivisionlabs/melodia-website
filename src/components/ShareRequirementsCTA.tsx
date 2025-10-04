@@ -25,10 +25,10 @@ const ShareRequirementsCTA = ({
         trackCTAEvent.ctaClick("create_song_cta", "main_page", "button");
         window.open("https://forms.gle/XUsztM73btPfCr4M9", "_blank");
       }}
-      className={`bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${sizeClasses[size]} ${className}`}
+      className={`bg-primary-yellow hover:bg-yellow-600 text-teal font-semibold rounded-lg shadow-elegant hover:shadow-glow transition-all duration-200 ${sizeClasses[size]} ${className}`}
     >
       <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-      <span className="ml-1 sm:ml-2">Create Your Song</span>
+      <span className="ml-1 sm:ml-2">Start Your Joyful Journey! 🎵</span>
     </Button>
   );
 };

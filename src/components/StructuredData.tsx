@@ -60,7 +60,7 @@ export function StructuredData({ song, type }: StructuredDataProps) {
           name: "Melodia",
           description: "Create Personalized Songs for loved ones",
           url: "https://melodia-songs.com",
-          logo: "https://melodia-songs.com/images/melodia-logo-transparent.png",
+          logo: "https://melodia-songs.com/images/melodia-logo.jpeg",
           sameAs: [
             "https://twitter.com/melodia",
             // Add other social media URLs here

@@ -19,6 +19,34 @@ export default {
 		},
 		extend: {
 			colors: {
+				// Joyful Jam Session Brand Colors
+				'primary-yellow': '#FFD166',
+				'secondary-cream': '#FDFDFD',
+				'accent-coral': '#EF476F',
+				'text-teal': '#073B4C',
+				
+				// Semantic Colors
+				success: '#10B981',
+				warning: '#F59E0B',
+				error: '#EF4444',
+				info: '#3B82F6',
+				
+				// Neutral Colors
+				white: '#FFFFFF',
+				gray: {
+					50: '#F9FAFB',
+					100: '#F3F4F6',
+					200: '#E5E7EB',
+					300: '#D1D5DB',
+					400: '#9CA3AF',
+					500: '#6B7280',
+					600: '#4B5563',
+					700: '#374151',
+					800: '#1F2937',
+					900: '#111827',
+				},
+				
+				// Tailwind CSS Variables (for shadcn/ui compatibility)
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -62,6 +90,11 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			fontFamily: {
+				'heading': ['Poppins', 'sans-serif'],
+				'body': ['Montserrat', 'sans-serif'],
+				'sans': ['Montserrat', 'sans-serif'],
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',

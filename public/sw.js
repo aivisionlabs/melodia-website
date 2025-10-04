@@ -1,21 +1,16 @@
 // Dynamic cache version based on build time or deployment
 // For Vercel, we can use the deployment timestamp or a build-time variable
-const CACHE_VERSION = 'v1.0.1753955113443'; // This will be updated by the build script
+const CACHE_VERSION = "v1.0.1753955113443"; // This will be updated by the build script
 const CACHE_NAME = `melodia-cache-${CACHE_VERSION}`;
 
 // Assets to cache
 const urlsToCache = [
   "/",
   "/index.html",
-  "/images/optimized/logo-small.png",
-  "/images/optimized/logo-medium.png",
-  "/images/optimized/logo-large.png",
-  "/favicon.ico",
-  "/favicon-16x16.png",
-  "/favicon-32x32.png",
+  "/images/melodia-logo.jpeg",
   "/apple-touch-icon.png",
-  "/android-chrome-192x192.png",
-  "/android-chrome-512x512.png",
+  "/web-app-manifest-192x192.png",
+  "/web-app-manifest-512x512.png",
 ];
 
 // Install event - cache static assets
