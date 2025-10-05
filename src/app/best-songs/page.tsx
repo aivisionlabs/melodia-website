@@ -1,88 +1,84 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { MediaPlayer } from "@/components/MediaPlayer";
-import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
-
-interface BestSongItem {
-  id: number;
-  title: string;
-  slug: string;
-  song_url: string | null;
-  duration: number | null;
-  status: string | null;
-  metadata: any;
-  created_at: string;
-}
+import SongOptionsDisplay from "@/components/SongOptionsDisplay";
+import { SongStatusResponse } from "@/lib/song-status-client";
 
 export default function BestSongsPage() {
-  const [songs, setSongs] = useState<BestSongItem[]>([]);
-  const [selectedSong, setSelectedSong] = useState<any>(null);
+  const [songs, setSongs] = useState<SongStatusResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/songs/best");
+        console.log("Fetching library songs from frontend...");
+        setLoading(true);
+        const res = await fetch("/api/songs/library");
         const data = await res.json();
-        if (data?.success) setSongs(data.songs || []);
-      } catch {}
+        console.log("API response:", data);
+        if (data?.success) {
+          console.log("Setting songs:", data.songs);
+          setSongs(data.songs || []);
+        } else {
+          console.error("API returned success: false", data);
+        }
+      } catch (error) {
+        console.error("Error fetching library songs:", error);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  const handlePlay = (song: BestSongItem) => {
-    if (!song.song_url) return;
-    setSelectedSong({
-      title: song.title,
-      song_url: song.song_url,
-      duration: song.duration || 0,
-    });
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground pt-16 pb-20">
+        <div className="max-w-6xl mx-auto p-6">
+          <h1 className="text-3xl font-heading mb-6">Library Songs</h1>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              Loading library songs...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (songs.length === 0) {
+    return (
+      <div className="min-h-screen bg-background text-foreground pt-16 pb-20">
+        <div className="max-w-6xl mx-auto p-6">
+          <h1 className="text-3xl font-heading mb-6">Library Songs</h1>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No library songs found.
+            </p>
+            <p className="text-muted-foreground text-sm mt-2">
+              Songs need to be marked with "add_to_library = true" to appear
+              here.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-16 pb-20">
       <div className="max-w-6xl mx-auto p-6">
-        <h1 className="text-3xl font-heading mb-6">Best Songs</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <h1 className="text-3xl font-heading mb-6">Library Songs</h1>
+
+        <div className="space-y-8">
           {songs.map((song) => (
             <div
-              key={song.id}
-              className="bg-card border border-border rounded-xl overflow-hidden"
+              key={song.songId}
+              className="bg-card border border-border rounded-xl p-6"
             >
-              <div className="relative h-40">
-                <Image
-                  src={
-                    (song.metadata?.coverUrl as string) ||
-                    "/images/melodia-logo.png"
-                  }
-                  alt={song.title}
-                  fill
-                  className="object-cover"
-                />
-                <Button
-                  size="sm"
-                  className="absolute bottom-2 right-2 bg-melodia-yellow text-melodia-teal"
-                  onClick={() => handlePlay(song)}
-                >
-                  <Play className="h-4 w-4 mr-1" /> Play
-                </Button>
-              </div>
-              <div className="p-4">
-                <div className="font-semibold">{song.title}</div>
-              </div>
+              <SongOptionsDisplay songStatus={song} isStandalonePage={false} />
             </div>
           ))}
         </div>
-
-        {selectedSong && (
-          <div className="mt-10">
-            <MediaPlayer
-              song={selectedSong}
-              onClose={() => setSelectedSong(null)}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

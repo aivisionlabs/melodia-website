@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
     '/api/payments/verify',
     '/api/payments/status/',
     '/api/pricing-plans',
-    '/api/songs/best'
+    '/api/songs/library'
   ]
 
   const isPublicEndpoint = publicEndpoints.some(endpoint =>

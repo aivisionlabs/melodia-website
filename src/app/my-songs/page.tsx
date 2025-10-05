@@ -117,7 +117,8 @@ export default function MySongsPage() {
     if (isAuthResolved && currentPage === 1) {
       fetchPage(1);
     }
-  }, [isAuthResolved, currentPage, fetchPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthResolved, currentPage]); // Removed fetchPage from dependencies to prevent infinite loop
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
