@@ -54,10 +54,6 @@ export default function BestSongsPage() {
             <p className="text-muted-foreground text-lg">
               No library songs found.
             </p>
-            <p className="text-muted-foreground text-sm mt-2">
-              Songs need to be marked with "add_to_library = true" to appear
-              here.
-            </p>
           </div>
         </div>
       </div>

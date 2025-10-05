@@ -62,7 +62,6 @@ CREATE TABLE lyrics_drafts (
   song_request_id INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
   lyrics_edit_prompt TEXT,
-  generated_text TEXT NOT NULL,
   song_title TEXT,
   music_style TEXT,
   llm_model_name TEXT,

@@ -1,23 +1,23 @@
 import { useEffect, useRef } from 'react';
-import { config } from '@/lib/config';
+import { AUTOSAVE_CONFIG } from '@/lib/config';
 
 export function useAutosave(
   value: string,
   onSave: () => void,
   delay?: number
 ) {
-  const actualDelay = delay || config.AUTOSAVE.delay;
+  const actualDelay = delay || AUTOSAVE_CONFIG.delay;
   const timeoutRef = useRef<NodeJS.Timeout>(null);
-  
+
   useEffect(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     timeoutRef.current = setTimeout(() => {
       onSave();
     }, actualDelay);
-    
+
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);

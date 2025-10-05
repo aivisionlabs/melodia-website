@@ -114,7 +114,7 @@ export function StreamingPlaybackTest() {
 
         {/* Instructions */}
         <div className="text-xs text-gray-500">
-          <p>1. Click "Start Test" to begin playback</p>
+          <p>1. Click &quot;Start Test&quot; to begin playback</p>
           <p>2. Duration will be updated after 3 seconds</p>
           <p>3. Notice how playback continues seamlessly</p>
         </div>

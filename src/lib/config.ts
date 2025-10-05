@@ -27,3 +27,7 @@ export function getAPIToken(): string {
   }
   return SUNO_CONFIG.API_TOKEN;
 }
+
+export const AUTOSAVE_CONFIG = {
+  delay: 5000,
+}
