@@ -54,7 +54,7 @@ export function createApiResponse(
       songId: song?.id,
       taskId: song?.metadata?.suno_task_id,
       slug: song?.slug,
-      selectedVariantIndex: song?.selected_variant_index,
+      selectedVariantIndex: song?.selected_variant,
       variantTimestampLyricsProcessed: song?.variant_timestamp_lyrics_processed,
       userId: userInfo?.userId || null,
       anonymousUserId: userInfo?.anonymousUserId || null,

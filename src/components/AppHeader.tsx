@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { HeaderLogo } from "./OptimizedLogo";
+import { CustomHeaderLogo } from "./CustomHeaderLogo";
 
 const AppHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,10 +17,7 @@ const AppHeader = () => {
           className="flex items-center gap-3"
           aria-label="Go to homepage"
         >
-          <HeaderLogo alt="Melodia Logo" className="w-10 h-10" />
-          <span className="text-xl font-bold font-heading text-melodia-teal">
-            Melodia
-          </span>
+          <CustomHeaderLogo alt="Melodia Logo" />
         </Link>
 
         {/* Hamburger Menu Button */}

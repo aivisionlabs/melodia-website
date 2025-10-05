@@ -24,6 +24,7 @@ interface SongPlayerCardProps {
   currentTime: number;
   duration: number;
   isSelected?: boolean;
+  isPermanentlySelected?: boolean;
   showLyricalSongButton?: boolean;
   onViewLyricalSong?: () => void;
 }
@@ -46,6 +47,7 @@ export default function SongPlayerCard({
   currentTime,
   duration,
   isSelected = false,
+  isPermanentlySelected = false,
   showLyricalSongButton = false,
   onViewLyricalSong,
 }: SongPlayerCardProps) {
@@ -97,12 +99,14 @@ export default function SongPlayerCard({
     <div
       className={cn(
         "bg-white rounded-2xl p-5 border transition-all duration-300 relative",
-        isSelected
+        isPermanentlySelected
+          ? "border-melodia-yellow shadow-lg"
+          : isSelected
           ? "border-melodia-coral shadow-lg"
           : "border-neutral-200 shadow-sm hover:shadow-md"
       )}
     >
-      {isSelected && (
+      {isSelected && !isPermanentlySelected && (
         <div className="absolute -top-2 -right-2 bg-melodia-coral rounded-full p-1 text-white">
           <Check className="w-4 h-4" />
         </div>
@@ -114,6 +118,11 @@ export default function SongPlayerCard({
           <div>
             <p className="text-sm font-body text-neutral-500 mb-1 flex justify-between items-center">
               <span>{variantLabel}</span>
+              {isPermanentlySelected && (
+                <span className="bg-melodia-yellow text-melodia-teal font-bold text-xs px-2 py-1 rounded-md">
+                  Selected
+                </span>
+              )}
             </p>
             <h3 className="text-xl font-heading text-melodia-teal font-bold mb-2">
               {variant.title}
@@ -208,35 +217,26 @@ export default function SongPlayerCard({
           </div>
         </div>
       </div>
-      {variant.variantStatus === "DOWNLOAD_READY" && (
-        <div className="flex items-center justify-between mt-4">
-          {/* Play/Pause Button */}
-          <button
-            onClick={handlePlayPause}
-            disabled={isLoading || !streamAudioUrl}
-            className="w-14 h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
-            ) : isPlaying ? (
-              <Pause className="w-6 h-6" />
-            ) : (
-              <Play className="w-6 h-6" />
-            )}
-          </button>
-
-          {showLyricalSongButton && onViewLyricalSong ? (
-            <button
-              onClick={onViewLyricalSong}
-              className="h-12 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
-            >
-              <FileText className="w-5 h-5" />
-              <span>View Lyrical Song</span>
-            </button>
-          ) : (
-            <>
+      {variant.variantStatus === "DOWNLOAD_READY" &&
+        (showLyricalSongButton && onViewLyricalSong ? (
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              {/* Play/Pause Button */}
+              <button
+                onClick={handlePlayPause}
+                disabled={isLoading || !streamAudioUrl}
+                className="w-14 h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
+                ) : isPlaying ? (
+                  <Pause className="w-6 h-6" />
+                ) : (
+                  <Play className="w-6 h-6" />
+                )}
+              </button>
               {/* Download Button */}
-              {variant.variantStatus === "DOWNLOAD_READY" && downloadUrl ? (
+              {downloadUrl ? (
                 <button
                   onClick={handleDownloadClick}
                   className="h-12 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
@@ -244,15 +244,49 @@ export default function SongPlayerCard({
                   <Download className="w-5 h-5" />
                   <span>Download</span>
                 </button>
+              ) : null}
+            </div>
+            <div className="border-t border-neutral-200" />
+            <button
+              onClick={onViewLyricalSong}
+              className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <FileText className="w-5 h-5" />
+              <span>View Lyrical Song</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mt-4">
+            {/* Play/Pause Button */}
+            <button
+              onClick={handlePlayPause}
+              disabled={isLoading || !streamAudioUrl}
+              className="w-14 h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
+              ) : isPlaying ? (
+                <Pause className="w-6 h-6" />
               ) : (
-                <div className="text-sm font-body text-neutral-500">
-                  {getStatusText()}
-                </div>
+                <Play className="w-6 h-6" />
               )}
-            </>
-          )}
-        </div>
-      )}
+            </button>
+            {/* Download Button */}
+            {downloadUrl ? (
+              <button
+                onClick={handleDownloadClick}
+                className="h-12 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                <span>Download</span>
+              </button>
+            ) : (
+              <div className="text-sm font-body text-neutral-500">
+                {getStatusText()}
+              </div>
+            )}
+          </div>
+        ))}
 
       {/* Sharing Section */}
       {(showSharing || showEmailInput) &&

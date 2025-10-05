@@ -7,11 +7,11 @@ export const HeaderLogo: React.FC<{ className?: string; alt?: string }> = ({
 }) => {
   return (
     <Image
-      src="/images/optimized/logo-medium.png"
+      src="/images/optimized/logo-large.png"
       alt={alt}
-      width={64}
-      height={64}
-      className={`w-12 h-12 sm:w-16 sm:h-16 ${className}`}
+      width={120}
+      height={120}
+      className={`w-14 h-14 sm:w-16 sm:h-16 ${className}`}
       priority={true}
     />
   );

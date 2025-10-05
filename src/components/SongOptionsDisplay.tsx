@@ -23,6 +23,13 @@ export default function SongOptionsDisplay({
   );
   const [isProcessingLyrics, setIsProcessingLyrics] = useState(false);
 
+  const isFinalSelectionMade =
+    songStatus.selectedVariantIndex !== undefined &&
+    songStatus.selectedVariantIndex !== null &&
+    !!songStatus.variantTimestampLyricsProcessed?.[
+      songStatus.selectedVariantIndex
+    ];
+
   useEffect(() => {
     if (
       songStatus.selectedVariantIndex !== undefined &&
@@ -304,9 +311,15 @@ export default function SongOptionsDisplay({
           {songStatus.variants?.map((variant, index) => {
             const variantState = getVariantState(variant.id);
             const isSelected = selectedVariant?.id === variant.id;
+            const isPermanentlySelected = isSelected && isFinalSelectionMade;
 
             return (
-              <div key={variant.id} onClick={() => setSelectedVariant(variant)}>
+              <div
+                key={variant.id}
+                onClick={() =>
+                  !isFinalSelectionMade && setSelectedVariant(variant)
+                }
+              >
                 <SongPlayerCard
                   variant={variant}
                   variantIndex={index}
@@ -335,6 +348,7 @@ export default function SongOptionsDisplay({
                   currentTime={variantState.currentTime}
                   duration={variantState.duration}
                   isSelected={isSelected}
+                  isPermanentlySelected={isPermanentlySelected}
                   showLyricalSongButton={
                     isSelected &&
                     songStatus.variantTimestampLyricsProcessed?.[index]
@@ -374,7 +388,7 @@ export default function SongOptionsDisplay({
         </div>
       </div>
 
-      {selectedVariant && (
+      {!isFinalSelectionMade && selectedVariant && (
         <div className="bg-white p-4 shadow-lg-top">
           <Button
             onClick={handleViewLyricalSong}
