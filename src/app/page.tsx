@@ -235,7 +235,7 @@ export default function CreateSongPage() {
                 Tell us a little bit about it.
               </p>
             </header>
-            <div>
+            {/* <div>
               <label
                 className="block text-lg font-semibold text-melodia-teal mb-2"
                 htmlFor="requester-name"
@@ -252,7 +252,7 @@ export default function CreateSongPage() {
                 onChange={(e) => setRequesterName(e.target.value)}
                 className="form-input w-full"
               />
-            </div>
+            </div> */}
             <div>
               <label
                 className="block text-lg font-semibold text-melodia-teal mb-2"

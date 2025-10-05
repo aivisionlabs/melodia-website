@@ -52,7 +52,6 @@ CREATE TABLE song_requests (
   mood TEXT[],
   song_story TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-  generated_song_id INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -325,8 +324,7 @@ COMMENT ON TABLE users IS 'Regular user accounts for authentication';
 COMMENT ON TABLE anonymous_users IS 'Anonymous users table to track anonymous sessions';
 
 -- Song requests table comments
-COMMENT ON TABLE song_requests IS 'Song creation requests from users';
-COMMENT ON COLUMN song_requests.generated_song_id IS 'Reference to the generated song (if any)';
+COMMENT ON TABLE song_requests IS 'Song creation requests from users - relationship to songs managed via songs.song_request_id';
 
 -- Lyrics drafts table comments
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in lyrics workflow';

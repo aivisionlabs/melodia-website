@@ -52,7 +52,6 @@ CREATE TABLE song_requests (
   mood TEXT[],
   song_story TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-  generated_song_id INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -66,6 +65,7 @@ CREATE TABLE lyrics_drafts (
   generated_text TEXT NOT NULL,
   song_title TEXT,
   music_style TEXT,
+  llm_model_name TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
   created_by_user_id INTEGER, -- Reference to users table
   created_by_anonymous_user_id UUID, -- Reference to anonymous_users table

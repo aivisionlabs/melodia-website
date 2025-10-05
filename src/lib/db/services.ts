@@ -307,7 +307,7 @@ export async function createOrUpdateSongWithTask(
       await db
         .update(songsTable)
         .set({
-          status: 'PENDING',
+          status: 'pending',
           metadata: {
             suno_task_id: taskId,
           }
@@ -337,7 +337,7 @@ export async function createOrUpdateSongWithTask(
         .values({
           song_request_id: requestId,
           slug,
-          status: 'PENDING',
+          status: 'pending',
           song_variants: {},
           variant_timestamp_lyrics_api_response: {},
           variant_timestamp_lyrics_processed: {},
@@ -356,7 +356,7 @@ export async function createOrUpdateSongWithTask(
     await db
       .update(songRequestsTable)
       .set({
-        status: isDemoMode ? 'PENDING' : 'processing'
+        status: isDemoMode ? 'pending' : 'processing'
       })
       .where(eq(songRequestsTable.id, requestId));
 
