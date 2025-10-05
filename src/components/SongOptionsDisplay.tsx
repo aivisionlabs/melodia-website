@@ -9,13 +9,15 @@ import { useEffect, useState } from "react";
 
 interface SongOptionsDisplayProps {
   songStatus: SongStatusResponse;
-  onBack: () => void;
-  onBackupWithGoogle: () => void;
+  onBack?: () => void;
+  onBackupWithGoogle?: () => void;
+  isStandalonePage?: boolean;
 }
 
 export default function SongOptionsDisplay({
   songStatus,
   onBackupWithGoogle,
+  isStandalonePage = true,
 }: SongOptionsDisplayProps) {
   const router = useRouter();
   const [selectedVariant, setSelectedVariant] = useState<SongVariant | null>(
@@ -294,81 +296,68 @@ export default function SongOptionsDisplay({
     };
   }, [audioElements]);
 
-  return (
-    <div className="min-h-screen bg-white pb-20">
-      {/* Header */}
-      <div className="px-6 pt-24 pb-4">
-        <div className="flex items-center gap-4 mb-8">
-          <h1 className="font-heading text-melodia-teal">Choose Your Song</h1>
-        </div>
-        <p className="text-melodia-teal mb-8">
-          Choose one of the following songs to view a lyrical version of the
-          song.
-        </p>
+  const content = (
+    <>
+      {/* Song Options */}
+      <div className="space-y-4 px-2">
+        {songStatus.variants?.map((variant, index) => {
+          const variantState = getVariantState(variant.id);
+          const isSelected = selectedVariant?.id === variant.id;
+          const isPermanentlySelected = isSelected && isFinalSelectionMade;
 
-        {/* Song Options */}
-        <div className="space-y-4 px-2">
-          {songStatus.variants?.map((variant, index) => {
-            const variantState = getVariantState(variant.id);
-            const isSelected = selectedVariant?.id === variant.id;
-            const isPermanentlySelected = isSelected && isFinalSelectionMade;
-
-            return (
-              <div
-                key={variant.id}
-                onClick={() =>
-                  !isFinalSelectionMade && setSelectedVariant(variant)
+          return (
+            <div
+              key={variant.id}
+              onClick={() =>
+                !isFinalSelectionMade && setSelectedVariant(variant)
+              }
+            >
+              <SongPlayerCard
+                variant={variant}
+                variantIndex={index}
+                variantLabel={`Song Option ${index + 1}`}
+                showSharing={false}
+                showEmailInput={false}
+                sharePublicly={sharePublicly[variant.id] || false}
+                emailInput={emailInput[variant.id] || ""}
+                onPlayPause={() =>
+                  handleStreamingPlayPause(
+                    variant.id,
+                    variant.sourceStreamAudioUrl || variant.streamAudioUrl || ""
+                  )
                 }
-              >
-                <SongPlayerCard
-                  variant={variant}
-                  variantIndex={index}
-                  variantLabel={`Song Option ${index + 1}`}
-                  showSharing={false}
-                  showEmailInput={false}
-                  sharePublicly={sharePublicly[variant.id] || false}
-                  emailInput={emailInput[variant.id] || ""}
-                  onPlayPause={() =>
-                    handleStreamingPlayPause(
-                      variant.id,
-                      variant.sourceStreamAudioUrl ||
-                        variant.streamAudioUrl ||
-                        ""
-                    )
-                  }
-                  onDownload={handleDownload}
-                  onShareToggle={handleShareToggle}
-                  onEmailChange={handleEmailChange}
-                  onSendEmail={handleSendEmail}
-                  isPlaying={
-                    activeStreamingVariant === variant.id &&
-                    variantState.isPlaying
-                  }
-                  isLoading={variantState.isLoading}
-                  currentTime={variantState.currentTime}
-                  duration={variantState.duration}
-                  isSelected={isSelected}
-                  isPermanentlySelected={isPermanentlySelected}
-                  showLyricalSongButton={
-                    isSelected &&
-                    songStatus.variantTimestampLyricsProcessed?.[index]
-                  }
-                  onViewLyricalSong={() => {
-                    router.push(
-                      `/song/${songStatus.slug}?variantId=${
-                        variant.id
-                      }&userId=${songStatus.userId || ""}&anonymousUserId=${
-                        songStatus.anonymousUserId || ""
-                      }`
-                    );
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
+                onDownload={handleDownload}
+                onShareToggle={handleShareToggle}
+                onEmailChange={handleEmailChange}
+                onSendEmail={handleSendEmail}
+                isPlaying={
+                  activeStreamingVariant === variant.id &&
+                  variantState.isPlaying
+                }
+                isLoading={variantState.isLoading}
+                currentTime={variantState.currentTime}
+                duration={variantState.duration}
+                isSelected={isSelected}
+                isPermanentlySelected={isPermanentlySelected}
+                showLyricalSongButton={
+                  isSelected &&
+                  songStatus.variantTimestampLyricsProcessed?.[index]
+                }
+                onViewLyricalSong={() => {
+                  router.push(
+                    `/song/${songStatus.slug}?variantId=${variant.id}&userId=${
+                      songStatus.userId || ""
+                    }&anonymousUserId=${songStatus.anonymousUserId || ""}`
+                  );
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Backup Option */}
+      {/* Backup Option */}
+      {isStandalonePage && onBackupWithGoogle && (
         <div className="mt-8 px-4 text-center">
           <button
             onClick={onBackupWithGoogle}
@@ -386,6 +375,36 @@ export default function SongOptionsDisplay({
             </span>
           </button>
         </div>
+      )}
+    </>
+  );
+
+  if (!isStandalonePage) {
+    return content;
+  }
+
+  return (
+    <div className="min-h-screen bg-white pb-20">
+      {/* Header */}
+      <div className="px-6 pt-24 pb-4">
+        {isFinalSelectionMade ? (
+          <div className="text-center mb-8">
+            <h1 className="font-heading text-melodia-teal">Your Songs</h1>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4 mb-8">
+              <h1 className="font-heading text-melodia-teal">
+                Choose Your Song
+              </h1>
+            </div>
+            <p className="text-melodia-teal mb-8">
+              Choose one of the following songs to view a lyrical version of the
+              song.
+            </p>
+          </>
+        )}
+        {content}
       </div>
 
       {!isFinalSelectionMade && selectedVariant && (

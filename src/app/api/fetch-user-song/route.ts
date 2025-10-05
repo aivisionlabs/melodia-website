@@ -32,6 +32,8 @@ type ApiSongItem = {
   title: string
   createdAt: string
   variants: ApiSongVariant[]
+  selectedVariantIndex?: number | null
+  variantTimestampLyricsProcessed?: any;
 }
 
 export async function GET(request: NextRequest) {
@@ -177,6 +179,8 @@ export async function GET(request: NextRequest) {
         title,
         createdAt: (song.created_at as unknown as Date).toISOString?.() || String(song.created_at),
         variants: apiVariants,
+        selectedVariantIndex: song.selected_variant,
+        variantTimestampLyricsProcessed: song.variant_timestamp_lyrics_processed,
       })
     }
 

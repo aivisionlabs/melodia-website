@@ -7,8 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAnonymousUser } from "@/hooks/use-anonymous-user";
 import BottomNavigation from "@/components/BottomNavigation";
 import { SongRequestInProgressCard } from "@/components/SongRequestInProgressCard";
-import SongPlayerCard from "@/components/SongPlayerCard";
-import type { SongVariant as SongVariantBase } from "@/lib/song-status-client";
+import SongOptionsDisplay from "@/components/SongOptionsDisplay";
+import type { SongStatusResponse } from "@/lib/song-status-client";
 import { LoginPromptCard } from "@/components/LoginPromptCard";
 
 type ApiSongVariant = {
@@ -34,6 +34,8 @@ type ApiSongItem = {
   title: string;
   createdAt: string;
   variants: ApiSongVariant[];
+  selectedVariantIndex?: number | null;
+  variantTimestampLyricsProcessed?: any;
 };
 
 type FetchResponse = {
@@ -126,137 +128,33 @@ export default function MySongsPage() {
     return () => observer.disconnect();
   }, [fetchPage, hasMore, loading]);
 
-  // Player State
-  const [audioElements, setAudioElements] = useState<{
-    [key: string]: HTMLAudioElement;
-  }>({});
-  const [playerState, setPlayerState] = useState<{
-    [key: string]: {
-      isPlaying: boolean;
-      isLoading: boolean;
-      currentTime: number;
-      duration: number;
+  const allSongs = songs.map((song) => {
+    const songStatus: SongStatusResponse = {
+      success: true,
+      status: "COMPLETED",
+      songId: song.songId,
+      slug: "", // Not available here, will need adjustment if lyrical song nav is direct
+      selectedVariantIndex: song.selectedVariantIndex,
+      variantTimestampLyricsProcessed: song.variantTimestampLyricsProcessed,
+      variants: song.variants.map((variant) => ({
+        id: variant.suno_id || variant.id || "",
+        title: song.title,
+        imageUrl: variant.imageUrl || "",
+        audioUrl: variant.audioUrl || "",
+        streamAudioUrl: variant.streamAudioUrl || undefined,
+        sourceAudioUrl: variant.sourceAudioUrl || undefined,
+        sourceStreamAudioUrl: variant.sourceStreamAudioUrl || undefined,
+        duration: variant.duration || 0,
+        variantStatus: variant.variantStatus,
+      })),
     };
-  }>({});
-  const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
-
-  const getPlayerState = useCallback(
-    (id: string) => {
-      return (
-        playerState[id] || {
-          isPlaying: false,
-          isLoading: false,
-          currentTime: 0,
-          duration: 0,
-        }
-      );
-    },
-    [playerState]
-  );
-
-  const updatePlayerState = useCallback((id: string, updates: object) => {
-    setPlayerState((prev) => {
-      const currentState = prev[id] || {
-        isPlaying: false,
-        isLoading: false,
-        currentTime: 0,
-        duration: 0,
-      };
-      return {
-        ...prev,
-        [id]: { ...currentState, ...updates },
-      };
-    });
-  }, []);
-
-  const handlePlayPause = useCallback(
-    (song: ApiSongItem, variant: ApiSongVariant) => {
-      const audioSrc =
-        variant.sourceStreamAudioUrl ||
-        variant.streamAudioUrl ||
-        variant.sourceAudioUrl ||
-        variant.audioUrl;
-      const playerId = `${song.songId}-${variant.index}`;
-
-      if (!audioSrc) return;
-
-      if (activePlayerId && activePlayerId !== playerId) {
-        const activeAudio = audioElements[activePlayerId];
-        if (activeAudio) activeAudio.pause();
-      }
-
-      let audio = audioElements[playerId];
-      if (!audio) {
-        audio = new Audio(audioSrc);
-        audio.preload = "metadata";
-        setAudioElements((prev) => ({ ...prev, [playerId]: audio }));
-
-        audio.onloadedmetadata = () =>
-          updatePlayerState(playerId, {
-            duration: audio.duration,
-            isLoading: false,
-          });
-        audio.ontimeupdate = () =>
-          updatePlayerState(playerId, { currentTime: audio.currentTime });
-        audio.onplaying = () => {
-          setActivePlayerId(playerId);
-          updatePlayerState(playerId, { isPlaying: true, isLoading: false });
-        };
-        audio.onpause = () => {
-          if (activePlayerId === playerId) {
-            setActivePlayerId(null);
-          }
-          updatePlayerState(playerId, { isPlaying: false });
-        };
-        audio.onended = () => {
-          setActivePlayerId(null);
-          updatePlayerState(playerId, { isPlaying: false, currentTime: 0 });
-        };
-        audio.onerror = () => {
-          console.error("Audio error:", audio.error);
-          setActivePlayerId(null);
-          updatePlayerState(playerId, { isLoading: false, isPlaying: false });
-        };
-      }
-
-      const currentState = getPlayerState(playerId);
-
-      if (currentState.isPlaying) {
-        audio.pause();
-      } else {
-        updatePlayerState(playerId, { isLoading: true });
-        audio.play().catch((e) => {
-          console.error("Play error:", e);
-          updatePlayerState(playerId, { isLoading: false });
-        });
-      }
-    },
-    [activePlayerId, audioElements, updatePlayerState, getPlayerState]
-  );
-
-  useEffect(() => {
-    return () => {
-      Object.values(audioElements).forEach((audio) => audio.pause());
-    };
-  }, [audioElements]);
-
-  const handleDownload = (audioUrl: string, title: string) => {
-    const link = document.createElement("a");
-    link.href = audioUrl;
-    link.download = `${title}.mp3`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const allVariants = songs.flatMap((song) =>
-    song.variants.map((variant) => ({ song, variant }))
-  );
+    return { song, songStatus };
+  });
 
   return (
     <div className="min-h-screen bg-secondary-light-cream text-dark-teal font-body pt-20 pb-24">
       <div className="px-6">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold font-heading">My Songs</h1>
         </div>
 
@@ -290,43 +188,13 @@ export default function MySongsPage() {
               Completed songs
             </h2>
             <div className="space-y-4">
-              {allVariants.map(({ song, variant }) => {
-                const playerId = `${song.songId}-${variant.index}`;
-                const state = getPlayerState(playerId);
-                const downloadUrl = variant.sourceAudioUrl || variant.audioUrl;
-                const songVariant: SongVariantBase = {
-                  id: variant.suno_id || variant.id || "",
-                  title: song.title,
-                  imageUrl: variant.imageUrl || "",
-                  audioUrl: variant.audioUrl || "",
-                  streamAudioUrl: variant.streamAudioUrl || undefined,
-                  sourceAudioUrl: variant.sourceAudioUrl || undefined,
-                  sourceStreamAudioUrl:
-                    variant.sourceStreamAudioUrl || undefined,
-                  duration: variant.duration || 0,
-                  variantStatus: variant.variantStatus,
-                };
-                return (
-                  <SongPlayerCard
-                    key={playerId}
-                    variant={songVariant}
-                    variantIndex={variant.index}
-                    variantLabel={`Song Option ${variant.index + 1}`}
-                    showSharing={false}
-                    showEmailInput={false}
-                    onPlayPause={() => handlePlayPause(song, variant)}
-                    onDownload={
-                      downloadUrl
-                        ? () => handleDownload(downloadUrl, song.title)
-                        : undefined
-                    }
-                    isPlaying={state.isPlaying}
-                    isLoading={state.isLoading}
-                    currentTime={state.currentTime}
-                    duration={state.duration || variant.duration || 0}
-                  />
-                );
-              })}
+              {allSongs.map(({ song, songStatus }) => (
+                <SongOptionsDisplay
+                  key={song.songId}
+                  songStatus={songStatus}
+                  isStandalonePage={false}
+                />
+              ))}
             </div>
           </div>
         )}
