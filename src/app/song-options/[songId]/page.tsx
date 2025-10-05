@@ -50,9 +50,8 @@ export default function SongOptionsPage({
   };
 
   const handleBackupWithGoogle = () => {
-    // TODO: Implement Google backup functionality
-    console.log("Backup with Google clicked");
-    alert("Google backup feature coming soon!");
+    // LoginPromptCard handles navigation internally
+    // This function is kept for compatibility but not used
   };
 
   // Loading state
@@ -198,11 +197,5 @@ export default function SongOptionsPage({
     );
   }
 
-  return (
-    <SongOptionsDisplay
-      songStatus={songStatus!}
-      onBack={handleBack}
-      onBackupWithGoogle={handleBackupWithGoogle}
-    />
-  );
+  return <SongOptionsDisplay songStatus={songStatus!} onBack={handleBack} />;
 }

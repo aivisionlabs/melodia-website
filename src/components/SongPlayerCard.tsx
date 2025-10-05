@@ -1,7 +1,16 @@
 "use client";
 
-import React from "react";
-import { Play, Pause, Download, Share2, FileText, Check } from "lucide-react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  Play,
+  Pause,
+  Download,
+  Share2,
+  FileText,
+  Check,
+  Rewind,
+  FastForward,
+} from "lucide-react";
 import { SongVariant } from "@/lib/song-status-client";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -19,6 +28,9 @@ interface SongPlayerCardProps {
   onShareToggle?: (variantId: string) => void;
   onEmailChange?: (variantId: string, email: string) => void;
   onSendEmail?: (variantId: string) => void;
+  onSeek?: (time: number) => void;
+  onSkipBackward?: () => void;
+  onSkipForward?: () => void;
   isPlaying: boolean;
   isLoading: boolean;
   currentTime: number;
@@ -42,6 +54,9 @@ export default function SongPlayerCard({
   onShareToggle,
   onEmailChange,
   onSendEmail,
+  onSeek,
+  onSkipBackward,
+  onSkipForward,
   isPlaying,
   isLoading,
   currentTime,
@@ -67,6 +82,101 @@ export default function SongPlayerCard({
     const audioUrl = variant.audioUrl || variant.sourceAudioUrl || "";
     if (audioUrl && onDownload) {
       onDownload(audioUrl, variant.title);
+    }
+  };
+
+  // Seekbar functionality
+  const seekbarRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleSeekbarClick = useCallback(
+    (clientX: number) => {
+      if (!seekbarRef.current || !onSeek || duration === 0) return;
+
+      const rect = seekbarRef.current.getBoundingClientRect();
+      const clickX = clientX - rect.left;
+      const percentage = clickX / rect.width;
+      const newTime = percentage * duration;
+
+      onSeek(Math.max(0, Math.min(newTime, duration)));
+    },
+    [onSeek, duration]
+  );
+
+  const handleSeekbarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handleSeekbarClick(e.clientX);
+  };
+
+  const handleSeekbarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    handleSeekbarClick(e.clientX);
+  };
+
+  const handleSeekbarMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch event handlers for mobile
+  const handleSeekbarTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const touch = e.touches[0];
+    handleSeekbarClick(touch.clientX);
+  };
+
+  const handleSeekbarTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleSeekbarClick(touch.clientX);
+  };
+
+  const handleSeekbarTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Global touch event handling for mobile drag
+  useEffect(() => {
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches.length > 0) {
+        e.preventDefault();
+        handleSeekbarClick(e.touches[0].clientX);
+      }
+    };
+
+    const handleGlobalTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener("touchmove", handleGlobalTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleGlobalTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener("touchmove", handleGlobalTouchMove);
+      document.removeEventListener("touchend", handleGlobalTouchEnd);
+    };
+  }, [isDragging, handleSeekbarClick]);
+
+  const handleSkipBackward = () => {
+    if (onSkipBackward) {
+      onSkipBackward();
+    } else if (onSeek) {
+      onSeek(Math.max(0, currentTime - 15));
+    }
+  };
+
+  const handleSkipForward = () => {
+    if (onSkipForward) {
+      onSkipForward();
+    } else if (onSeek) {
+      onSeek(Math.min(duration, currentTime + 15));
     }
   };
 
@@ -103,7 +213,7 @@ export default function SongPlayerCard({
           ? "border-melodia-yellow shadow-lg"
           : isSelected
           ? "border-melodia-coral shadow-lg"
-          : "border-neutral-200 shadow-sm hover:shadow-md"
+          : "border-gray-200 shadow-sm hover:shadow-md"
       )}
     >
       {isSelected && !isPermanentlySelected && (
@@ -116,7 +226,7 @@ export default function SongPlayerCard({
         <div className="flex-1 space-y-3">
           {/* Top part: song info */}
           <div>
-            <p className="text-sm font-body text-neutral-500 mb-1 flex justify-between items-center">
+            <p className="text-sm font-body text-gray-500 mb-1 flex justify-between items-center">
               <span>{variantLabel}</span>
               {isPermanentlySelected && (
                 <span className="bg-melodia-yellow text-melodia-teal font-bold text-xs px-2 py-1 rounded-md">
@@ -129,7 +239,7 @@ export default function SongPlayerCard({
             </h3>
             {/* Subtle text for STREAM_READY */}
             {variant.variantStatus === "STREAM_READY" && (
-              <p className="text-xs text-neutral-400 font-body mb-2">
+              <p className="text-xs text-gray-400 font-body mb-2">
                 Preview available - Download ready soon
               </p>
             )}
@@ -137,62 +247,85 @@ export default function SongPlayerCard({
 
           {/* Player section */}
           {variant.variantStatus === "PENDING" ? (
-            <div className="w-full h-12 bg-neutral-100 text-neutral-500 font-body font-semibold rounded-xl flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-full h-12 bg-gray-100 text-gray-500 font-body font-semibold rounded-xl flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
               Generating...
             </div>
           ) : variant.variantStatus === "STREAM_READY" ? (
             <div className="space-y-4">
-              {/* Progress Bar section */}
+              {/* Interactive Progress Bar section */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-neutral-200 rounded-full h-2">
+                <div
+                  ref={seekbarRef}
+                  className="flex-1 bg-gray-200 rounded-full h-2 cursor-pointer relative touch-none select-none"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSeekbarClick(e.clientX);
+                  }}
+                  onMouseDown={handleSeekbarMouseDown}
+                  onMouseMove={handleSeekbarMouseMove}
+                  onMouseUp={handleSeekbarMouseUp}
+                  onMouseLeave={handleSeekbarMouseUp}
+                  onTouchStart={handleSeekbarTouchStart}
+                  onTouchMove={handleSeekbarTouchMove}
+                  onTouchEnd={handleSeekbarTouchEnd}
+                >
                   <div
                     className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <span className="text-sm text-neutral-600 font-body w-24 text-right">
-                  {formatTime(currentTime)} /{" "}
-                  {duration > 0 ? formatTime(duration) : "..."}
+                <span className="text-sm text-gray-600 font-body w-24 text-right">
+                  {formatTime(currentTime)}
                 </span>
               </div>
 
               {/* Status text */}
-              <p className="text-sm text-neutral-500 font-body">
+              <p className="text-sm text-gray-500 font-body">
                 {getStatusText()}
               </p>
-              {/* Large CTA Button for STREAM_READY */}
-              <button
-                onClick={handlePlayPause}
-                disabled={isLoading || !streamAudioUrl}
-                className="w-full h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center gap-3 hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50 font-body font-medium"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
-                ) : isPlaying ? (
-                  <>
-                    <Pause className="w-6 h-6" />
-                    <span>Pause Preview</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-6 h-6" />
-                    <span>Play Preview</span>
-                  </>
-                )}
-              </button>
             </div>
-          ) : (
+          ) : variant.variantStatus === "DOWNLOAD_READY" ? (
             <div className="space-y-4">
-              {/* Progress Bar section */}
+              {/* Interactive Progress Bar section - Only for DOWNLOAD_READY */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-neutral-200 rounded-full h-2">
+                <div
+                  ref={seekbarRef}
+                  className="flex-1 bg-gray-200 rounded-full h-2 cursor-pointer relative touch-none select-none"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSeekbarClick(e.clientX);
+                  }}
+                  onMouseDown={handleSeekbarMouseDown}
+                  onMouseMove={handleSeekbarMouseMove}
+                  onMouseUp={handleSeekbarMouseUp}
+                  onMouseLeave={handleSeekbarMouseUp}
+                  onTouchStart={handleSeekbarTouchStart}
+                  onTouchMove={handleSeekbarTouchMove}
+                  onTouchEnd={handleSeekbarTouchEnd}
+                >
                   <div
                     className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <span className="text-sm text-neutral-600 font-body w-24 text-right">
+                <span className="text-sm text-gray-600 font-body w-24 text-right">
+                  {formatTime(currentTime)} /{" "}
+                  {duration > 0 ? formatTime(duration) : "..."}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Simple Progress Bar for other states */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-melodia-yellow h-2 rounded-full transition-all duration-100"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm text-gray-600 font-body w-24 text-right">
                   {formatTime(currentTime)} /{" "}
                   {duration > 0 ? formatTime(duration) : "..."}
                 </span>
@@ -202,7 +335,7 @@ export default function SongPlayerCard({
         </div>
 
         {/* Right side: Album art */}
-        <div className="w-20 h-20 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
+        <div className="w-20 h-20 bg-gradient-to-br from-melodia-yellow to-melodia-yellow/80 p-1 rounded-lg border-2 border-melodia-yellow/30 flex-shrink-0">
           <div className="w-full h-full bg-white rounded overflow-hidden">
             <Image
               src={variant.imageUrl || "/images/melodia-logo.png"}
@@ -220,33 +353,61 @@ export default function SongPlayerCard({
       {variant.variantStatus === "DOWNLOAD_READY" &&
         (showLyricalSongButton && onViewLyricalSong ? (
           <div className="mt-4 space-y-4">
+            {/* Player Controls - Left side */}
             <div className="flex items-center justify-between">
-              {/* Play/Pause Button */}
-              <button
-                onClick={handlePlayPause}
-                disabled={isLoading || !streamAudioUrl}
-                className="w-14 h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
-                ) : isPlaying ? (
-                  <Pause className="w-6 h-6" />
-                ) : (
-                  <Play className="w-6 h-6" />
-                )}
-              </button>
-              {/* Download Button */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleSkipBackward}
+                  disabled={
+                    !onSeek ||
+                    duration === 0 ||
+                    variant.variantStatus !== "DOWNLOAD_READY"
+                  }
+                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Skip backward 15 seconds"
+                >
+                  <Rewind className="w-6 h-6 text-melodia-teal" />
+                </button>
+                <button
+                  onClick={handlePlayPause}
+                  disabled={isLoading || !streamAudioUrl}
+                  className="w-16 h-16 bg-melodia-yellow hover:bg-melodia-yellow/90 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-melodia-teal border-t-transparent"></div>
+                  ) : isPlaying ? (
+                    <Pause className="w-8 h-8 text-melodia-teal" />
+                  ) : (
+                    <Play className="w-8 h-8 text-melodia-teal ml-1" />
+                  )}
+                </button>
+                <button
+                  onClick={handleSkipForward}
+                  disabled={
+                    !onSeek ||
+                    duration === 0 ||
+                    variant.variantStatus !== "DOWNLOAD_READY"
+                  }
+                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Skip forward 15 seconds"
+                >
+                  <FastForward className="w-6 h-6 text-melodia-teal" />
+                </button>
+              </div>
+
+              {/* Download Button - Right side */}
               {downloadUrl ? (
                 <button
                   onClick={handleDownloadClick}
-                  className="h-12 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
+                  className="w-12 h-12 bg-melodia-coral text-white rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center"
+                  title="Download"
                 >
                   <Download className="w-5 h-5" />
-                  <span>Download</span>
                 </button>
               ) : null}
             </div>
-            <div className="border-t border-neutral-200" />
+
+            <div className="border-t border-gray-200" />
             <button
               onClick={onViewLyricalSong}
               className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
@@ -256,42 +417,71 @@ export default function SongPlayerCard({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between mt-4">
-            {/* Play/Pause Button */}
-            <button
-              onClick={handlePlayPause}
-              disabled={isLoading || !streamAudioUrl}
-              className="w-14 h-14 bg-melodia-yellow text-melodia-teal rounded-full flex items-center justify-center hover:bg-melodia-yellow/90 transition-colors disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-melodia-teal border-t-transparent"></div>
-              ) : isPlaying ? (
-                <Pause className="w-6 h-6" />
-              ) : (
-                <Play className="w-6 h-6" />
-              )}
-            </button>
-            {/* Download Button */}
-            {downloadUrl ? (
-              <button
-                onClick={handleDownloadClick}
-                className="h-12 px-4 bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                <span>Download</span>
-              </button>
-            ) : (
-              <div className="text-sm font-body text-neutral-500">
-                {getStatusText()}
+          <div className="mt-4 space-y-4">
+            {/* Player Controls - Left side, Download - Right side */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleSkipBackward}
+                  disabled={
+                    !onSeek ||
+                    duration === 0 ||
+                    variant.variantStatus !== "DOWNLOAD_READY"
+                  }
+                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Skip backward 15 seconds"
+                >
+                  <Rewind className="w-6 h-6 text-melodia-teal" />
+                </button>
+                <button
+                  onClick={handlePlayPause}
+                  disabled={isLoading || !streamAudioUrl}
+                  className="w-16 h-16 bg-melodia-yellow hover:bg-melodia-yellow/90 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-melodia-teal border-t-transparent"></div>
+                  ) : isPlaying ? (
+                    <Pause className="w-8 h-8 text-melodia-teal" />
+                  ) : (
+                    <Play className="w-8 h-8 text-melodia-teal ml-1" />
+                  )}
+                </button>
+                <button
+                  onClick={handleSkipForward}
+                  disabled={
+                    !onSeek ||
+                    duration === 0 ||
+                    variant.variantStatus !== "DOWNLOAD_READY"
+                  }
+                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Skip forward 15 seconds"
+                >
+                  <FastForward className="w-6 h-6 text-melodia-teal" />
+                </button>
               </div>
-            )}
+
+              {/* Download Button - Right side */}
+              {downloadUrl ? (
+                <button
+                  onClick={handleDownloadClick}
+                  className="w-12 h-12 bg-melodia-coral text-white rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center"
+                  title="Download"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+              ) : (
+                <div className="text-sm font-body text-gray-500">
+                  {getStatusText()}
+                </div>
+              )}
+            </div>
           </div>
         ))}
 
       {/* Sharing Section */}
       {(showSharing || showEmailInput) &&
         variant.variantStatus !== "PENDING" && (
-          <div className="mt-4 pt-4 border-t border-neutral-200 space-y-4">
+          <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
             {/* Share Publicly Checkbox */}
             {showSharing && onShareToggle && (
               <div className="flex items-center justify-between">
@@ -302,12 +492,12 @@ export default function SongPlayerCard({
                     onChange={() => onShareToggle(variant.id)}
                     className="w-5 h-5 text-melodia-coral bg-gray-100 border-gray-300 rounded focus:ring-melodia-coral dark:focus:ring-melodia-coral dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-md font-body text-neutral-700">
+                  <span className="text-md font-body text-gray-700">
                     Share publicly
                   </span>
                 </label>
-                <button className="p-2 rounded-full hover:bg-neutral-100">
-                  <Share2 className="w-5 h-5 text-neutral-500" />
+                <button className="p-2 rounded-full hover:bg-gray-100">
+                  <Share2 className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
             )}
@@ -315,7 +505,7 @@ export default function SongPlayerCard({
             {/* Email Input */}
             {showEmailInput && onEmailChange && onSendEmail && (
               <div className="space-y-2">
-                <p className="text-md font-body text-neutral-800">
+                <p className="text-md font-body text-gray-800">
                   Get your song link via email
                 </p>
                 <div className="flex gap-2">
@@ -324,7 +514,7 @@ export default function SongPlayerCard({
                     placeholder="Enter your email ID"
                     value={emailInput}
                     onChange={(e) => onEmailChange(variant.id, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent font-body"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent font-body"
                   />
                   <button
                     onClick={() => onSendEmail && onSendEmail(variant.id)}

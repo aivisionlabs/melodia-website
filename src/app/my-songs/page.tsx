@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +10,7 @@ import { SongRequestInProgressCard } from "@/components/SongRequestInProgressCar
 import SongOptionsDisplay from "@/components/SongOptionsDisplay";
 import type { SongStatusResponse } from "@/lib/song-status-client";
 import { LoginPromptCard } from "@/components/LoginPromptCard";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type ApiSongVariant = {
   index: number;
@@ -58,8 +59,9 @@ export default function MySongsPage() {
   const { user, loading: authLoading } = useAuth();
   const { anonymousUserId, loading: anonLoading } = useAnonymousUser();
 
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalSongs, setTotalSongs] = useState(0);
   const [loading, setLoading] = useState(false);
   const [songs, setSongs] = useState<ApiSongItem[]>([]);
   const [inProgressRequests, setInProgressRequests] = useState<
@@ -67,66 +69,71 @@ export default function MySongsPage() {
   >([]);
 
   const isAuthResolved = !authLoading && !anonLoading;
+  const pageSize = 10;
 
-  const fetchPage = useCallback(async () => {
-    if (!isAuthResolved || loading || !hasMore) return;
-    setLoading(true);
+  const fetchPage = useCallback(
+    async (page: number) => {
+      if (!isAuthResolved || loading) return;
+      setLoading(true);
 
-    const qp = new URLSearchParams();
-    qp.set("page", String(page));
-    qp.set("pageSize", "10");
-    if (user?.id) qp.set("userId", String(user.id));
-    else if (anonymousUserId) qp.set("anonymousUserId", anonymousUserId);
+      const qp = new URLSearchParams();
+      qp.set("page", String(page));
+      qp.set("pageSize", String(pageSize));
+      if (user?.id) qp.set("userId", String(user.id));
+      else if (anonymousUserId) qp.set("anonymousUserId", anonymousUserId);
 
-    try {
-      const res = await fetch(`/api/fetch-user-song?${qp.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch songs");
-      const data: FetchResponse = await res.json();
+      try {
+        const res = await fetch(`/api/fetch-user-song?${qp.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch songs");
+        const data: FetchResponse = await res.json();
 
-      if (data?.success) {
-        setSongs((prev) => [...prev, ...data.songs]);
-        setHasMore(data.hasMore);
-        if (page === 1) setInProgressRequests(data.inProgressRequests || []);
-        setPage((p) => p + 1);
+        if (data?.success) {
+          setSongs(data.songs);
+          setTotalSongs(data.total);
+          setTotalPages(Math.ceil(data.total / pageSize));
+          if (page === 1) setInProgressRequests(data.inProgressRequests || []);
+        }
+      } catch (error) {
+        console.error("Error fetching user songs:", error);
+        // Optionally, handle the error in the UI
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching user songs:", error);
-      // Optionally, handle the error in the UI
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthResolved, loading, hasMore, page, user?.id, anonymousUserId]);
+    },
+    [isAuthResolved, loading, pageSize, user?.id, anonymousUserId]
+  );
 
   useEffect(() => {
     if (isAuthResolved) {
       setSongs([]);
       setInProgressRequests([]);
-      setPage(1);
-      setHasMore(true);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalSongs(0);
     }
   }, [isAuthResolved, user?.id, anonymousUserId]);
 
   useEffect(() => {
-    if (isAuthResolved && page === 1 && hasMore && !loading) {
-      fetchPage();
+    if (isAuthResolved && currentPage === 1) {
+      fetchPage(1);
     }
-  }, [isAuthResolved, page, hasMore, loading, fetchPage]);
+  }, [isAuthResolved, currentPage, fetchPage]);
 
-  // Infinite scroll
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          fetchPage();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [fetchPage, hasMore, loading]);
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+      fetchPage(newPage);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    handlePageChange(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    handlePageChange(currentPage + 1);
+  };
 
   const allSongs = songs.map((song) => {
     const songStatus: SongStatusResponse = {
@@ -215,12 +222,73 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {(loading || hasMore) && (
-          <div
-            ref={sentinelRef}
-            className="py-6 text-center text-sm opacity-70"
-          >
-            {loading ? "Loading more songs..." : ""}
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1 || loading}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={loading}
+                    className="w-8 h-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages || loading}
+              className="flex items-center gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Loading indicator */}
+        {loading && (
+          <div className="py-6 text-center text-sm opacity-70">
+            Loading songs...
+          </div>
+        )}
+
+        {/* Results info */}
+        {totalSongs > 0 && !loading && (
+          <div className="text-center text-sm text-dark-teal/70 mt-4">
+            Showing {(currentPage - 1) * pageSize + 1}-
+            {Math.min(currentPage * pageSize, totalSongs)} of {totalSongs} songs
           </div>
         )}
       </div>

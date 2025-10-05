@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SunoAPIFactory } from '@/lib/suno-api'
 import { db } from '@/lib/db'
-import { songsTable, songRequestsTable, paymentsTable } from '@/lib/db/schema'
+import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
 import { getUserContextFromRequest } from '@/lib/middleware-utils'
+import { createOrUpdateSongWithTask } from '@/lib/db/services'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,12 +96,13 @@ export async function POST(request: NextRequest) {
       // Check payment status only if payment is required and not in demo mode
       if (!demoMode) {
         // Check if there's a completed payment for this song request
-        const payment = await db
+        await db
           .select()
           .from(paymentsTable)
           .where(eq(paymentsTable.song_request_id, requestId))
           .limit(1);
 
+        // Payment validation is currently disabled
         // if (payment.length === 0 || payment[0].status !== 'completed') {
         //   return NextResponse.json(
         //     {
@@ -120,77 +122,25 @@ export async function POST(request: NextRequest) {
 
         const mockTaskId = `demo-task-${Date.now()}`
 
-        // Check for existing song first, then create or update
-        let songId: number | null = null
-        try {
-          // Check if song already exists for this request
-          const existingSongs = await db
-            .select()
-            .from(songsTable)
-            .where(eq(songsTable.song_request_id, requestId))
-            .limit(1)
+        // Use unified service for song creation/update
+        const songResult = await createOrUpdateSongWithTask(
+          requestId,
+          mockTaskId,
+          recipientDetails,
+          true // isDemoMode
+        )
 
-          if (existingSongs.length > 0) {
-            // Song already exists - return existing song ID
-            songId = existingSongs[0].id
-            console.log('Demo mode: Found existing song:', { songId, requestId })
-
-            // Update the existing song with new task ID
-            await db
-              .update(songsTable)
-              .set({
-                metadata: {
-                  suno_task_id: mockTaskId,
-                }
-              })
-              .where(eq(songsTable.id, songId))
-          } else {
-            // Create new song record
-            const timestamp = Date.now()
-            const randomSuffix = Math.random().toString(36).substring(2, 8)
-            const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
-
-            const [song] = await db
-              .insert(songsTable)
-              .values({
-                song_request_id: requestId,
-                slug,
-                status: 'PENDING',
-                song_variants: {},
-                variant_timestamp_lyrics_api_response: {},
-                variant_timestamp_lyrics_processed: {},
-                metadata: {
-                  suno_task_id: mockTaskId,
-                }
-              })
-              .returning({ id: songsTable.id })
-
-            songId = song.id
-            console.log('Demo song created in database:', { songId, taskId: mockTaskId })
-          }
-
-          await db
-            .update(songRequestsTable)
-            .set({
-              status: 'PENDING'
-            })
-            .where(eq(songRequestsTable.id, requestId))
-
-        } catch (dbError) {
-          console.error('Database error in demo mode:', dbError)
-          // If we still have a songId from existing song, continue
-          if (!songId) {
-            return NextResponse.json(
-              { error: true, message: 'Failed to create or find song in demo mode' },
-              { status: 500 }
-            )
-          }
+        if (!songResult.success) {
+          return NextResponse.json(
+            { error: true, message: songResult.error || 'Failed to create or find song in demo mode' },
+            { status: 500 }
+          )
         }
 
         return NextResponse.json({
           success: true,
           taskId: mockTaskId,
-          songId,
+          songId: songResult.songId,
           message: 'Demo song generation started successfully',
           demoMode: true
         })
@@ -209,8 +159,8 @@ export async function POST(request: NextRequest) {
         title,
         customMode: true,
         instrumental: false,
-        model: 'V4_5PLUS',
-        callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/song-callback`
+        model: 'V5',
+        callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/song-callback`
       }
 
       console.log('Sending request to Suno API:', generateRequest)
@@ -250,70 +200,22 @@ export async function POST(request: NextRequest) {
       }
 
       const taskId = generateResponse.data.taskId;
-      // Create or update song record in database
+
+      // Use unified service for song creation/update
       let songId: number | null = null
       if (requestId) {
-        try {
-          // Check if song already exists for this request
-          const existingSongs = await db
-            .select()
-            .from(songsTable)
-            .where(eq(songsTable.song_request_id, requestId))
-            .limit(1)
+        const songResult = await createOrUpdateSongWithTask(
+          requestId,
+          taskId,
+          recipientDetails,
+          false // isDemoMode
+        )
 
-          let song
-          if (existingSongs.length > 0) {
-            // Update existing song
-            song = existingSongs[0]
-            console.log('🎵 Updating existing song:', song.id)
-
-            await db
-              .update(songsTable)
-              .set({
-                status: 'PENDING',
-                metadata: {
-                  suno_task_id: taskId,
-                }
-              })
-              .where(eq(songsTable.id, song.id))
-          } else {
-            // Create new song record
-            const timestamp = Date.now()
-            const randomSuffix = Math.random().toString(36).substring(2, 8)
-            const slug = `${recipientDetails.toLowerCase().replace(/\s+/g, '-')}-${timestamp}-${randomSuffix}`
-
-            const [newSong] = await db
-              .insert(songsTable)
-              .values({
-                song_request_id: requestId,
-                slug,
-                status: 'PENDING',
-                song_variants: {},
-                variant_timestamp_lyrics_api_response: {},
-                variant_timestamp_lyrics_processed: {},
-                metadata: {
-                  suno_task_id: taskId,
-                }
-              })
-              .returning({ id: songsTable.id })
-
-            song = newSong
-            console.log('🎵 Created new song:', song.id)
-          }
-
-          songId = song.id
-
-          await db
-            .update(songRequestsTable)
-            .set({
-              status: 'processing'
-            })
-            .where(eq(songRequestsTable.id, requestId))
-
-          console.log('Song processed in database:', { songId, taskId })
-        } catch (dbError) {
-          console.error('Database error:', dbError)
+        if (!songResult.success) {
+          console.error('Failed to create or update song:', songResult.error)
           // Continue with response even if DB update fails
+        } else {
+          songId = songResult.songId || null
         }
       }
 

@@ -57,18 +57,6 @@ export const useLyricsSync = ({
       isPast: currentTimeMs >= line.end,
     }));
 
-    // Debug logging to help troubleshoot lyrics highlighting
-    if (process.env.NODE_ENV === 'development') {
-      const activeLyrics = lyricsWithState.filter(line => line.isActive);
-      if (activeLyrics.length > 0) {
-        console.log('Active lyrics:', activeLyrics.map(line => ({
-          text: line.text,
-          start: line.start,
-          end: line.end,
-          currentTimeMs: currentTimeMs
-        })));
-      }
-    }
 
     return lyricsWithState;
   }, [lyrics, currentTimeMs]);
@@ -126,16 +114,6 @@ export const useLyricsSync = ({
       const newTime = audio.currentTime;
       setCurrentTime(newTime);
       onTimeUpdate?.(newTime);
-
-      // Debug logging to help troubleshoot lyrics highlighting
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Audio time update:', {
-          currentTime: newTime,
-          currentTimeMs: newTime * 1000,
-          isPlaying: audio.paused === false,
-          duration: audio.duration
-        });
-      }
     };
     const updateDuration = () => setDuration(audio.duration);
 
@@ -161,17 +139,6 @@ export const useLyricsSync = ({
 
     const activeIndex = lyricsWithState.findIndex((line) => line.isActive);
 
-    // Debug logging for troubleshooting
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Auto-scroll debug:', {
-        lyricsCount: lyricsWithState.length,
-        activeIndex,
-        lyricRefsCount: lyricRefs.current.length,
-        hasActiveLyric: activeIndex !== -1,
-        currentTime,
-        currentTimeMs: currentTime * 1000
-      });
-    }
 
     if (activeIndex === -1) return;
 
@@ -220,24 +187,6 @@ export const useLyricsSync = ({
       const currentScrollTop = container.scrollTop;
       const scrollDifference = Math.abs(finalScrollTop - currentScrollTop);
 
-      // Debug logging for centering behavior
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Auto-scroll calculation:', {
-          elementOffsetTop,
-          elementHeight,
-          containerHeight,
-          playerControlsHeight,
-          availableHeight,
-          elementCenter,
-          containerCenter,
-          targetScrollTop,
-          finalScrollTop,
-          currentScrollTop,
-          scrollDifference,
-          willScroll: scrollDifference > 30,
-          activeLyricText: lyricsWithState[activeIndex]?.text
-        });
-      }
 
       if (scrollDifference > 30) {
         // Throttle scrolling to prevent excessive calls
@@ -249,15 +198,9 @@ export const useLyricsSync = ({
           });
           lastScrollTimeRef.current = now;
 
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Scrolling to:', finalScrollTop);
-          }
         }
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Auto-scroll calculation error:', error);
-      }
     }
   }, [currentTime, audioError, lyrics, currentTimeMs, controlsHeight, visibleHeight]);
 

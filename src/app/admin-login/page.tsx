@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
         maxAge: 60 * 60 * 24, // 24 hours
       });
 
-      redirect("/song-admin-portal");
+      redirect("/");
     } else {
       // Handle error - you might want to use a more sophisticated error handling
       throw new Error(result.error || "Authentication failed");

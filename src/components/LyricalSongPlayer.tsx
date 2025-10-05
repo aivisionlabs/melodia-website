@@ -336,7 +336,7 @@ export default function LyricalSongPlayer({
           {/* Album Art + Time Display */}
           <div className="flex items-center gap-4 mb-4">
             {/* Album art */}
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-amber-100 p-1 rounded-lg border-2 border-amber-300 flex-shrink-0">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-melodia-yellow to-melodia-yellow/80 p-1 rounded-lg border-2 border-melodia-yellow/30 flex-shrink-0">
               <div className="w-full h-full bg-white rounded overflow-hidden">
                 <Image
                   src={imageUrl}
@@ -356,15 +356,15 @@ export default function LyricalSongPlayer({
               <h3 className="text-lg md:text-xl font-heading font-bold text-melodia-teal truncate">
                 {songTitle}
               </h3>
-              <p className="text-sm md:text-base font-body text-neutral-600 truncate">
+              <p className="text-sm md:text-base font-body text-gray-600 truncate">
                 {artistName}
               </p>
             </div>
 
             {/* Time display */}
-            <div className="text-sm md:text-base font-body text-neutral-600 text-right flex-shrink-0">
+            <div className="text-sm md:text-base font-body text-gray-600 text-right flex-shrink-0">
               <span>{formatTime(currentTime)}</span>
-              <span className="text-neutral-400 mx-1">/</span>
+              <span className="text-gray-400 mx-1">/</span>
               <span>{formatTime(duration || 0)}</span>
             </div>
           </div>
@@ -388,7 +388,7 @@ export default function LyricalSongPlayer({
             <button
               onClick={() => skipTime(-10)}
               disabled={isLoading || !audioUrl}
-              className="p-3 rounded-full hover:bg-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Rewind className="w-6 h-6 text-melodia-teal" />
             </button>
@@ -410,7 +410,7 @@ export default function LyricalSongPlayer({
             <button
               onClick={() => skipTime(10)}
               disabled={isLoading || !audioUrl}
-              className="p-3 rounded-full hover:bg-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FastForward className="w-6 h-6 text-melodia-teal" />
             </button>

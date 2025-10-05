@@ -3,6 +3,9 @@ import { createSong as createSongQuery } from './queries/insert';
 import { updateSongStatus as updateSongStatusQuery, updateSongWithVariants as updateSongWithVariantsQuery } from './queries/update';
 import { Song } from '@/types';
 import { generateBaseSlug, generateUniqueSlug } from '@/lib/utils/slug';
+import { db } from './index';
+import { songsTable, songRequestsTable, lyricsDraftsTable } from './schema';
+import { eq, desc } from 'drizzle-orm';
 
 // Song Services
 export async function getAllSongs(): Promise<Song[]> {
@@ -271,6 +274,98 @@ export async function updateSongWithSunoVariants(
   } catch (error) {
     console.error('Error updating song with variants:', error);
     return { success: false, error: 'Internal server error' };
+  }
+}
+
+/**
+ * Unified service for creating or updating songs with Suno task integration
+ * Handles both demo mode and real API scenarios
+ */
+export async function createOrUpdateSongWithTask(
+  requestId: number,
+  taskId: string,
+  recipientDetails: string,
+  isDemoMode: boolean = false
+): Promise<{ success: boolean; songId?: number; error?: string }> {
+  try {
+    // Check if song already exists for this request
+    const existingSongs = await db
+      .select()
+      .from(songsTable)
+      .where(eq(songsTable.song_request_id, requestId))
+      .limit(1);
+
+    let songId: number;
+    let song;
+
+    if (existingSongs.length > 0) {
+      // Update existing song
+      song = existingSongs[0];
+      songId = song.id;
+      console.log(`🎵 ${isDemoMode ? 'Demo mode:' : ''} Updating existing song:`, songId);
+
+      await db
+        .update(songsTable)
+        .set({
+          status: 'PENDING',
+          metadata: {
+            suno_task_id: taskId,
+          }
+        })
+        .where(eq(songsTable.id, songId));
+    } else {
+      // Create new song record
+      // Get song title from lyrics drafts for this request
+      const lyricsDrafts = await db
+        .select({
+          song_title: lyricsDraftsTable.song_title,
+        })
+        .from(lyricsDraftsTable)
+        .where(eq(lyricsDraftsTable.song_request_id, requestId))
+        .orderBy(desc(lyricsDraftsTable.version), desc(lyricsDraftsTable.created_at))
+        .limit(1);
+
+      const songTitle = lyricsDrafts?.[0]?.song_title || recipientDetails;
+
+      // Generate slug from song title using the existing utility functions
+      const { generateBaseSlug, generateUniqueSlug } = await import('../utils/slug');
+      const baseSlug = generateBaseSlug(songTitle);
+      const slug = await generateUniqueSlug(baseSlug);
+
+      const [newSong] = await db
+        .insert(songsTable)
+        .values({
+          song_request_id: requestId,
+          slug,
+          status: 'PENDING',
+          song_variants: {},
+          variant_timestamp_lyrics_api_response: {},
+          variant_timestamp_lyrics_processed: {},
+          metadata: {
+            suno_task_id: taskId,
+          }
+        })
+        .returning({ id: songsTable.id });
+
+      song = newSong;
+      songId = song.id;
+      console.log(`🎵 ${isDemoMode ? 'Demo mode:' : ''} Created new song:`, songId);
+    }
+
+    // Update song request status
+    await db
+      .update(songRequestsTable)
+      .set({
+        status: isDemoMode ? 'PENDING' : 'processing'
+      })
+      .where(eq(songRequestsTable.id, requestId));
+
+    console.log(`Song processed in database:`, { songId, taskId, isDemoMode });
+
+    return { success: true, songId };
+  } catch (error) {
+    console.error('Database error in song creation/update:', error);
+    return { success: false, error: 'Failed to create or update song in database' };
   }
 }
 

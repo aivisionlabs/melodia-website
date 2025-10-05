@@ -260,7 +260,6 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
     // Priority 3: Use the legacy lyrics prop if available
     if (song.metadata?.lyrics && song.metadata.lyrics.length > 0) {
-      console.log("MediaPlayer: Using legacy lyrics prop");
       const lines = song.metadata.lyrics
         .split("\n")
         .filter((line) => line.trim().length > 0);

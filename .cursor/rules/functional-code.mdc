@@ -1,0 +1,4 @@
+---
+alwaysApply: false
+---
+When a UI is built using the [React](https://reactjs.org/) framework, make sure to do functional prgoramming and use custom hooks whenever possible.

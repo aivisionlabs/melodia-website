@@ -9,20 +9,22 @@ export function buildGenerationPrompt(): string {
   Lyrics, Title and Style of Music for the given requirements.
 
 Make sure all the lyrics you produce have correct meaning and they rhyme well and they convey the feel which user wants to create from the song.
+Selection of the music instrument should also be thought of and mentioned in the music style.
 
 For produced lyrics avoid creating translation of the lyrics.
-In lyrics we should have not have numbers as part of lyrics, if there are case where we need to mention number write the number spelling in English.
 For Style of Music, think about the kind of voice might be best suited for the song production along with the sound description based on the user input requirements.
 
 When you produce a song think about the relationship mentioned between people and draft lyrics and music style accordingly.
+Music Style should also contain the voice requirements for the song, Male Voice, Female Voice or Duet and characterstics of the voice should also be mentioned.
+Length of Music Style music style must be less than 1000 characters.
 
 If only if the time of the song is mentioned in the user input then consider reviewing and thinking which part of the song's structure can be shortened or removed?
 
-IMPORTANT: The song style that you produce should not include the name of any singer.
+IMPORTANT:
+1. The song style that you produce should not include the name of any singer or music band.
+2. The Lyrics text script should be in the language which is provided in the user input.
+3. All the numbers mentioned(if any) should be written in English.
 
-CRITICAL: NEVER repeat the same word, phrase, or pattern more than 2 times in the title or musicStyle fields. If you find yourself repeating, STOP immediately.
-
-The lyrics should be created based on the Language of the user input so that they can be pronounced correctly.
 
 STRICT OUTPUT RULES:
 - Output ONLY a single JSON object. No markdown, no code fences, no commentary, no extra text.
@@ -48,7 +50,7 @@ LYRICS STRUCTURE RULES:
 Example (format only, not content):
 (Music: Starts with a soft, acoustic guitar melody)
 
-(Verse 1 / Mukhda)
+(Verse 1)
 Line 1\\nLine 2
 
 (Chorus)
@@ -61,7 +63,7 @@ Line 1\\nLine 2
 
 (Outro)
 
-NOTE: This JSON will be sent to a music generation service provider (e.g., Suno API) to create the song. Keep the lyrics strictly in the format above so they are easy to parse.
+NOTE: This JSON will be sent to a music generation service provider (e.g., Suno API) to create the song. Keep the lyrics strictly in the format above so they are easy to parse and understood well by SUNO.
 
 The output should be in the following JSON format:
 

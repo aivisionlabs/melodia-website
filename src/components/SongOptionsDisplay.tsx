@@ -2,10 +2,13 @@
 
 import SongPlayerCard from "@/components/SongPlayerCard";
 import { Button } from "@/components/ui/button";
+import { LoginPromptCard } from "@/components/LoginPromptCard";
 import { selectSongVariantAction } from "@/lib/actions";
 import { SongStatusResponse, SongVariant } from "@/lib/song-status-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useStreamingPlayback } from "@/hooks/use-streaming-playback";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SongOptionsDisplayProps {
   songStatus: SongStatusResponse;
@@ -16,10 +19,10 @@ interface SongOptionsDisplayProps {
 
 export default function SongOptionsDisplay({
   songStatus,
-  onBackupWithGoogle,
   isStandalonePage = true,
 }: SongOptionsDisplayProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [selectedVariant, setSelectedVariant] = useState<SongVariant | null>(
     null
   );
@@ -42,173 +45,66 @@ export default function SongOptionsDisplay({
     }
   }, [songStatus.selectedVariantIndex, songStatus.variants]);
 
-  const [audioElements, setAudioElements] = useState<{
-    [key: string]: HTMLAudioElement;
-  }>({});
   const [sharePublicly, setSharePublicly] = useState<{
     [key: string]: boolean;
   }>({});
   const [emailInput, setEmailInput] = useState<{ [key: string]: string }>({});
 
-  // Media player state for streaming audio - per variant
-  const [variantStates, setVariantStates] = useState<{
-    [variantId: string]: {
-      currentTime: number;
-      duration: number;
-      isPlaying: boolean;
-      isLoading: boolean;
-    };
-  }>({});
-  const [activeStreamingVariant, setActiveStreamingVariant] = useState<
-    string | null
-  >(null);
-
-  // Helper function to get variant state
-  const getVariantState = (variantId: string) => {
-    const variant = songStatus.variants?.find((v) => v.id === variantId);
-    return (
-      variantStates[variantId] || {
-        currentTime: 0,
-        duration: variant?.duration,
-        isPlaying: false,
-        isLoading: false,
-      }
-    );
-  };
-
-  // Helper function to update variant state
-  const updateVariantState = (
-    variantId: string,
-    updates: Partial<{
-      currentTime: number;
-      duration: number;
-      isPlaying: boolean;
-      isLoading: boolean;
-    }>
-  ) => {
-    setVariantStates((prev) => {
-      const variant = songStatus.variants?.find((v) => v.id === variantId);
-      const currentState = prev[variantId] || {
-        currentTime: 0,
-        duration: variant?.duration,
-        isPlaying: false,
-        isLoading: false,
-      };
-      return {
-        ...prev,
-        [variantId]: {
-          ...currentState,
-          ...updates,
-        },
-      };
+  // Use the new streaming playback hook
+  const { getPlaybackState, togglePlayback, updateDuration, cleanup, seekTo } =
+    useStreamingPlayback({
+      onDurationAvailable: (variantId, duration) => {
+        console.log(
+          `Duration available for variant ${variantId}: ${duration}s`
+        );
+      },
     });
-  };
+
+  // Update duration when songStatus changes (from polling)
+  useEffect(() => {
+    if (songStatus.variants) {
+      songStatus.variants.forEach((variant) => {
+        if (variant.duration && variant.duration > 0) {
+          const currentState = getPlaybackState(variant.id);
+          // Only update if duration has actually changed
+          if (currentState.duration !== variant.duration) {
+            updateDuration(variant.id, variant.duration);
+          }
+        }
+      });
+    }
+  }, [songStatus.variants, updateDuration, getPlaybackState]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   // Streaming audio player functions
   const handleStreamingPlayPause = (
     variantId: string,
     streamAudioUrl: string
   ) => {
-    const variant = songStatus.variants?.find((v) => v.id === variantId);
-    if (!variant || !streamAudioUrl) return;
+    togglePlayback(variantId, streamAudioUrl);
+  };
 
-    const currentVariantState = getVariantState(variantId);
+  const handleSeek = (variantId: string, time: number) => {
+    seekTo(variantId, time);
+  };
 
-    if (activeStreamingVariant === variantId && currentVariantState.isPlaying) {
-      // Pause current audio
-      const audio = audioElements[variantId];
-      if (audio) {
-        audio.pause();
-        updateVariantState(variantId, { isPlaying: false });
-        setActiveStreamingVariant(null);
-      }
-    } else {
-      // Stop any currently playing streaming audio
-      if (activeStreamingVariant && audioElements[activeStreamingVariant]) {
-        audioElements[activeStreamingVariant].pause();
-        audioElements[activeStreamingVariant].currentTime = 0;
-        updateVariantState(activeStreamingVariant, { isPlaying: false });
-      }
+  const handleSkipBackward = (variantId: string) => {
+    const currentState = getPlaybackState(variantId);
+    const newTime = Math.max(0, currentState.currentTime - 15);
+    seekTo(variantId, newTime);
+  };
 
-      // Start playing the selected variant
-      let audio: HTMLAudioElement;
-      if (!audioElements[variantId]) {
-        audio = new Audio(streamAudioUrl);
-        audio.preload = "metadata";
-        audio.crossOrigin = "anonymous";
-
-        // Update the audioElements state
-        setAudioElements((prev) => ({ ...prev, [variantId]: audio }));
-
-        audio.addEventListener("loadedmetadata", () => {
-          updateVariantState(variantId, {
-            duration: audio.duration,
-            isLoading: false,
-          });
-        });
-
-        audio.addEventListener("timeupdate", () => {
-          updateVariantState(variantId, { currentTime: audio.currentTime });
-        });
-
-        audio.addEventListener("playing", () => {
-          // Fired when audio actually starts playing
-          console.log("Playing event fired for:", variantId);
-          setActiveStreamingVariant(variantId);
-          updateVariantState(variantId, {
-            isPlaying: true,
-            isLoading: false,
-          });
-        });
-
-        audio.addEventListener("pause", () => {
-          // Fired when audio is paused
-          updateVariantState(variantId, {
-            isPlaying: false,
-          });
-        });
-
-        audio.addEventListener("ended", () => {
-          updateVariantState(variantId, {
-            isPlaying: false,
-            currentTime: 0,
-          });
-          setActiveStreamingVariant(null);
-        });
-
-        audio.addEventListener("error", (e) => {
-          console.error("Audio streaming error:", e);
-          updateVariantState(variantId, {
-            isLoading: false,
-            isPlaying: false,
-          });
-          setActiveStreamingVariant(null);
-        });
-      } else {
-        audio = audioElements[variantId];
-      }
-
-      updateVariantState(variantId, { isLoading: true });
-      setActiveStreamingVariant(variantId);
-
-      audio
-        .play()
-        .then(() => {
-          setActiveStreamingVariant(variantId);
-          updateVariantState(variantId, {
-            isPlaying: true,
-            isLoading: false,
-          });
-        })
-        .catch((error) => {
-          console.error("Error playing streaming audio:", error);
-          updateVariantState(variantId, {
-            isLoading: false,
-            isPlaying: false,
-          });
-          setActiveStreamingVariant(null);
-        });
-    }
+  const handleSkipForward = (variantId: string) => {
+    const currentState = getPlaybackState(variantId);
+    const newTime = Math.min(
+      currentState.duration,
+      currentState.currentTime + 15
+    );
+    seekTo(variantId, newTime);
   };
 
   const handleDownload = (audioUrl: string, title: string) => {
@@ -282,26 +178,12 @@ export default function SongOptionsDisplay({
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Pause all audio elements
-      Object.values(audioElements).forEach((audio) => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
-      // Reset streaming player state
-      setActiveStreamingVariant(null);
-      setVariantStates({});
-    };
-  }, [audioElements]);
-
   const content = (
     <>
       {/* Song Options */}
       <div className="space-y-4 px-2">
         {songStatus.variants?.map((variant, index) => {
-          const variantState = getVariantState(variant.id);
+          const playbackState = getPlaybackState(variant.id);
           const isSelected = selectedVariant?.id === variant.id;
           const isPermanentlySelected = isSelected && isFinalSelectionMade;
 
@@ -326,17 +208,17 @@ export default function SongOptionsDisplay({
                     variant.sourceStreamAudioUrl || variant.streamAudioUrl || ""
                   )
                 }
+                onSeek={(time) => handleSeek(variant.id, time)}
+                onSkipBackward={() => handleSkipBackward(variant.id)}
+                onSkipForward={() => handleSkipForward(variant.id)}
                 onDownload={handleDownload}
                 onShareToggle={handleShareToggle}
                 onEmailChange={handleEmailChange}
                 onSendEmail={handleSendEmail}
-                isPlaying={
-                  activeStreamingVariant === variant.id &&
-                  variantState.isPlaying
-                }
-                isLoading={variantState.isLoading}
-                currentTime={variantState.currentTime}
-                duration={variantState.duration}
+                isPlaying={playbackState.isPlaying}
+                isLoading={playbackState.isLoading}
+                currentTime={playbackState.currentTime}
+                duration={playbackState.duration}
                 isSelected={isSelected}
                 isPermanentlySelected={isPermanentlySelected}
                 showLyricalSongButton={
@@ -355,27 +237,6 @@ export default function SongOptionsDisplay({
           );
         })}
       </div>
-
-      {/* Backup Option */}
-      {isStandalonePage && onBackupWithGoogle && (
-        <div className="mt-8 px-4 text-center">
-          <button
-            onClick={onBackupWithGoogle}
-            className="flex items-center justify-center gap-3 text-neutral-600 hover:text-neutral-800 transition-colors mx-auto py-2"
-          >
-            {/* Google Logo */}
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
-              <div className="w-4 h-4 bg-yellow-500 rounded-sm"></div>
-              <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
-              <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
-            </div>
-            <span className="font-body font-medium text-melodia-teal">
-              Backup song with Google
-            </span>
-          </button>
-        </div>
-      )}
     </>
   );
 
@@ -386,7 +247,7 @@ export default function SongOptionsDisplay({
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* Header */}
-      <div className="px-6 pt-24 pb-4">
+      <div className="px-4 pt-24 pb-4">
         {isFinalSelectionMade ? (
           <div className="text-center mb-8">
             <h1 className="font-heading text-melodia-teal">Your Songs</h1>
@@ -419,6 +280,13 @@ export default function SongOptionsDisplay({
               ? "Processing Lyrics..."
               : "Create Lyrical Version"}
           </Button>
+        </div>
+      )}
+
+      {/* Backup Option - Only show for non-authenticated users */}
+      {isStandalonePage && !isAuthenticated && (
+        <div className="mt-8 px-4">
+          <LoginPromptCard />
         </div>
       )}
 
