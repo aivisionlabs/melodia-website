@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     console.log("+++STARTING to generate song with lyrics+++");
 
     // Call /api/generate-song with lyrics data
-    const generateSongResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/generate-song`, {
+    const generateSongResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-song`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
