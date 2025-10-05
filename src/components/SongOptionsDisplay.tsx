@@ -165,7 +165,11 @@ export default function SongOptionsDisplay({
       );
 
       if (result.success && songStatus.slug) {
-        router.push(`/song/${songStatus.slug}`);
+        router.push(
+          `/song/${songStatus.slug}?variantId=${selectedVariant.id}&userId=${
+            songStatus.userId || ""
+          }&anonymousUserId=${songStatus.anonymousUserId || ""}`
+        );
       } else {
         console.error("Failed to process lyrics:", result.error);
         alert(`Error: ${result.error}`);
