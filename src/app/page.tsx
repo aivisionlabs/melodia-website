@@ -436,11 +436,11 @@ export default function CreateSongPage() {
         )}
       </div>
 
-      {/* Review Section */}
+      {/* Review Popup Modal - Full Screen Design */}
       {showReviewPopup && (
-        <div className="bg-melodia-yellow min-h-screen flex flex-col">
+        <div className="fixed inset-0 bg-melodia-yellow z-50 flex flex-col">
           {/* Back Button */}
-          <div className="p-6 pt-16 bg-melodia-yellow">
+          <div className="p-6 pt-16 bg-melodia-yellow flex-shrink-0">
             <button
               onClick={() => setShowReviewPopup(false)}
               className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity"
@@ -461,46 +461,48 @@ export default function CreateSongPage() {
             </button>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 flex items-center justify-center p-6 bg-melodia-yellow">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
-              {/* Sparkle Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-melodia-coral rounded-full flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-white" />
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto bg-melodia-yellow">
+            <div className="min-h-full flex items-center justify-center p-6">
+              <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
+                {/* Sparkle Icon */}
+                <div className="flex justify-center mb-6">
+                  <div className="w-16 h-16 bg-melodia-coral rounded-full flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
                 </div>
+
+                {/* Title */}
+                <h1 className="text-2xl font-bold text-melodia-teal mb-4">
+                  Review & Create Your Song
+                </h1>
+
+                {/* Summary Text */}
+                <p className="text-melodia-teal text-base leading-relaxed mb-8">
+                  Okay{" "}
+                  <span className="font-bold">
+                    {requesterName || currentUser?.name || "there"}
+                  </span>
+                  ! We&apos;re creating a{" "}
+                  <span className="font-bold">
+                    {moods.includes("Other") ? customMood : moods.join(", ")}
+                  </span>{" "}
+                  song in <span className="font-bold">{languages}</span> for{" "}
+                  <span className="font-bold">{recipientDetails}</span>, for{" "}
+                  <span className="font-bold">
+                    {occasion === "Other" ? customOccasion : occasion}
+                  </span>
+                  . Ready to see the magic?
+                </p>
+
+                {/* Create Button */}
+                <Button
+                  onClick={handleCreateSongRequest}
+                  className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
+                >
+                  Create My Lyrics
+                </Button>
               </div>
-
-              {/* Title */}
-              <h1 className="text-2xl font-bold text-melodia-teal mb-4">
-                Review & Create Your Song
-              </h1>
-
-              {/* Summary Text */}
-              <p className="text-melodia-teal text-base leading-relaxed mb-8">
-                Okay{" "}
-                <span className="font-bold">
-                  {requesterName || currentUser?.name || "there"}
-                </span>
-                ! We&apos;re creating a{" "}
-                <span className="font-bold">
-                  {moods.includes("Other") ? customMood : moods.join(", ")}
-                </span>{" "}
-                song in <span className="font-bold">{languages}</span> for{" "}
-                <span className="font-bold">{recipientDetails}</span>, for{" "}
-                <span className="font-bold">
-                  {occasion === "Other" ? customOccasion : occasion}
-                </span>
-                . Ready to see the magic?
-              </p>
-
-              {/* Create Button */}
-              <Button
-                onClick={handleCreateSongRequest}
-                className="w-full h-14 bg-melodia-coral text-white text-lg font-bold rounded-full shadow-lg shadow-coral-500/30 hover:bg-opacity-90 hover:scale-105 transition-all duration-200"
-              >
-                Create My Lyrics
-              </Button>
             </div>
           </div>
         </div>
