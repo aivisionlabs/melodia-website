@@ -181,7 +181,7 @@ export default function SongOptionsDisplay({
   const content = (
     <>
       {/* Song Options */}
-      <div className="space-y-4 px-2">
+      <div className="space-y-4">
         {songStatus.variants?.map((variant, index) => {
           const playbackState = getPlaybackState(variant.id);
           const isSelected = selectedVariant?.id === variant.id;
