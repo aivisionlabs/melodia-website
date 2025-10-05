@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { paymentId, requestId } = await request.json()
 
-    console.log("CALLING success", paymentId, requestId);
+    console.log("CALLING success", "process.env.DEMO_MODE", process.env.DEMO_MODE);
+    console.log("NEXT_PUBLIC_BASE_URL", process.env.NEXT_PUBLIC_BASE_URL);
 
     if (!paymentId || !requestId) {
       return NextResponse.json(
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    console.log("+++STARTING to generate song with lyrics+++");
+    console.log("+++STARTING to generate song with lyrics+++", process.env.NEXT_PUBLIC_BASE_URL);
 
     // Call /api/generate-song with lyrics data
     const generateSongResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-song`, {
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
         requestId,
       })
     })
+
+    console.log("generateSongResponse", generateSongResponse);
 
     if (!generateSongResponse.ok) {
       const errorData = await generateSongResponse.json().catch(() => ({}))

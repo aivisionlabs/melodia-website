@@ -436,9 +436,9 @@ export default function CreateSongPage() {
         )}
       </div>
 
-      {/* Review Popup Modal - Full Screen Design */}
+      {/* Review Section */}
       {showReviewPopup && (
-        <div className="fixed inset-0 bg-melodia-yellow z-50 flex flex-col">
+        <div className="bg-melodia-yellow min-h-screen flex flex-col">
           {/* Back Button */}
           <div className="p-6 pt-16 bg-melodia-yellow">
             <button
@@ -461,7 +461,7 @@ export default function CreateSongPage() {
             </button>
           </div>
 
-          {/* Main Content Card */}
+          {/* Main Content */}
           <div className="flex-1 flex items-center justify-center p-6 bg-melodia-yellow">
             <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
               {/* Sparkle Icon */}

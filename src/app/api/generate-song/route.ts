@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     const { recipientDetails, requestId, userId, anonymousUserId, title, lyrics, style } = await request.json()
     const demoMode = process.env.DEMO_MODE === 'true'
 
+
     if (!title || !lyrics || !style) {
       return NextResponse.json(
         { error: true, message: 'Missing required fields: title, lyrics, style' },
