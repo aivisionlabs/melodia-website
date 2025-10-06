@@ -21,31 +21,31 @@ Our color palette is designed to be vibrant, energetic, and full of life.
 
 Our typography choices are modern, friendly, and highly legible, balancing personality with clarity.
 
-* **Heading Font:** **Poppins**  
-  * *Use for:* Titles, headlines, and key callouts.  
-  * *Feeling:* Bold, friendly, and energetic.  
-* **Body Font:** **Montserrat**  
-  * *Use for:* Paragraphs, descriptions, and UI text.  
+* **Heading Font:** **Poppins**
+  * *Use for:* Titles, headlines, and key callouts.
+  * *Feeling:* Bold, friendly, and energetic.
+* **Body Font:** **Montserrat**
+  * *Use for:* Paragraphs, descriptions, and UI text.
   * *Feeling:* Clean, geometric, and approachable.
 
 ## **Logo & Iconography**
 
 The logo and icon style is simple, modern, and expressive.
 
-* **Logo Style:** A bold, friendly sans-serif wordmark that feels approachable and confident.  
+* **Logo Style:** A bold, friendly sans-serif wordmark that feels approachable and confident.
 * **Icon Style:** Icons are simple, geometric, and pop with energy, like a stylized musical note or sound wave. They should be instantly recognizable and fun.
 
 ## **Imagery Style**
 
 Photography should feel authentic, candid, and full of positive energy.
 
-* **Subject:** Vibrant, authentic photos of friends laughing, sharing headphones, and enjoying music together.  
-* **Mood:** Full of life and genuine connection. Avoid overly staged or corporate-looking shots.  
+* **Subject:** Vibrant, authentic photos of friends laughing, sharing headphones, and enjoying music together.
+* **Mood:** Full of life and genuine connection. Avoid overly staged or corporate-looking shots.
 * **Lighting:** Bright, natural light that enhances the vibrant color palette.
 
 ## **Voice & Tone**
 
 Our voice is like that of an enthusiastic and supportive friend.
 
-* **Keywords:** Energetic, Social, Joyful, Vibrant  
-* **Example:**Your friendship's greatest hit.
+* **Keywords:** Energetic, Social, Joyful, Vibrant
+* **Example:**Create Personalized Songs for Loved Ones.

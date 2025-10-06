@@ -9,10 +9,10 @@ This document defines the **design system** for the **Melodia** music generator 
 * **Essence:** Energetic, social, and unapologetically joyful.
 * **Goal:** Celebrate shared moments of happiness and connections through music.
 * **Keywords:** Energetic, Social, Joyful, Vibrant.
-* **Tagline Example:** *"Your friendship's greatest hit."*
+* **Tagline Example:** *"Melodia - Create Personalized Songs for Loved Ones"*
 
 ---
- 
+
 ## 2. Color Palette
 
 Use the following colors consistently across the product.

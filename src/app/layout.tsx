@@ -19,7 +19,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Melodia - Your Friendship's Greatest Hit",
+  title: "Melodia - Create Personalized Songs for Loved Ones",
   description:
     "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
   keywords:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Melodia - Your Friendship's Greatest Hit",
+    title: "Melodia - Melodia - Create Personalized Songs for Loved Ones",
     description:
       "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
     url: "https://melodia-songs.com",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Melodia - Your Friendship's Greatest Hit",
+    title: "Melodia - Create Personalized Songs for Loved Ones",
     description:
       "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
     images: ["/images/melodia-logo-og.jpeg"],
