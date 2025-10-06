@@ -201,17 +201,6 @@ export async function softDeleteSongAction(songId: number) {
   }
 }
 
-export async function restoreSongAction(songId: number) {
-  try {
-    const { restoreSong } = await import('@/lib/db/services');
-    const result = await restoreSong(songId);
-    return result;
-  } catch (error) {
-    console.error('Error in restoreSongAction:', error);
-    return { success: false, error: 'Failed to restore song' };
-  }
-}
-
 // // Action to generate timestamped lyrics for a variant
 export async function generateTimestampedLyricsAction(
   taskId: string,
@@ -221,7 +210,6 @@ export async function generateTimestampedLyricsAction(
     // Get song by task ID
     const songResult = await getSongByTaskIdAction(taskId);
 
-    console.log("Song result:", songResult);
     if (!songResult.success || !songResult.song) {
       return {
         success: false,
@@ -232,7 +220,6 @@ export async function generateTimestampedLyricsAction(
     // Check if lyrics already exist for this variant
     if (songResult.song.variant_timestamp_lyrics_processed &&
       songResult.song.variant_timestamp_lyrics_processed[variantIndex]) {
-      console.log(`Lyrics for variant ${variantIndex} already exist in database, returning cached data`);
       return {
         success: true,
         lyricLines: songResult.song.variant_timestamp_lyrics_processed[variantIndex],
@@ -262,7 +249,6 @@ export async function generateTimestampedLyricsAction(
       musicIndex: variantIndex
     };
 
-    console.log("FETCHING timestamp lyrics for variant:", variantIndex);
     let response;
     try {
       response = await sunoAPI.getTimestampedLyrics(timestampedLyricsRequest);
@@ -287,8 +273,6 @@ export async function generateTimestampedLyricsAction(
         error: 'Invalid response format: missing alignedWords data'
       };
     }
-
-
 
     // Check if timing data exists
     const hasTimingData = response.data.alignedWords.every(word =>
@@ -336,9 +320,6 @@ export async function generateTimestampedLyricsAction(
       word.startS >= 0 && word.endS > word.startS
     );
 
-
-
-
     if (validWords.length === 0) {
       console.error('No valid words with timing data found!');
       return {
@@ -347,11 +328,7 @@ export async function generateTimestampedLyricsAction(
       };
     }
 
-
-
     const lyricLines = convertToLyricLines(validWords);
-
-
 
     if (lyricLines.length > 0) {
       console.log("First converted line:", lyricLines[0]);

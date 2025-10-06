@@ -3,6 +3,7 @@ import { loginUser } from '@/lib/user-actions'
 import { db } from '@/lib/db'
 import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { generateJWT } from '@/lib/auth/jwt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,13 +66,30 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Generate JWT token for authentication
+      const jwtToken = generateJWT({
+        userId: result.user.id.toString(),
+        email: result.user.email,
+        verified: result.user.email_verified || false
+      })
+
       // Create response with user data
       const response = NextResponse.json({
         success: true,
-        user: result.user
+        data: {
+          user: result.user
+        }
       })
 
-      // Set cookie in the response
+      // Set JWT token cookie for authentication
+      response.cookies.set('auth-token', jwtToken, {
+        httpOnly: true, // Secure: prevent XSS attacks
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      })
+
+      // Also set user-session cookie for client-side access (legacy support)
       response.cookies.set('user-session', JSON.stringify(result.user), {
         httpOnly: false, // Allow client-side access for localStorage sync
         secure: process.env.NODE_ENV === 'production',

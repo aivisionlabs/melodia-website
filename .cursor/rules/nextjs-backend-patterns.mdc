@@ -1,0 +1,629 @@
+---
+alwaysApply: false
+---
+# Next.js Backend API Patterns for Melodia
+
+## API Route Structure & Organization
+
+### File Organization
+```
+src/app/api/
+├── auth/
+│   ├── signup/
+│   │   └── route.ts          # POST /api/auth/signup
+│   ├── verify-email/
+│   │   └── route.ts          # POST /api/auth/verify-email
+│   ├── send-verification/
+│   │   └── route.ts          # POST /api/auth/send-verification
+│   └── middleware.ts         # Auth middleware
+├── users/
+│   ├── [id]/
+│   │   └── route.ts          # GET/PUT/DELETE /api/users/[id]
+│   └── route.ts              # GET /api/users
+└── middleware.ts             # Global API middleware
+```
+
+## REST API Conventions
+
+### HTTP Methods & Status Codes
+```typescript
+// ✅ CORRECT: Follow REST conventions
+POST /api/auth/signup          // 201 Created, 400 Bad Request, 409 Conflict
+POST /api/auth/verify-email    // 200 OK, 400 Bad Request, 401 Unauthorized
+POST /api/auth/send-verification // 200 OK, 429 Too Many Requests
+GET /api/users/[id]           // 200 OK, 404 Not Found
+PUT /api/users/[id]           // 200 OK, 404 Not Found, 400 Bad Request
+DELETE /api/users/[id]        // 204 No Content, 404 Not Found
+
+// ❌ WRONG: Non-standard status codes
+POST /api/auth/signup         // Don't use 500 for validation errors
+GET /api/users               // Don't use 200 with empty data for not found
+```
+
+### Response Structure
+```typescript
+// ✅ CORRECT: Consistent response structure
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: {
+    message: string;
+    code: string;
+    details?: Record<string, any>;
+  };
+  meta?: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
+// Success Response
+{
+  "success": true,
+  "data": { "id": "user-123", "email": "user@example.com" },
+  "meta": { "timestamp": "2024-01-01T00:00:00Z", "requestId": "req-123" }
+}
+
+// Error Response
+{
+  "success": false,
+  "error": {
+    "message": "Email already exists",
+    "code": "EMAIL_ALREADY_EXISTS",
+    "details": { "field": "email" }
+  },
+  "meta": { "timestamp": "2024-01-01T00:00:00Z", "requestId": "req-123" }
+}
+```
+
+## Authentication & Authorization
+
+### JWT Implementation
+```typescript
+// JWT utilities
+import jwt from 'jsonwebtoken';
+
+interface JWTPayload {
+  userId: string;
+  email: string;
+  verified: boolean;
+  iat: number;
+  exp: number;
+}
+
+export const generateJWT = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string => {
+  return jwt.sign(payload, process.env.JWT_SECRET!, {
+    expiresIn: '7d',
+    issuer: 'melodia-app'
+  });
+};
+
+export const verifyJWT = (token: string): JWTPayload | null => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+  } catch {
+    return null;
+  }
+};
+```
+
+### Cookie Management
+```typescript
+import { cookies } from 'next/headers';
+
+// ✅ CORRECT: Secure cookie settings
+export const setAuthCookie = (token: string) => {
+  cookies().set('auth-token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/'
+  });
+};
+
+export const getAuthCookie = (): string | null => {
+  return cookies().get('auth-token')?.value || null;
+};
+
+export const clearAuthCookie = () => {
+  cookies().delete('auth-token');
+};
+```
+
+### Auth Middleware
+```typescript
+// src/app/api/middleware.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyJWT } from '@/lib/auth';
+
+export const withAuth = (handler: Function) => {
+  return async (request: NextRequest, context: any) => {
+    try {
+      const token = request.cookies.get('auth-token')?.value;
+
+      if (!token) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
+          { status: 401 }
+        );
+      }
+
+      const payload = verifyJWT(token);
+      if (!payload) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Invalid token', code: 'INVALID_TOKEN' } },
+          { status: 401 }
+        );
+      }
+
+      // Add user to request context
+      (request as any).user = payload;
+
+      return handler(request, context);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Authentication failed', code: 'AUTH_FAILED' } },
+        { status: 401 }
+      );
+    }
+  };
+};
+```
+
+## Input Validation
+
+### Zod Schema Validation
+```typescript
+import { z } from 'zod';
+
+// ✅ CORRECT: Comprehensive validation schemas
+export const signupSchema = z.object({
+  name: z.string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+
+  email: z.string()
+    .email('Please enter a valid email address')
+    .toLowerCase()
+    .trim(),
+
+  dateOfBirth: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .refine((date) => {
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      return age >= 13 && age <= 120;
+    }, 'You must be between 13 and 120 years old'),
+
+  phoneNumber: z.string()
+    .regex(/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal(''))
+});
+
+export const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string()
+    .length(6, 'Verification code must be 6 digits')
+    .regex(/^\d{6}$/, 'Verification code must contain only numbers')
+});
+```
+
+### Validation Middleware
+```typescript
+export const validateRequest = <T>(schema: z.ZodSchema<T>) => {
+  return (handler: Function) => {
+    return async (request: NextRequest, context: any) => {
+      try {
+        const body = await request.json();
+        const validatedData = schema.parse(body);
+
+        // Add validated data to request
+        (request as any).validatedData = validatedData;
+
+        return handler(request, context);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                message: 'Validation failed',
+                code: 'VALIDATION_ERROR',
+                details: error.errors.reduce((acc, err) => {
+                  acc[err.path.join('.')] = err.message;
+                  return acc;
+                }, {} as Record<string, string>)
+              }
+            },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json(
+          { success: false, error: { message: 'Invalid request body', code: 'INVALID_BODY' } },
+          { status: 400 }
+        );
+      }
+    };
+  };
+};
+```
+
+## Database Patterns
+
+### Repository Pattern
+```typescript
+// Base repository interface
+export interface BaseRepository<T> {
+  findById(id: string): Promise<T | null>;
+  create(data: Partial<T>): Promise<T>;
+  update(id: string, data: Partial<T>): Promise<T>;
+  delete(id: string): Promise<void>;
+}
+
+// User repository implementation
+export class UserRepository implements BaseRepository<User> {
+  constructor(private db: Database) {}
+
+  async findById(id: string): Promise<User | null> {
+    const { data, error } = await this.db
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw new Error(`User not found: ${error.message}`);
+    return data;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const { data, error } = await this.db
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    return error ? null : data;
+  }
+
+  async create(userData: CreateUserData): Promise<User> {
+    const { data, error } = await this.db
+      .from('users')
+      .insert(userData)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to create user: ${error.message}`);
+    return data;
+  }
+}
+```
+
+## Error Handling
+
+### Centralized Error Handler
+```typescript
+export class ApiError extends Error {
+  constructor(
+    public message: string,
+    public statusCode: number,
+    public code: string,
+    public details?: Record<string, any>
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export const handleApiError = (error: unknown): NextResponse => {
+  console.error('API Error:', error);
+
+  if (error instanceof ApiError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: error.message,
+          code: error.code,
+          details: error.details
+        }
+      },
+      { status: error.statusCode }
+    );
+  }
+
+  // Database errors
+  if (error instanceof Error && error.message.includes('duplicate key')) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Resource already exists',
+          code: 'DUPLICATE_RESOURCE'
+        }
+      },
+      { status: 409 }
+    );
+  }
+
+  // Generic error
+  return NextResponse.json(
+    {
+      success: false,
+      error: {
+        message: 'Internal server error',
+        code: 'INTERNAL_ERROR'
+      }
+    },
+    { status: 500 }
+  );
+};
+```
+
+## Rate Limiting
+
+### Rate Limiter Implementation
+```typescript
+import { NextRequest } from 'next/server';
+
+interface RateLimitConfig {
+  windowMs: number;
+  maxRequests: number;
+  keyGenerator?: (request: NextRequest) => string;
+}
+
+export const rateLimit = (config: RateLimitConfig) => {
+  const requests = new Map<string, { count: number; resetTime: number }>();
+
+  return (handler: Function) => {
+    return async (request: NextRequest, context: any) => {
+      const key = config.keyGenerator
+        ? config.keyGenerator(request)
+        : request.ip || 'anonymous';
+
+      const now = Date.now();
+      const windowStart = now - config.windowMs;
+
+      // Clean old entries
+      for (const [k, v] of requests.entries()) {
+        if (v.resetTime < windowStart) {
+          requests.delete(k);
+        }
+      }
+
+      const current = requests.get(key) || { count: 0, resetTime: now + config.windowMs };
+
+      if (current.count >= config.maxRequests) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              message: 'Too many requests',
+              code: 'RATE_LIMIT_EXCEEDED'
+            }
+          },
+          { status: 429 }
+        );
+      }
+
+      current.count++;
+      requests.set(key, current);
+
+      return handler(request, context);
+    };
+  };
+};
+
+// Usage
+export const POST = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
+  keyGenerator: (req) => req.headers.get('x-forwarded-for') || req.ip || 'anonymous'
+})(
+  validateRequest(signupSchema)(
+    async (request: NextRequest) => {
+      // Handler logic
+    }
+  )
+);
+```
+
+## Service Layer Pattern
+
+### Email Service Interface
+```typescript
+export interface EmailService {
+  sendVerificationEmail(email: string, code: string): Promise<boolean>;
+  sendWelcomeEmail(email: string, name: string): Promise<boolean>;
+}
+
+export class SendGridEmailService implements EmailService {
+  constructor(private apiKey: string) {}
+
+  async sendVerificationEmail(email: string, code: string): Promise<boolean> {
+    // SendGrid implementation
+    return true;
+  }
+
+  async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+    // SendGrid implementation
+    return true;
+  }
+}
+
+export class MockEmailService implements EmailService {
+  async sendVerificationEmail(email: string, code: string): Promise<boolean> {
+    console.log(`Mock: Sending verification code ${code} to ${email}`);
+    return true;
+  }
+
+  async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+    console.log(`Mock: Sending welcome email to ${name} at ${email}`);
+    return true;
+  }
+}
+
+// Factory pattern for service selection
+export const createEmailService = (): EmailService => {
+  if (process.env.NODE_ENV === 'production') {
+    return new SendGridEmailService(process.env.SENDGRID_API_KEY!);
+  }
+  return new MockEmailService();
+};
+```
+
+## Environment Configuration
+
+### Required Environment Variables
+```bash
+# Database
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+
+# Authentication
+JWT_SECRET=your-super-secret-jwt-key
+NEXTAUTH_SECRET=your-nextauth-secret
+
+# Email Service
+SENDGRID_API_KEY=your-sendgrid-key
+FROM_EMAIL=noreply@melodia.com
+
+# App Configuration
+NODE_ENV=development|production
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Testing Patterns
+
+### API Route Testing
+```typescript
+import { POST } from '@/app/api/auth/signup/route';
+import { NextRequest } from 'next/server';
+
+describe('/api/auth/signup', () => {
+  it('should create user successfully', async () => {
+    const request = new NextRequest('http://localhost:3000/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'John Doe',
+        email: 'john@example.com',
+        dateOfBirth: '1990-01-01',
+        phoneNumber: '+1234567890'
+      })
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.data.id).toBeDefined();
+  });
+
+  it('should return validation error for invalid email', async () => {
+    const request = new NextRequest('http://localhost:3000/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'John Doe',
+        email: 'invalid-email',
+        dateOfBirth: '1990-01-01'
+      })
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.error.code).toBe('VALIDATION_ERROR');
+  });
+});
+```
+
+## Security Best Practices
+
+### Input Sanitization
+```typescript
+import DOMPurify from 'isomorphic-dompurify';
+
+export const sanitizeInput = (input: string): string => {
+  return DOMPurify.sanitize(input.trim());
+};
+
+export const sanitizeUserData = (data: any): any => {
+  if (typeof data === 'string') {
+    return sanitizeInput(data);
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(sanitizeUserData);
+  }
+
+  if (data && typeof data === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeUserData(value);
+    }
+    return sanitized;
+  }
+
+  return data;
+};
+```
+
+### SQL Injection Prevention
+```typescript
+// ✅ CORRECT: Use parameterized queries
+const user = await db
+  .from('users')
+  .select('*')
+  .eq('email', email) // Supabase handles parameterization
+  .single();
+
+// ❌ WRONG: String concatenation
+const query = `SELECT * FROM users WHERE email = '${email}'`; // Vulnerable to SQL injection
+```
+
+## Logging & Monitoring
+
+### Structured Logging
+```typescript
+export const logger = {
+  info: (message: string, meta?: Record<string, any>) => {
+    console.log(JSON.stringify({
+      level: 'info',
+      message,
+      timestamp: new Date().toISOString(),
+      ...meta
+    }));
+  },
+
+  error: (message: string, error?: Error, meta?: Record<string, any>) => {
+    console.error(JSON.stringify({
+      level: 'error',
+      message,
+      error: error?.message,
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+      ...meta
+    }));
+  },
+
+  warn: (message: string, meta?: Record<string, any>) => {
+    console.warn(JSON.stringify({
+      level: 'warn',
+      message,
+      timestamp: new Date().toISOString(),
+      ...meta
+    }));
+  }
+};
+```
+
+Remember: Always follow these patterns for consistent, secure, and maintainable API development in Next.js!

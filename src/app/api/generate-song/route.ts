@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SunoAPIFactory } from '@/lib/suno-api'
 import { db } from '@/lib/db'
-import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
+import { songRequestsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/user-actions'
 import { getUserContextFromRequest } from '@/lib/middleware-utils'
@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
       // Check payment status only if payment is required and not in demo mode
       if (!demoMode) {
         // Check if there's a completed payment for this song request
-        await db
-          .select()
-          .from(paymentsTable)
-          .where(eq(paymentsTable.song_request_id, requestId))
-          .limit(1);
+        // const payment = await db
+        //   .select()
+        //   .from(paymentsTable)
+        //   .where(eq(paymentsTable.song_request_id, requestId))
+        //   .limit(1);
 
         // Payment validation is currently disabled
         // if (payment.length === 0 || payment[0].status !== 'completed') {

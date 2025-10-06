@@ -1,0 +1,247 @@
+---
+alwaysApply: false
+---
+# Validation Patterns for Melodia
+
+## Form Validation Principles
+
+### Single Responsibility Validation
+Each validation function should validate one specific aspect:
+```typescript
+// ✅ Good: Single responsibility
+export const validateEmail = (email: string): string => {
+  if (!email.trim()) return "Email is required";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address";
+  return "";
+};
+
+// ❌ Bad: Multiple responsibilities
+export const validateUser = (user: User): string => {
+  // Validates email, password, name, etc. - too many responsibilities
+};
+```
+
+### DRY Validation Rules
+Create reusable validation utilities:
+```typescript
+// Base validation types
+export interface ValidationRule {
+  field: string;
+  validate: (value: any) => ValidationResult;
+  message: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  error: string;
+}
+
+// Reusable validation functions
+export const createRequiredValidator = (fieldName: string): ValidationRule => ({
+  field: fieldName,
+  validate: (value: any) => ({
+    isValid: !!value?.toString().trim(),
+    error: `${fieldName} is required`
+  }),
+  message: `${fieldName} is required`
+});
+
+export const createEmailValidator = (): ValidationRule => ({
+  field: 'email',
+  validate: (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return {
+      isValid: emailRegex.test(email),
+      error: "Please enter a valid email address"
+    };
+  },
+  message: "Please enter a valid email address"
+});
+
+export const createPasswordValidator = (minLength: number = 6): ValidationRule => ({
+  field: 'password',
+  validate: (password: string) => ({
+    isValid: password.length >= minLength,
+    error: `Password must be at least ${minLength} characters`
+  }),
+  message: `Password must be at least ${minLength} characters`
+});
+```
+
+### Real-time Validation Pattern
+Follow the pattern from [src/app/profile/page.tsx](mdc:src/app/profile/page.tsx):
+
+```typescript
+// State management for validation
+const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+// Generic validation function
+const validateField = (field: string, value: string, validator: (value: string) => string) => {
+  const error = validator(value);
+  setValidationErrors(prev => ({
+    ...prev,
+    [field]: error
+  }));
+  return error === "";
+};
+
+// Field-specific handlers with validation
+const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setEmail(value);
+  validateField('email', value, validateEmail);
+};
+
+const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setPassword(value);
+  validateField('password', value, validatePassword);
+};
+```
+
+### Input Formatting with Validation
+```typescript
+// Date formatting with validation
+const handleDateOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+  
+  // Format as DD/MM/YYYY
+  if (value.length >= 2) {
+    value = value.substring(0, 2) + '/' + value.substring(2);
+  }
+  if (value.length >= 5) {
+    value = value.substring(0, 5) + '/' + value.substring(5, 9);
+  }
+  
+  setDateOfBirth(value);
+  validateField('dateOfBirth', value, validateDateOfBirth);
+};
+
+// Phone number formatting
+const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value.replace(/\D/g, ''); // Keep only digits
+  setPhoneNumber(value);
+  validateField('phoneNumber', value, validatePhoneNumber);
+};
+```
+
+### Form Submission Validation
+```typescript
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // Validate all fields before submission
+  const emailValid = validateField('email', email, validateEmail);
+  const passwordValid = validateField('password', password, validatePassword);
+  
+  let allFieldsValid = emailValid && passwordValid;
+  
+  if (isSignUp) {
+    const nameValid = validateField('name', name, validateName);
+    const dobValid = validateField('dateOfBirth', dateOfBirth, validateDateOfBirth);
+    const phoneValid = validateField('phoneNumber', phoneNumber, validatePhoneNumber);
+    allFieldsValid = allFieldsValid && nameValid && dobValid && phoneValid;
+  }
+  
+  if (!allFieldsValid) {
+    return; // Don't submit if validation fails
+  }
+  
+  // Proceed with form submission
+  // ... rest of submission logic
+};
+```
+
+### Validation Error Display
+```typescript
+// Consistent error display pattern
+{validationErrors.email && (
+  <p className="text-red-500 text-xs mt-1 text-left">
+    {validationErrors.email}
+  </p>
+)}
+
+// Input styling based on validation state
+<Input
+  type="email"
+  placeholder="Email"
+  value={email}
+  onChange={handleEmailChange}
+  className={`w-full bg-white border text-melodia-teal placeholder-melodia-teal/60 rounded-xl p-3 focus:ring-2 focus:ring-melodia-yellow focus:border-transparent transition ${
+    validationErrors.email ? 'border-red-500' : 'border-melodia-teal/20'
+  }`}
+  required
+/>
+```
+
+## Custom Validation Hooks
+
+### useValidation Hook
+```typescript
+export const useValidation = (rules: ValidationRule[]) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const validate = useCallback((field: string, value: any) => {
+    const rule = rules.find(r => r.field === field);
+    if (rule) {
+      const result = rule.validate(value);
+      setErrors(prev => ({
+        ...prev,
+        [field]: result.isValid ? '' : result.message
+      }));
+      return result.isValid;
+    }
+    return true;
+  }, [rules]);
+  
+  const validateAll = useCallback((data: Record<string, any>) => {
+    const newErrors: Record<string, string> = {};
+    let isValid = true;
+    
+    rules.forEach(rule => {
+      const result = rule.validate(data[rule.field]);
+      if (!result.isValid) {
+        newErrors[rule.field] = result.message;
+        isValid = false;
+      }
+    });
+    
+    setErrors(newErrors);
+    return isValid;
+  }, [rules]);
+  
+  return {
+    errors,
+    validate,
+    validateAll,
+    isValid: Object.values(errors).every(e => !e)
+  };
+};
+```
+
+## Validation Best Practices
+
+### 1. Consistent Error Messages
+- Use clear, user-friendly language
+- Be specific about what's wrong
+- Provide guidance on how to fix it
+
+### 2. Real-time Feedback
+- Validate on change for better UX
+- Show errors immediately
+- Clear errors when user starts typing
+
+### 3. Visual Feedback
+- Use consistent styling for error states
+- Highlight invalid fields
+- Use appropriate colors (red for errors)
+
+### 4. Accessibility
+- Associate error messages with form fields
+- Use proper ARIA attributes
+- Ensure keyboard navigation works
+
+### 5. Performance
+- Debounce validation for expensive operations
+- Use useCallback for validation functions
+- Avoid unnecessary re-renders

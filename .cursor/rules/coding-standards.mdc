@@ -1,9 +1,72 @@
 ---
-alwaysApply: false
-description: This is coding Standards for Melodia
+alwaysApply: true
 ---
-
 # Coding Standards for Melodia
+
+## SOLID Principles Implementation
+
+### Single Responsibility Principle (SRP)
+- Each component should have one reason to change
+- Separate concerns: UI components, business logic, data fetching
+- Create focused, single-purpose functions and components
+
+### Open/Closed Principle (OCP)
+- Components should be open for extension, closed for modification
+- Use composition over inheritance
+- Implement interfaces for extensibility
+
+### Liskov Substitution Principle (LSP)
+- Derived components should be substitutable for their base components
+- Maintain consistent interfaces across component hierarchies
+
+### Interface Segregation Principle (ISP)
+- Create specific, focused interfaces rather than large, general ones
+- Components should not depend on interfaces they don't use
+
+### Dependency Inversion Principle (DIP)
+- Depend on abstractions, not concretions
+- Use dependency injection for services and utilities
+- Abstract external dependencies behind interfaces
+
+## DRY (Don't Repeat Yourself) Principle
+
+### Code Reusability - CRITICAL PRIORITY
+- **ALWAYS check existing components first** before creating new ones
+- **Use existing UI components** from [src/components/ui/](mdc:src/components/ui/)
+- **Use existing form components** from [src/components/forms/](mdc:src/components/forms/)
+- Extract common logic into custom hooks
+- Create reusable utility functions
+- Use shared components for repeated UI patterns
+- Implement common validation logic in shared utilities
+
+### Component Usage Priority (MANDATORY)
+1. **First**: Search for existing components that fit the need
+2. **Second**: Extend existing components with additional props
+3. **Third**: Compose existing components to create new functionality
+4. **Last Resort**: Create new components only when no existing solution works
+
+### Configuration Management
+- Centralize constants and configuration
+- Use environment variables for environment-specific settings
+- Create shared type definitions
+
+## Clean Code Practices
+
+### Naming Conventions
+- Use descriptive, intention-revealing names
+- Avoid abbreviations and acronyms
+- Use consistent naming patterns across the codebase
+
+### Function Design
+- Keep functions small and focused
+- Use pure functions when possible
+- Avoid side effects in utility functions
+- Limit function parameters (max 3-4 parameters)
+
+### Code Organization
+- Group related functionality together
+- Use consistent file and folder structure
+- Separate business logic from presentation logic
 
 ## TypeScript & React Standards
 
@@ -20,29 +83,40 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 // ... other imports
 
+// Single Responsibility: Component has one clear purpose
 interface ComponentProps {
-  // Define props interface
+  // Define specific, focused props interface (ISP)
+  onAction: (data: ActionData) => void;
+  isVisible: boolean;
+  className?: string;
 }
 
-export const ComponentName = ({ prop1, prop2 }: ComponentProps) => {
-  // State declarations
-  const [state, setState] = useState();
+// Clean Code: Descriptive, intention-revealing name
+export const ComponentName = ({ onAction, isVisible, className }: ComponentProps) => {
+  // State declarations - keep related state together
+  const [state, setState] = useState<StateType>(initialValue);
   
   // Refs
-  const ref = useRef();
+  const ref = useRef<HTMLElement>(null);
   
-  // Effects
+  // Effects - single responsibility per effect
   useEffect(() => {
     // Effect logic
   }, [dependencies]);
   
-  // Event handlers
-  const handleEvent = useCallback(() => {
-    // Handler logic
-  }, [dependencies]);
+  // Event handlers - pure functions when possible
+  const handleEvent = useCallback((event: EventType) => {
+    // Handler logic - keep small and focused
+    onAction(processedData);
+  }, [onAction, dependencies]);
+  
+  // Early returns for better readability
+  if (!isVisible) return null;
   
   return (
-    // JSX
+    <div className={className}>
+      {/* JSX - semantic HTML */}
+    </div>
   );
 };
 ```
@@ -51,12 +125,46 @@ export const ComponentName = ({ prop1, prop2 }: ComponentProps) => {
 Follow the pattern from [src/types/index.ts](mdc:src/types/index.ts):
 
 ```typescript
-export interface InterfaceName {
-  id: number
-  created_at: string
-  title: string
-  // ... other fields
+// Interface Segregation: Create focused, specific interfaces
+export interface BaseEntity {
+  id: number;
+  created_at: string;
+  updated_at: string;
 }
+
+export interface Song extends BaseEntity {
+  title: string;
+  artist: string;
+  duration: number;
+  // Song-specific properties only
+}
+
+export interface User extends BaseEntity {
+  email: string;
+  name: string;
+  // User-specific properties only
+}
+
+// Dependency Inversion: Abstract interfaces for services
+export interface AuthService {
+  login(email: string, password: string): Promise<AuthResult>;
+  logout(): Promise<void>;
+  getCurrentUser(): Promise<User | null>;
+}
+
+export interface ValidationRule {
+  validate(value: any): ValidationResult;
+  message: string;
+}
+
+// DRY: Reusable type definitions
+export type ApiResponse<T> = {
+  data: T | null;
+  error?: string;
+  success: boolean;
+};
+
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 ```
 
 ### Server Actions
@@ -65,37 +173,71 @@ Follow the pattern from [src/lib/actions.ts](mdc:src/lib/actions.ts):
 ```typescript
 'use server'
 
-import { Song, PublicSong } from '@/types';
+import { Song, PublicSong, ApiResponse } from '@/types';
 import { createServerSupabaseClient } from './supabase';
+import { validateInput, checkRateLimit } from './validation';
 
-export async function actionName(
-  param1: string,
-  param2: number,
+// Single Responsibility: Each action has one clear purpose
+// Clean Code: Descriptive, intention-revealing function name
+export async function createSong(
+  title: string,
+  artist: string,
   ip: string = 'unknown'
-): Promise<{
-  data: any
-  error?: string
-}> {
+): Promise<ApiResponse<Song>> {
   try {
-    // Input validation
-    if (!validateInput(param1)) {
-      return { data: null, error: 'Invalid input' }
+    // Input validation - single responsibility
+    const validationResult = validateSongInput(title, artist);
+    if (!validationResult.isValid) {
+      return { 
+        data: null, 
+        error: validationResult.error,
+        success: false 
+      };
     }
     
-    // Rate limiting
-    if (!checkRateLimit(ip)) {
-      return { data: null, error: 'Too many requests' }
+    // Rate limiting - separate concern
+    const rateLimitResult = await checkRateLimit(ip);
+    if (!rateLimitResult.allowed) {
+      return { 
+        data: null, 
+        error: 'Too many requests',
+        success: false 
+      };
     }
     
-    // Database operations
+    // Database operations - dependency injection
     const supabase = createServerSupabaseClient();
-    // ... database logic
+    const result = await supabase
+      .from('songs')
+      .insert({ title, artist })
+      .select()
+      .single();
     
-    return { data: result }
+    return { 
+      data: result.data, 
+      error: null,
+      success: true 
+    };
   } catch (error) {
-    console.error('Error in actionName:', error);
-    return { data: null, error: 'Internal server error' }
+    // Error handling - consistent structure
+    console.error('Error in createSong:', error);
+    return { 
+      data: null, 
+      error: 'Internal server error',
+      success: false 
+    };
   }
+}
+
+// DRY: Reusable validation function
+function validateSongInput(title: string, artist: string): ValidationResult {
+  if (!title?.trim()) {
+    return { isValid: false, error: 'Title is required' };
+  }
+  if (!artist?.trim()) {
+    return { isValid: false, error: 'Artist is required' };
+  }
+  return { isValid: true, error: null };
 }
 ```
 
@@ -104,45 +246,120 @@ Follow the pattern from [src/hooks/use-song.ts](mdc:src/hooks/use-song.ts):
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react'
-import { Song } from '@/types'
+import { Song, ApiResponse, LoadingState } from '@/types'
 
-export const useCustomHook = (param: string) => {
-  const [data, setData] = useState<Song[]>([])
-  const [loading, setLoading] = useState(true)
+// Single Responsibility: Hook has one clear purpose
+// DRY: Reusable data fetching logic
+export const useSongs = (userId?: string) => {
+  // Clean Code: Descriptive state names
+  const [songs, setSongs] = useState<Song[]>([])
+  const [loadingState, setLoadingState] = useState<LoadingState>('idle')
   const [error, setError] = useState<string | null>(null)
   
-  const fetchData = useCallback(async () => {
+  // Pure function - no side effects
+  const fetchSongs = useCallback(async () => {
     try {
-      setLoading(true)
+      setLoadingState('loading')
       setError(null)
-      // ... fetch logic
+      
+      // Dependency Inversion: Abstract the API call
+      const response = await songService.getSongs(userId)
+      
+      if (response.success) {
+        setSongs(response.data || [])
+        setLoadingState('success')
+      } else {
+        setError(response.error || 'Failed to fetch songs')
+        setLoadingState('error')
+      }
     } catch (err) {
-      setError('Failed to fetch data')
-    } finally {
-      setLoading(false)
+      setError('Failed to fetch songs')
+      setLoadingState('error')
     }
-  }, [param])
+  }, [userId])
   
+  // Single responsibility effect
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (userId) {
+      fetchSongs()
+    }
+  }, [fetchSongs, userId])
   
+  // Interface Segregation: Return only what's needed
   return {
-    data,
-    loading,
+    songs,
+    loading: loadingState === 'loading',
     error,
-    refetch: fetchData
+    refetch: fetchSongs,
+    isEmpty: songs.length === 0
   }
+}
+
+// DRY: Reusable validation hook
+export const useValidation = (rules: ValidationRule[]) => {
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  
+  const validate = useCallback((field: string, value: any) => {
+    const rule = rules.find(r => r.field === field)
+    if (rule) {
+      const result = rule.validate(value)
+      setErrors(prev => ({
+        ...prev,
+        [field]: result.isValid ? '' : result.message
+      }))
+      return result.isValid
+    }
+    return true
+  }, [rules])
+  
+  return { errors, validate, isValid: Object.values(errors).every(e => !e) }
 }
 ```
 
+## Project Structure
+
+### Directory Organization
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Route groups for authentication
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles and design system
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable UI components
+│   ├── ui/               # Base UI components (buttons, inputs)
+│   ├── forms/            # Form-specific components
+│   ├── layout/           # Layout components (navigation, headers)
+│   └── features/         # Feature-specific components
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility libraries and configurations
+│   ├── actions.ts        # Server actions
+│   ├── supabase.ts       # Database configuration
+│   ├── validation.ts     # Validation utilities
+│   └── utils.ts          # General utilities
+├── types/                # TypeScript type definitions
+└── styles/               # Additional styling files
+```
+
 ### Import Organization
-1. React imports
-2. Next.js imports
-3. Third-party library imports
-4. Internal component imports
-5. Internal utility imports
-6. Type imports
+```typescript
+// 1. React and Next.js imports
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// 2. Third-party library imports
+import { Button } from '@/components/ui/button';
+
+// 3. Internal component imports
+import { FormField } from '@/components/forms/FormField';
+
+// 4. Internal utility imports
+import { validateEmail } from '@/lib/validation';
+
+// 5. Type imports
+import type { Song, User } from '@/types';
+```
 
 ### Error Handling
 - Always use try-catch blocks in async functions
@@ -161,3 +378,139 @@ export const useCustomHook = (param: string) => {
 - Use semantic HTML elements
 - Ensure keyboard navigation
 - Provide alt text for images
+
+## Utility Functions & Services
+
+### Pure Functions (DRY Principle)
+```typescript
+// Single Responsibility: Each function has one purpose
+// Clean Code: Descriptive names and small functions
+export const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// DRY: Reusable validation utilities
+export const createValidator = (rules: ValidationRule[]) => {
+  return (data: Record<string, any>) => {
+    const errors: Record<string, string> = {};
+    
+    rules.forEach(rule => {
+      const result = rule.validate(data[rule.field]);
+      if (!result.isValid) {
+        errors[rule.field] = result.message;
+      }
+    });
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  };
+};
+```
+
+### Service Layer (Dependency Inversion)
+```typescript
+// Abstract interfaces for external dependencies
+export interface DatabaseService {
+  findById<T>(table: string, id: string): Promise<T | null>;
+  create<T>(table: string, data: Partial<T>): Promise<T>;
+  update<T>(table: string, id: string, data: Partial<T>): Promise<T>;
+}
+
+export interface EmailService {
+  sendEmail(to: string, subject: string, body: string): Promise<boolean>;
+}
+
+// Implementation with dependency injection
+export class SongService {
+  constructor(
+    private db: DatabaseService,
+    private email: EmailService
+  ) {}
+  
+  async createSong(songData: CreateSongData): Promise<ApiResponse<Song>> {
+    // Single Responsibility: Only handles song creation
+    const song = await this.db.create('songs', songData);
+    await this.email.sendEmail(
+      songData.userEmail,
+      'Song Created',
+      `Your song "${song.title}" has been created!`
+    );
+    return { data: song, success: true };
+  }
+}
+```
+
+## Testing Patterns
+
+### Unit Testing
+```typescript
+// Test pure functions
+describe('formatDate', () => {
+  it('should format date correctly', () => {
+    const date = new Date('2024-01-15');
+    expect(formatDate(date)).toBe('January 15, 2024');
+  });
+});
+
+// Test validation functions
+describe('validateEmail', () => {
+  it('should return true for valid email', () => {
+    expect(validateEmail('test@example.com')).toBe(true);
+  });
+  
+  it('should return false for invalid email', () => {
+    expect(validateEmail('invalid-email')).toBe(false);
+  });
+});
+```
+
+### Component Testing
+```typescript
+// Test component behavior, not implementation
+describe('SongList', () => {
+  it('should display songs when data is loaded', () => {
+    const mockSongs = [{ id: 1, title: 'Test Song' }];
+    render(<SongList songs={mockSongs} />);
+    
+    expect(screen.getByText('Test Song')).toBeInTheDocument();
+  });
+  
+  it('should show loading state initially', () => {
+    render(<SongList songs={[]} loading={true} />);
+    
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+});
+```
+
+## Code Review Checklist
+
+### SOLID Principles
+- [ ] Does each component/function have a single responsibility?
+- [ ] Is the code open for extension but closed for modification?
+- [ ] Are derived components substitutable for base components?
+- [ ] Are interfaces focused and specific?
+- [ ] Does the code depend on abstractions, not concretions?
+
+### DRY Principle
+- [ ] Is there any duplicated code that can be extracted?
+- [ ] Are common patterns abstracted into reusable utilities?
+- [ ] Are configuration values centralized?
+
+### Clean Code
+- [ ] Are function and variable names descriptive?
+- [ ] Are functions small and focused?
+- [ ] Is the code self-documenting?
+- [ ] Are there any magic numbers or strings?
+- [ ] Is error handling consistent?

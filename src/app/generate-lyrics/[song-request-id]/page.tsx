@@ -181,9 +181,12 @@ export default function GenerateLyricsPage({
           // Convert Date objects to strings for SongRequest type
           const songRequest: DBSongRequest = {
             ...songRequestFromDB,
+            languages: Array.isArray(songRequestFromDB.languages) 
+              ? songRequestFromDB.languages.join(',') 
+              : songRequestFromDB.languages,
             created_at: songRequestFromDB.created_at.toISOString(),
             updated_at: songRequestFromDB.updated_at.toISOString(),
-          } as DBSongRequest;
+          };
 
           setSongRequest(songRequest);
 
