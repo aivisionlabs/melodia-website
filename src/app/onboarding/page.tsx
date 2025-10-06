@@ -24,7 +24,7 @@ export default function OnboardingPage() {
       icon: Zap,
       title: "A Hit Song in Minutes",
       description:
-        "Go from a simple idea to a finished, shareable song in under 10 minutes. The perfect, high-impact gift for when you're short on time.",
+        "Go from a simple idea to a finished, shareable song in under 5 minutes. The perfect, high-impact gift for when you're short on time.",
       bgColor: "bg-melodia-coral",
       iconColor: "text-white",
     },

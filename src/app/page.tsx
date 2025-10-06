@@ -31,13 +31,6 @@ export default function CreateSongPage() {
   // Anonymous user hook
   const { anonymousUserId } = useAnonymousUser();
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const done = localStorage.getItem("onboarding_complete");
-      if (done !== "true") router.replace("/onboarding");
-    }
-  }, [router]);
-
   // Scroll to top when step changes
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -150,72 +143,6 @@ export default function CreateSongPage() {
     // Show review popup instead of submitting
     setError(null);
     setShowReviewPopup(true);
-
-    // setIsSubmitting(true);
-    // try {
-    //   const anonymousId =
-    //     typeof window !== "undefined"
-    //       ? localStorage.getItem("anonymous_user_id") || undefined
-    //       : undefined;
-
-    //   // 1) Create song request
-    //   const createRes = await fetch("/api/create-song-request", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       requester_name: user?.name || "Anonymous",
-    //       email: user?.email || null,
-    //       recipient_name: recipientName,
-    //       languages: languages
-    //         .split(",")
-    //         .map((l) => l.trim())
-    //         .filter(Boolean),
-    //       additional_details:
-    //         moods.includes("Other") && customMood.trim()
-    //           ? `${story}${story ? " | " : ""}Mood: ${customMood}`
-    //           : story,
-    //       delivery_preference: "email",
-    //       user_id: user?.id || null,
-    //       anonymous_user_id: anonymousId,
-    //     }),
-    //   });
-
-    //   if (!createRes.ok) throw new Error("Failed to create song request");
-    //   const createData = await createRes.json();
-    //   const requestId = createData.requestId;
-
-    //   // 2) Generate lyrics (payment gating handled in API)
-    //   const lyricsRes = await fetch("/api/generate-lyrics", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       recipient_name: recipientName,
-    //       languages: languages
-    //         .split(",")
-    //         .map((l) => l.trim())
-    //         .filter(Boolean),
-    //       additional_details:
-    //         moods.includes("Other") && customMood.trim()
-    //           ? `${story}${story ? " | " : ""}Mood: ${customMood}`
-    //           : story,
-    //       requestId,
-    //       userId: user?.id,
-    //     }),
-    //   });
-
-    //   if (lyricsRes.status === 402) {
-    //     router.replace("/"); // Home shows payment required modal
-    //     return;
-    //   }
-    //   if (!lyricsRes.ok) throw new Error("Failed to generate lyrics");
-
-    //   // 3) Redirect to lyrics display
-    //   router.replace(`/lyrics-display?requestId=${requestId}`);
-    // } catch (e) {
-    //   setError(e instanceof Error ? e.message : "Something went wrong");
-    // } finally {
-    //   setIsSubmitting(false);
-    // }
   };
 
   return (
