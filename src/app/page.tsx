@@ -11,9 +11,20 @@ import { formatDuration } from "@/lib/utils";
 import { Play, Music, Star, Heart, Gift } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-
 import { CenterLogo } from "@/components/OptimizedLogo";
 import { trackNavigationEvent, trackPlayerEvent } from "@/lib/analytics";
+
+// Component for animated images (GIFs, animated PNGs) that preserves animation
+const AnimatedImage = ({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  // eslint-disable-next-line @next/next/no-img-element
+}) => <img src={src} alt={alt} className={className} loading="lazy" />;
 
 export default function HomePage() {
   const [selectedSong, setSelectedSong] = useState<
@@ -31,11 +42,11 @@ export default function HomePage() {
             className="mx-auto mb-4 sm:mb-6 w-24 h-24 sm:w-32 sm:h-32"
           />
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-teal font-heading max-w-2xl mx-auto">
-            Your Friendship&apos;s Greatest Hit
+            Gift a Personalized Song, Create a Timeless Memory
           </h1>
           <p className="text-text-teal/80 mt-3 sm:mt-4 text-base sm:text-lg max-w-xl mx-auto">
-            Create a unique, personalized song that captures your favorite
-            memories and celebrates your special bond.
+            Turn your favorite stories and memories into a unique, heartfelt
+            song for your loved ones. The most personal gift imaginable.
           </p>
           <div className="mt-6 sm:mt-8">
             <ShareRequirementsCTA size="lg" />
@@ -45,7 +56,7 @@ export default function HomePage() {
         {/* How It Works Section */}
         <section className="py-12 sm:py-16 md:py-20 px-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-text-teal text-center font-heading mb-8 sm:mb-12">
-            Create Your Hit in 3 Easy Steps
+            Create the Perfect Musical Gift in 3 Steps
           </h2>
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-center">
             <div className="flex flex-col items-center">
@@ -65,11 +76,11 @@ export default function HomePage() {
                 <Music className="w-8 h-8" />
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-text-teal font-heading">
-                2. We Write The Music
+                2. We Compose Your Song
               </h3>
               <p className="text-text-teal/80 mt-2 text-sm sm:text-base">
-                Our AI-powered musicians craft lyrics and melodies that tell
-                your story.
+                Our creative team crafts beautiful lyrics and melodies that
+                bring your story to life.
               </p>
             </div>
             <div className="flex flex-col items-center">
@@ -86,6 +97,15 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Image Separator */}
+        <div className="py-8 sm:py-12 flex justify-center">
+          <AnimatedImage
+            src="/lovable-uploads/spinning-wheel-image.png"
+            alt="Lullaby"
+            className="mx-auto w-48 md:w-56 lg:w-auto max-w-full"
+          />
+        </div>
 
         {/* Joyful Creations Section */}
         <section

@@ -45,8 +45,8 @@ export default function RefundPolicyPage() {
               our cancellation procedures.
             </p>
             <p className="text-gray-300">
-              We believe in fair and transparent practices, and we're committed
-              to resolving any issues you may have with our service.
+              We believe in fair and transparent practices, and we&apos;re
+              committed to resolving any issues you may have with our service.
             </p>
           </div>
 
@@ -294,8 +294,9 @@ export default function RefundPolicyPage() {
 
             <p className="text-gray-300">
               We may update this Refund & Cancellation Policy from time to time.
-              Changes will be posted on this page with an updated "Last updated"
-              date. We encourage you to review this policy periodically.
+              Changes will be posted on this page with an updated &quot;Last
+              updated&quot; date. We encourage you to review this policy
+              periodically.
             </p>
           </div>
 

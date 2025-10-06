@@ -1,16 +1,7 @@
-import React from "react";
-import Link from "next/link";
-import {
-  FileText,
-  Scale,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Shield,
-} from "lucide-react";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import { CheckCircle, Shield, XCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function TermsPage() {
   return (
@@ -38,9 +29,10 @@ export default function TermsPage() {
               Agreement to Terms
             </h2>
             <p className="text-gray-300 mb-4">
-              These Terms and Conditions ("Terms") govern your use of Melodia's
-              AI-powered song creation platform ("Service"). By accessing or
-              using our Service, you agree to be bound by these Terms.
+              These Terms and Conditions (&quot;Terms&quot;) govern your use of
+              Melodia&apos;s AI-powered song creation platform
+              (&quot;Service&quot;). By accessing or using our Service, you
+              agree to be bound by these Terms.
             </p>
             <p className="text-gray-300">
               If you do not agree to these Terms, please do not use our Service.
@@ -278,9 +270,9 @@ export default function TermsPage() {
 
             <div className="space-y-4">
               <p className="text-gray-300">
-                The Service is provided "as is" and "as available" without
-                warranties of any kind. We disclaim all warranties, express or
-                implied, including:
+                The Service is provided &quot;as is&quot; and &quot;as
+                available&quot; without warranties of any kind. We disclaim all
+                warranties, express or implied, including:
               </p>
 
               <ul className="text-gray-300 space-y-2 ml-4">
@@ -390,7 +382,7 @@ export default function TermsPage() {
               Questions About Our Terms?
             </h2>
             <p className="text-xl text-yellow-100 mb-8">
-              We're here to help clarify any questions you may have.
+              We&apos;re here to help clarify any questions you may have.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

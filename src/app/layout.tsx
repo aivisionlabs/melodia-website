@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     siteName: "Melodia",
     images: [
       {
-        url: "/images/melodia-logo.jpeg",
-        width: 1200,
-        height: 630,
+        url: "/images/melodia-logo-og.jpeg",
+        width: 792,
+        height: 446,
         alt: "Melodia Logo",
       },
     ],
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     title: "Melodia - Your Friendship's Greatest Hit",
     description:
       "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
-    images: ["/images/melodia-logo.jpeg"],
+    images: ["/images/melodia-logo-og.jpeg"],
     creator: "@melodia",
     site: "@melodia",
   },
