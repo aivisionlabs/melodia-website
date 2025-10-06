@@ -1,15 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import {
-  Shield,
-  Eye,
-  Lock,
-  Database,
-  Users,
-  Mail,
-  Phone,
-  Globe,
-} from "lucide-react";
+import { Eye, Lock, Database, Users, Mail, Globe } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -39,10 +30,10 @@ export default function PrivacyPolicyPage() {
               Introduction
             </h2>
             <p className="text-gray-300 mb-4">
-              Melodia ("we," "our," or "us") is committed to protecting your
-              privacy. This Privacy Policy explains how we collect, use,
-              disclose, and safeguard your information when you use our
-              AI-powered song creation platform.
+              Melodia (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is
+              committed to protecting your privacy. This Privacy Policy explains
+              how we collect, use, disclose, and safeguard your information when
+              you use our AI-powered song creation platform.
             </p>
             <p className="text-gray-300">
               By using our service, you agree to the collection and use of
@@ -269,7 +260,7 @@ export default function PrivacyPolicyPage() {
           {/* Children's Privacy */}
           <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 mb-8">
             <h2 className="text-2xl font-semibold text-white mb-6">
-              Children's Privacy
+              Children&apos;s Privacy
             </h2>
 
             <p className="text-gray-300">
@@ -305,8 +296,9 @@ export default function PrivacyPolicyPage() {
             <p className="text-gray-300">
               We may update this Privacy Policy from time to time. We will
               notify you of any changes by posting the new Privacy Policy on
-              this page and updating the "Last updated" date. We encourage you
-              to review this Privacy Policy periodically for any changes.
+              this page and updating the &quot;Last updated&quot; date. We
+              encourage you to review this Privacy Policy periodically for any
+              changes.
             </p>
           </div>
 
@@ -327,10 +319,6 @@ export default function PrivacyPolicyPage() {
                 <span className="text-gray-300">aivisionlabs555@gmail.com</span>
               </div>
               <div className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-yellow-400" />
-                <span className="text-gray-300">+1 (555) 123-4567</span>
-              </div>
-              <div className="flex items-center space-x-3">
                 <Globe className="h-5 w-5 text-yellow-400" />
                 <span className="text-gray-300">melodia-songs.com</span>
               </div>
@@ -343,8 +331,8 @@ export default function PrivacyPolicyPage() {
               Questions About Privacy?
             </h2>
             <p className="text-xl text-yellow-100 mb-8">
-              We're here to help. Contact us if you have any privacy concerns or
-              questions.
+              We&apos;re here to help. Contact us if you have any privacy
+              concerns or questions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
