@@ -43,6 +43,22 @@ const AppHeader = () => {
         <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
           <nav className="flex flex-col py-2" aria-label="Mobile navigation">
             <Link
+              href="/about"
+              className="px-4 py-3 text-melodia-teal hover:text-melodia-coral hover:bg-gray-50 font-medium font-body transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="About Us"
+            >
+              About Us
+            </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-3 text-melodia-teal hover:text-melodia-coral hover:bg-gray-50 font-medium font-body transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Contact Us"
+            >
+              Contact Us
+            </Link>
+            <Link
               href="/#testimonials-title"
               className="px-4 py-3 text-melodia-teal hover:text-melodia-coral hover:bg-gray-50 font-medium font-body transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
@@ -50,6 +66,7 @@ const AppHeader = () => {
             >
               Testimonials
             </Link>
+            <div className="border-t border-gray-200 my-2"></div>
             <Link
               href="/privacy"
               className="px-4 py-3 text-melodia-teal hover:text-melodia-coral hover:bg-gray-50 font-medium font-body transition-colors focus:bg-gray-50"
@@ -64,7 +81,15 @@ const AppHeader = () => {
               onClick={() => setIsMenuOpen(false)}
               aria-label="View Terms of Service"
             >
-              Terms of Service
+              Terms & Conditions
+            </Link>
+            <Link
+              href="/refund"
+              className="px-4 py-3 text-melodia-teal hover:text-melodia-coral hover:bg-gray-50 font-medium font-body transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="View Refund Policy"
+            >
+              Refund Policy
             </Link>
           </nav>
         </div>

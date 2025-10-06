@@ -29,6 +29,20 @@ const Header = () => {
           Library
         </Link>
         <Link
+          href="/about"
+          className="text-teal hover:text-accent-coral font-medium transition-colors focus:underline font-body"
+          aria-label="About Us"
+        >
+          About Us
+        </Link>
+        <Link
+          href="/contact"
+          className="text-teal hover:text-accent-coral font-medium transition-colors focus:underline font-body"
+          aria-label="Contact Us"
+        >
+          Contact Us
+        </Link>
+        <Link
           href="/#testimonials-title"
           className="text-teal hover:text-accent-coral font-medium transition-colors focus:underline font-body"
           aria-label="Jump to Testimonials section"
@@ -70,12 +84,53 @@ const Header = () => {
               Library
             </Link>
             <Link
+              href="/about"
+              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="About Us"
+            >
+              About Us
+            </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Contact Us"
+            >
+              Contact Us
+            </Link>
+            <Link
               href="/#testimonials-title"
               className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
               aria-label="Jump to Testimonials section"
             >
               Testimonials
+            </Link>
+            <div className="border-t border-gray-200 my-2"></div>
+            <Link
+              href="/privacy"
+              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Privacy Policy"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Terms and Conditions"
+            >
+              Terms & Conditions
+            </Link>
+            <Link
+              href="/refund"
+              className="px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-gray-50 font-medium transition-colors focus:bg-gray-50"
+              onClick={() => setIsMenuOpen(false)}
+              aria-label="Refund Policy"
+            >
+              Refund Policy
             </Link>
           </nav>
         </div>
