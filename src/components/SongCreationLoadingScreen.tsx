@@ -12,7 +12,7 @@ interface SongCreationLoadingScreenProps {
 export default function SongCreationLoadingScreen({
   duration = 45,
   title = "Crafting your song...",
-  message = "Our AI is turning your story into a musical masterpiece. Hang tight!",
+  message = "We are turning your story into a musical masterpiece. Hang tight!",
   showTimer = true,
 }: SongCreationLoadingScreenProps) {
   const [timeLeft, setTimeLeft] = useState(duration);

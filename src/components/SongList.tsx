@@ -92,7 +92,7 @@ export default function SongList({ songs }: SongListProps) {
                       : "Not in Library"}
                   </div>
                   <Link
-                    href={`/library/${song.slug}`}
+                    href={`/song/${song.slug}`}
                     className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
                   >
                     View

@@ -60,7 +60,7 @@ const Footer = () => (
             </li>
             <li>
               <Link
-                href="/library"
+                href="/best-songs"
                 className="text-muted-foreground hover:text-accent transition-colors font-body"
               >
                 Library

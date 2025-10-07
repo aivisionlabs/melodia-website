@@ -1,0 +1,96 @@
+import { useAuth } from '@/hooks/use-auth'
+import { useAnonymousUser } from '@/hooks/use-anonymous-user'
+
+/**
+ * Centralized API client for making authenticated requests
+ * Handles both authenticated users and anonymous users automatically
+ */
+export class AuthenticatedApiClient {
+  private baseUrl: string
+
+  constructor(baseUrl: string = '') {
+    this.baseUrl = baseUrl
+  }
+
+  /**
+   * Make an authenticated GET request
+   */
+  async get(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    return this.request(endpoint, {
+      method: 'GET',
+      ...options
+    })
+  }
+
+  /**
+   * Make an authenticated POST request
+   */
+  async post(endpoint: string, body?: any, options: RequestInit = {}): Promise<Response> {
+    return this.request(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      ...options
+    })
+  }
+
+  /**
+   * Make an authenticated request with proper headers
+   */
+  private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    // Get anonymous user ID from localStorage if available
+    const anonymousUserId = typeof window !== 'undefined'
+      ? localStorage.getItem('anonymous_user_id')
+      : null
+
+    const headers: HeadersInit = {
+      ...options.headers,
+      // Always include credentials for session cookies
+      credentials: 'include'
+    }
+
+    // Add anonymous user ID header if available
+    if (anonymousUserId) {
+      (headers as Record<string, string>)['x-anonymous-user-id'] = anonymousUserId
+    }
+
+    return fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include'
+    })
+  }
+}
+
+/**
+ * Hook for making authenticated API calls
+ * Automatically handles user context and headers
+ */
+export const useAuthenticatedApi = () => {
+  const { user } = useAuth()
+  const { anonymousUserId } = useAnonymousUser()
+
+  const apiClient = new AuthenticatedApiClient()
+
+  return {
+    apiClient,
+    user,
+    anonymousUserId,
+    isAuthenticated: !!user,
+    hasUserContext: !!(user || anonymousUserId)
+  }
+}
+
+/**
+ * Utility function for making authenticated API calls outside of React components
+ */
+export const makeAuthenticatedRequest = async (
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> => {
+  const client = new AuthenticatedApiClient()
+  return client.request(endpoint, options)
+}

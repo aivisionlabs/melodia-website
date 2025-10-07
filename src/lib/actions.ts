@@ -1,6 +1,5 @@
 'use server'
 
-import { incrementSongPlay, incrementSongView, validateAdminCredentials } from './db/services';
 import { convertAlignWordsFormatForLyricsProcessing, convertToLyricLines } from '../../scripts/utilities/lyrics-processing-util';
 
 export async function selectSongVariantAction(
@@ -36,40 +35,6 @@ export async function selectSongVariantAction(
   }
 }
 
-// Analytics tracking actions
-export async function trackSongView(songId: number) {
-  try {
-    await incrementSongView(songId);
-  } catch (error) {
-    console.error('Error tracking song view:', error);
-  }
-}
-
-export async function trackSongPlay(songId: number) {
-  try {
-    await incrementSongPlay(songId);
-  } catch (error) {
-    console.error('Error tracking song play:', error);
-  }
-}
-
-// Admin authentication action
-export async function authenticateAdmin(formData: FormData) {
-  try {
-    const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
-
-    if (!username || !password) {
-      return { success: false, error: 'Username and password are required' };
-    }
-
-    const result = await validateAdminCredentials(username, password);
-    return result;
-  } catch (error) {
-    console.error('Error in authenticateAdmin:', error);
-    return { success: false, error: 'Internal server error' };
-  }
-}
 
 export async function getSongByTaskIdAction(taskId: string) {
   try {
@@ -79,115 +44,6 @@ export async function getSongByTaskIdAction(taskId: string) {
   } catch (error) {
     console.error('Error in getSongByTaskIdAction:', error);
     return { success: false, error: 'Failed to get song by task ID' };
-  }
-}
-
-// Suno helpers for client: server-backed status to avoid exposing tokens
-export async function getSunoModeAction(): Promise<{ useMock: boolean }> {
-  try {
-    const { shouldUseMockAPI } = await import('@/lib/config')
-    return { useMock: shouldUseMockAPI() }
-  } catch (error) {
-    console.error('Error in getSunoModeAction:', error)
-    // Default safe: assume real API in case of failure
-    return { useMock: false }
-  }
-}
-
-export async function getSunoRecordInfoAction(taskId: string) {
-  try {
-    const { SunoAPIFactory } = await import('@/lib/suno-api')
-    const api = SunoAPIFactory.getAPI()
-    const response = await api.getRecordInfo(taskId)
-    return response
-  } catch (error) {
-    console.error('Error in getSunoRecordInfoAction:', error)
-    return {
-      code: 500,
-      msg: 'Failed to fetch record info',
-      data: {
-        taskId,
-        parentMusicId: '',
-        param: '',
-        response: { taskId, sunoData: [] },
-        status: 'PENDING',
-        type: 'generate',
-        errorCode: 'INTERNAL_ERROR',
-        errorMessage: 'Failed to fetch record info',
-      }
-    }
-  }
-}
-
-export async function updateSongWithVariantsAction(
-  songId: number,
-  variants: any[],
-  selectedVariant: number,
-  addToLibrary?: boolean
-) {
-  try {
-    const { updateSongWithSunoVariants } = await import('@/lib/db/services');
-    const result = await updateSongWithSunoVariants(songId, variants, selectedVariant, addToLibrary);
-
-    if (result.success) {
-      // After successfully updating the song with variants, generate timestamped lyrics
-      try {
-        // Get the song to access suno_task_id
-        const { getSongById } = await import('@/lib/db/services');
-        const song = await getSongById(songId);
-
-        if (song && song.metadata?.suno_task_id) {
-          console.log(`Generating timestamped lyrics for selected variant ${selectedVariant}`);
-
-          // Generate timestamped lyrics for the selected variant
-          const lyricsResult = await generateTimestampedLyricsAction(
-            song.metadata.suno_task_id,
-            selectedVariant
-          );
-
-          if (lyricsResult.success) {
-            console.log(`Successfully generated timestamped lyrics for variant ${selectedVariant}`);
-
-            // Update the song with the new timestamped lyrics data
-            const { updateSong } = await import('@/lib/db/queries/update');
-            await updateSong(songId, {
-              // Store in the new schema field for compatibility
-              variant_timestamp_lyrics_processed: {
-                ...song.variant_timestamp_lyrics_processed,
-                [selectedVariant]: lyricsResult.lyricLines
-              }
-            });
-
-            return {
-              ...result,
-              timestampedLyricsGenerated: true,
-              lyricLines: lyricsResult.lyricLines
-            };
-          } else {
-            console.warn(`Failed to generate timestamped lyrics: ${lyricsResult.error}`);
-            // Continue with the result even if lyrics generation fails
-            return {
-              ...result,
-              timestampedLyricsGenerated: false,
-              lyricsError: lyricsResult.error
-            };
-          }
-        }
-      } catch (lyricsError) {
-        console.error('Error generating timestamped lyrics:', lyricsError);
-        // Continue with the result even if lyrics generation fails
-        return {
-          ...result,
-          timestampedLyricsGenerated: false,
-          lyricsError: 'Failed to generate timestamped lyrics'
-        };
-      }
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Error in updateSongWithVariantsAction:', error);
-    return { success: false, error: 'Failed to update song with variants' };
   }
 }
 

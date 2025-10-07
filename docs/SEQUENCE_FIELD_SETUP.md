@@ -78,7 +78,7 @@ WHERE songs.id = subquery.id;
 ### 4. Actions (`src/lib/actions.ts`)
 - Added sequence field to song mapping in `getActiveSongsAction()`
 
-### 5. Library Page (`src/app/library/page.tsx`)
+### 5. Library Page (`src/app/best-song/page.tsx`)
 - Added client-side sorting with fallback to created_at for backward compatibility
 
 ## How It Works

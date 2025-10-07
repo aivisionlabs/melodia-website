@@ -18,12 +18,9 @@ const getPageTitle = (pathname: string): string => {
   switch (pathname) {
     case '/':
       return 'Melodia - Create Personalized Songs for loved ones';
-    case '/library':
-      return 'Melodia - Song Library';
+    case '/best-songs':
+      return 'Melodia - Best Songs';
     default:
-      if (pathname.startsWith('/library/')) {
-        return 'Melodia - Song Player';
-      }
       return 'Melodia';
   }
 };

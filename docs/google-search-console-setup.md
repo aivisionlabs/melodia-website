@@ -105,7 +105,7 @@ For advanced users, you can use the Search Console API to:
 - `src/app/robots.ts`: Dynamic robots.txt generation
 - `src/components/StructuredData.tsx`: JSON-LD structured data
 - `src/components/GoogleAnalytics.tsx`: Google Analytics component (available for future use)
-- `src/app/library/[songId]/page.tsx`: Added song-specific structured data
+- `src/app/song/[songId]/page.tsx`: Added song-specific structured data
 
 ## Environment Variables
 

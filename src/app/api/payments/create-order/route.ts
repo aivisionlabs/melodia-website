@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { paymentsTable, songRequestsTable, pricingPlansTable } from '@/lib/db/schema';
+import { paymentsTable, songRequestsTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { createRazorpayOrder, generateReceiptId, validateRazorpayConfig } from '@/lib/razorpay';
 import { getCurrentUser } from '@/lib/user-actions';
@@ -28,7 +28,11 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: CreateOrderRequest = await request.json();
-    const { songRequestId, planId, anonymous_user_id } = body;
+    const { songRequestId, anonymous_user_id } = body;
+
+    // Fixed pricing - no longer using planId
+    const FIXED_PRICE = 299.00; // ₹299
+    const CURRENCY = 'INR';
 
     // Sanitize anonymous user ID from middleware or request body
     const sanitizedAnonymousUserId = sanitizeAnonymousUserId(userContext.anonymousUserId || anonymous_user_id);
@@ -36,7 +40,6 @@ export async function POST(request: NextRequest) {
     // Validate payment request data
     const validation = validatePaymentRequest({
       songRequestId,
-      planId,
       userId: userContext.userId || currentUser?.id || null,
       anonymousUserId: sanitizedAnonymousUserId
     });
@@ -88,41 +91,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get pricing plan
-    const pricingPlan = await db
-      .select()
-      .from(pricingPlansTable)
-      .where(eq(pricingPlansTable.id, planId))
-      .limit(1);
-
-    if (pricingPlan.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Pricing plan not found' },
-        { status: 404 }
-      );
-    }
-
-    if (!pricingPlan[0].is_active) {
-      return NextResponse.json(
-        { success: false, message: 'Pricing plan is not active' },
-        { status: 400 }
-      );
-    }
-
     // Generate receipt ID
     const receiptId = generateReceiptId();
 
-    // Create Razorpay order
+    // Create Razorpay order with fixed pricing
     const razorpayOrder = await createRazorpayOrder(
-      Number(pricingPlan[0].price),
-      pricingPlan[0].currency || 'USD',
+      FIXED_PRICE,
+      CURRENCY,
       receiptId,
       {
         song_request_id: songRequestId,
-        plan_id: planId,
         user_id: finalUserId || null,
         anonymous_user_id: sanitizedAnonymousUserId,
-        plan_name: pricingPlan[0].name,
+        plan_name: 'Song Generation',
       }
     );
 
@@ -134,12 +115,11 @@ export async function POST(request: NextRequest) {
         anonymous_user_id: sanitizedAnonymousUserId,
         song_request_id: songRequestId,
         razorpay_order_id: razorpayOrder.id,
-        amount: pricingPlan[0].price,
-        currency: pricingPlan[0].currency,
+        amount: FIXED_PRICE.toString(),
+        currency: CURRENCY,
         status: 'pending',
         metadata: {
-          plan_id: planId,
-          plan_name: pricingPlan[0].name,
+          plan_name: 'Song Generation',
           receipt_id: receiptId,
           razorpay_order: razorpayOrder,
         },
@@ -156,7 +136,7 @@ export async function POST(request: NextRequest) {
       currency: razorpayOrder.currency,
       key: process.env.RAZORPAY_KEY_ID!,
       name: 'Melodia',
-      description: `Payment for ${pricingPlan[0].name} - ${pricingPlan[0].description}`,
+      description: `Payment for Song Generation - ₹${FIXED_PRICE}`,
       prefill: {
         name: currentUser?.name || undefined,
         email: currentUser?.email || undefined,
@@ -164,7 +144,6 @@ export async function POST(request: NextRequest) {
       notes: {
         payment_id: payment.id,
         song_request_id: songRequestId,
-        plan_id: planId,
       },
       theme: {
         color: '#3B82F6', // Blue theme

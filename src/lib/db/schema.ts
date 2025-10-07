@@ -155,18 +155,8 @@ export const paymentsTable = pgTable('payments', {
   metadata: jsonb('metadata'),
 });
 
-// Pricing plans table
-export const pricingPlansTable = pgTable('pricing_plans', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
-  currency: text('currency').default('INR'),
-  features: jsonb('features'),
-  is_active: boolean('is_active').default(true),
-  created_at: timestamp('created_at').defaultNow(),
-  updated_at: timestamp('updated_at').defaultNow(),
-});
+// Pricing plans table - REMOVED
+// This table has been removed as part of migration 0005_remove_pricing_plans.sql
 
 // Payment webhooks table
 export const paymentWebhooksTable = pgTable('payment_webhooks', {
@@ -184,8 +174,8 @@ export const paymentWebhooksTable = pgTable('payment_webhooks', {
 export type InsertPayment = typeof paymentsTable.$inferInsert;
 export type SelectPayment = typeof paymentsTable.$inferSelect;
 
-export type InsertPricingPlan = typeof pricingPlansTable.$inferInsert;
-export type SelectPricingPlan = typeof pricingPlansTable.$inferSelect;
+// Pricing plan types - REMOVED
+// These types have been removed as part of migration 0005_remove_pricing_plans.sql
 
 export type InsertPaymentWebhook = typeof paymentWebhooksTable.$inferInsert;
 export type SelectPaymentWebhook = typeof paymentWebhooksTable.$inferSelect;

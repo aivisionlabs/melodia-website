@@ -42,19 +42,35 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const pageSize = Math.min(25, Math.max(5, parseInt(searchParams.get('pageSize') || '10')))
 
-    // Get user context from middleware
+    // Get user context from middleware - this is the ONLY source of truth
     const userContext = getUserContextFromRequest(request)
 
-    const userIdParam = searchParams.get('userId')
-    const anonymousUserIdParam = searchParams.get('anonymousUserId')
+    // Validate that we have proper user context
+    if (!userContext.userId && !userContext.anonymousUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Authentication required. Please log in or ensure you have an active session.'
+        },
+        { status: 401 }
+      )
+    }
 
-    const currentUser = await getCurrentUser()
-    const userId = userContext.userId || currentUser?.id || (userIdParam ? parseInt(userIdParam) : null)
-    const anonymousUserId = sanitizeAnonymousUserId(anonymousUserIdParam || userContext.anonymousUserId)
+    const userId = userContext.userId
+    const anonymousUserId = userContext.anonymousUserId
 
-    const ownership = validateUserOwnership(userId, anonymousUserId)
-    if (!ownership.isValid) {
-      return NextResponse.json({ error: true, message: ownership.error }, { status: 400 })
+    // Additional validation for anonymous users
+    if (anonymousUserId) {
+      const sanitizedId = sanitizeAnonymousUserId(anonymousUserId)
+      if (!sanitizedId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid anonymous user session'
+          },
+          { status: 401 }
+        )
+      }
     }
 
     // Build where clause for ownership filtering

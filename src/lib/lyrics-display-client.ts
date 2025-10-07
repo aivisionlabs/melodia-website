@@ -17,26 +17,3 @@ export interface LyricsDisplayData {
   };
 }
 
-export async function fetchLyricsDisplayData(requestId: number): Promise<LyricsDisplayData | null> {
-  try {
-    const response = await fetch(`/api/lyrics-display?requestId=${requestId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error('Failed to fetch lyrics display data');
-    }
-
-    const result = await response.json();
-    return result.data || null;
-  } catch (error) {
-    console.error('Error fetching lyrics display data:', error);
-    return null;
-  }
-}
