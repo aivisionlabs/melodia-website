@@ -7,9 +7,6 @@ export async function POST(request: NextRequest) {
   try {
     const { paymentId, requestId } = await request.json()
 
-    console.log("CALLING success", "process.env.DEMO_MODE", process.env.DEMO_MODE);
-    console.log("NEXT_PUBLIC_BASE_URL", process.env.NEXT_PUBLIC_BASE_URL);
-
     if (!paymentId || !requestId) {
       return NextResponse.json(
         { error: true, message: 'Payment ID and Request ID are required' },
@@ -24,7 +21,6 @@ export async function POST(request: NextRequest) {
       .where(eq(paymentsTable.id, paymentId))
       .limit(1)
 
-    console.log("CHECKING payment");
     if (!payment[0]) {
       return NextResponse.json(
         { error: true, message: 'Payment not found' },

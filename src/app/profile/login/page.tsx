@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLoginForm } from "@/hooks/use-login-form";
@@ -22,9 +23,11 @@ export default function LoginPage() {
 
   // Check for success message from URL params
   useEffect(() => {
-    const message = searchParams.get('message');
-    if (message === 'password-reset-success') {
-      setSuccessMessage('Password reset successful! You can now log in with your new password.');
+    const message = searchParams.get("message");
+    if (message === "password-reset-success") {
+      setSuccessMessage(
+        "Password reset successful! You can now log in with your new password."
+      );
       // Clear the message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);
     }
@@ -45,7 +48,7 @@ export default function LoginPage() {
       const timer = setTimeout(() => {
         router.replace("/profile/logged-in");
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [loading, isAuthenticated, user, form.isSubmitting, router]);
@@ -54,7 +57,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkForSuccessfulLogin = () => {
       // Check if we have user data in localStorage (indicating successful login)
-      const userSession = localStorage.getItem('user-session');
+      const userSession = localStorage.getItem("user-session");
       if (userSession && !loading && isAuthenticated) {
         try {
           JSON.parse(userSession);
@@ -91,9 +94,18 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Main Content */}
       <main className="flex-grow flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="font-heading text-4xl font-bold text-melodia-teal mb-4">
-          Welcome Back
-        </h1>
+        {/* Melodia Logo */}
+        <div className="mb-8">
+          <Image
+            src="/images/melodia-logo.jpeg"
+            alt="Melodia Logo"
+            width={180}
+            height={180}
+            className="mx-auto"
+            priority
+          />
+        </div>
+
         <h2 className="font-heading text-2xl text-melodia-teal mb-8">
           Log in to your account
         </h2>
@@ -105,7 +117,9 @@ export default function LoginPage() {
           {/* OR Divider */}
           <div className="relative flex py-4 items-center">
             <div className="flex-grow border-t border-melodia-teal/20"></div>
-            <span className="flex-shrink mx-4 text-melodia-teal/60 font-body">OR</span>
+            <span className="flex-shrink mx-4 text-melodia-teal/60 font-body">
+              OR
+            </span>
             <div className="flex-grow border-t border-melodia-teal/20"></div>
           </div>
 
@@ -129,15 +143,18 @@ export default function LoginPage() {
               error={form.validation.errors.password}
               required
               showPassword={form.showPassword}
-              onToggleVisibility={() => form.setShowPassword(!form.showPassword)}
+              onToggleVisibility={() =>
+                form.setShowPassword(!form.showPassword)
+              }
             />
 
-            <Link
-              href="/profile/forgot-password"
-              className="block text-right text-melodia-coral text-sm font-medium hover:underline font-body"
-            >
-              Forgot Password?
-            </Link>
+            <div className="text-right">
+              <Link href="/profile/forgot-password">
+                <span className="text-accent text-sm hover:underline font-body font-bold mb-2">
+                  Forgot Password?
+                </span>
+              </Link>
+            </div>
 
             <Button
               type="submit"

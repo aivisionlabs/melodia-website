@@ -7,7 +7,13 @@ export default function ConditionalHeader() {
   const pathname = usePathname();
 
   // Hide header on onboarding screens and song lyrics pages (not song-options)
-  const hideOnPaths = ["/onboarding"];
+  const hideOnPaths = [
+    "/onboarding",
+    "/error",
+    "/profile/forgot-password",
+    "/profile/register",
+    "/profile/login",
+  ];
   const shouldHide =
     hideOnPaths.some((path) => pathname.startsWith(path)) ||
     (pathname.startsWith("/song/") && !pathname.startsWith("/song-options"));

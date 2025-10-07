@@ -5,6 +5,7 @@ import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
+import { AuthProvider } from "@/contexts/AuthContext";
 import ConditionalBottomNav from "@/components/ConditionalBottomNav";
 import ConditionalHeader from "@/components/ConditionalHeader";
 import OnboardingGuard from "@/components/OnboardingGuard";
@@ -117,16 +118,18 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning={true}>
         <ErrorBoundary>
-          <ToastProvider>
-            <StructuredData type="website" />
-            <StructuredData type="organization" />
-            <PageTracking />
-            <OnboardingGuard>
-              <ConditionalHeader />
-              <main className="min-h-screen">{children}</main>
-              <ConditionalBottomNav />
-            </OnboardingGuard>
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <StructuredData type="website" />
+              <StructuredData type="organization" />
+              <PageTracking />
+              <OnboardingGuard>
+                <ConditionalHeader />
+                <main className="min-h-screen">{children}</main>
+                <ConditionalBottomNav />
+              </OnboardingGuard>
+            </ToastProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

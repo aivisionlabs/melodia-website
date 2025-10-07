@@ -20,15 +20,19 @@ export async function GET(
       );
     }
 
-    // Get user context from middleware and request parameters
+    // Get user context from middleware - this is the ONLY source of truth
     const userContext = getUserContextFromRequest(request);
-    const { searchParams } = new URL(request.url);
-    const userIdParam = searchParams.get('userId');
-    const anonymousUserIdParam = searchParams.get('anonymousUserId');
 
-    // Determine the user ID and anonymous user ID to use
-    const userId = userContext.userId || (userIdParam ? parseInt(userIdParam, 10) : null);
-    const anonymousUserId = sanitizeAnonymousUserId(anonymousUserIdParam || userContext.anonymousUserId);
+    // Validate that we have proper user context
+    if (!userContext.userId && !userContext.anonymousUserId) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please log in or ensure you have an active session.' },
+        { status: 401 }
+      );
+    }
+
+    const userId = userContext.userId;
+    const anonymousUserId = userContext.anonymousUserId;
 
     // Fetch song with song request data to check ownership
     const songsWithRequest = await db

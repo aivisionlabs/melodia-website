@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in generate-lyrics-with-storage API:', error);
+    console.error('Error in generate-lyrics API:', error);
     return NextResponse.json(
       {
         error: true,

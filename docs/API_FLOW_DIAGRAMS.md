@@ -24,14 +24,14 @@
     │
     ▼
 ┌─────────────────┐
-│ Lyrics          │ ──► POST /api/generate-lyrics-with-storage
+│ Lyrics          │ ──► POST /api/generate-lyrics
 │ Generation      │     Body: { requestId, recipient_name, languages,
 │                 │              additional_details }
 └─────────────────┘
     │
     ▼
 ┌─────────────────┐
-│ Review & Edit   │ ──► GET /api/lyrics-display?requestId=123
+│ Review & Edit   │ ──► GET /api/fetch-lyrics?requestId=123
 │ Lyrics          │     (User reviews generated lyrics)
 └─────────────────┘
     │

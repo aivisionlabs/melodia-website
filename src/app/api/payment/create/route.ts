@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { paymentsTable, songRequestsTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { getCurrentUser } from '@/lib/user-actions'
-import { sanitizeAnonymousUserId } from '@/lib/utils/validation'
+
 import { getUserContextFromRequest } from '@/lib/middleware-utils'
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, userId, anonymousUserId } = await request.json()
+    const { requestId } = await request.json()
 
     if (!requestId) {
       return NextResponse.json(
@@ -17,20 +16,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user context from middleware
+    // Get user context from middleware - this is the ONLY source of truth
     const userContext = getUserContextFromRequest(request)
 
-    // Get current user (optional for anonymous users)
-    const currentUser = await getCurrentUser()
+    // Validate that we have proper user context
+    if (!userContext.userId && !userContext.anonymousUserId) {
+      return NextResponse.json(
+        { error: true, message: 'Authentication required. Please log in or ensure you have an active session.' },
+        { status: 401 }
+      )
+    }
 
-    // Sanitize anonymous user ID from request body or middleware
-    const sanitizedAnonymousUserId = sanitizeAnonymousUserId(anonymousUserId || userContext.anonymousUserId)
-
-    // Use current user if available, otherwise use provided user ID
-    const finalUserId = userContext.userId || currentUser?.id || userId || null
-    const finalAnonymousUserId = sanitizedAnonymousUserId
-
-    console.log(currentUser, sanitizedAnonymousUserId, finalUserId, finalAnonymousUserId)
+    const userId = userContext.userId
+    const anonymousUserId = userContext.anonymousUserId
     // Verify the song request exists
     const songRequest = await db
       .select()
@@ -46,8 +44,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check ownership for both user types
-    const isOwner = (finalUserId && songRequest[0].user_id === finalUserId) ||
-      (finalAnonymousUserId && songRequest[0].anonymous_user_id === finalAnonymousUserId)
+    const isOwner = (userId && songRequest[0].user_id === userId) ||
+      (anonymousUserId && songRequest[0].anonymous_user_id === anonymousUserId)
 
     if (!isOwner) {
       return NextResponse.json(
@@ -76,8 +74,8 @@ export async function POST(request: NextRequest) {
         .insert(paymentsTable)
         .values({
           song_request_id: requestId,
-          user_id: finalUserId,
-          anonymous_user_id: finalAnonymousUserId,
+          user_id: userId,
+          anonymous_user_id: anonymousUserId,
           amount: '299.00', // Rs. 299
           currency: 'INR',
           status: 'pending',
@@ -142,14 +140,6 @@ export async function POST(request: NextRequest) {
         redirectUrl: `/song-options/${requestId}`, // Will be updated to song ID after song creation
       })
     }
-
-
-
-
-
-
-
-
   } catch (error) {
     console.error('Error creating payment:', error)
     return NextResponse.json(

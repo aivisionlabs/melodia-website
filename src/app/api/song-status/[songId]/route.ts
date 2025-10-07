@@ -79,7 +79,6 @@ export async function GET(
 
     // 2) Decide whether to refresh from provider based on staleness
     const refreshNeeded = isRefreshNeeded(song)
-    console.log('⏱️ [API] Refresh check:', { refreshNeeded })
 
     if (!refreshNeeded) {
       // Return DB view but trigger background refresh for non-terminal states
@@ -97,12 +96,6 @@ export async function GET(
 
       // Use database status instead of calculated status for API response
       const databaseStatus = song.status as SongStatus
-      console.log('🏁 [API] Using database status for response:', {
-        databaseStatus,
-        calculatedStatus: calculated.songStatus,
-        variantsCount: sunoData.length
-      })
-
       return NextResponse.json(createApiResponse(databaseStatus, sunoData, song, songRequestUserInfo));
     }
 

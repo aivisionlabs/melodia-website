@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
     '/api/payments/verify',
     '/api/payments/status/',
     '/api/pricing-plans',
-    '/api/songs/library'
+    '/api/songs/best-songs'
   ]
 
   const isPublicEndpoint = publicEndpoints.some(endpoint =>
@@ -63,6 +63,7 @@ export function middleware(request: NextRequest) {
 
 /**
  * Extract user context from cookies and request headers
+ * This is the central authentication system for the application
  */
 function extractUserContext(request: NextRequest): UserContext {
   let userId: number | undefined
@@ -98,11 +99,27 @@ function extractUserContext(request: NextRequest): UserContext {
     }
   }
 
+  // Validate anonymous user ID format if present
+  if (anonymousUserId && !isValidAnonymousUserId(anonymousUserId)) {
+    console.warn('Invalid anonymous user ID format:', anonymousUserId)
+    anonymousUserId = undefined
+  }
+
   return {
     userId,
     anonymousUserId,
     isAuthenticated
   }
+}
+
+/**
+ * Validate anonymous user ID format
+ * Anonymous user IDs should be UUIDs
+ */
+function isValidAnonymousUserId(id: string): boolean {
+  // UUID v4 format validation
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
 }
 
 // Configure which paths the middleware should run on

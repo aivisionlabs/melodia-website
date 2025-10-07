@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         customMode: true,
         instrumental: false,
         model: 'V5',
-        callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/song-callback`
+        callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/suno-webhook`
       }
 
       console.log('Sending request to Suno API:', generateRequest)

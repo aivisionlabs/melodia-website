@@ -122,7 +122,7 @@ The observability setup is integrated into:
 
 - `src/lib/services/llm/llm-lyrics-opearation.ts` - Main LLM service
 - `src/lib/lyrics-actions.ts` - Server actions for lyrics operations
-- `src/app/api/generate-lyrics-with-storage/route.ts` - API endpoint
+- `src/app/api/generate-lyrics/route.ts` - API endpoint
 
 ## Future Enhancements
 

@@ -79,7 +79,6 @@ export function sanitizeAnonymousUserId(anonymousUserId: string | null | undefin
  */
 export function validatePaymentRequest(data: {
   songRequestId?: number
-  planId?: number
   userId?: number | null
   anonymousUserId?: string | null
 }): {
@@ -87,10 +86,10 @@ export function validatePaymentRequest(data: {
   error?: string
 } {
   // Validate required fields
-  if (!data.songRequestId || !data.planId) {
+  if (!data.songRequestId) {
     return {
       isValid: false,
-      error: 'Missing required fields: songRequestId and planId'
+      error: 'Missing required field: songRequestId'
     }
   }
 
