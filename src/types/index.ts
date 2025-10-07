@@ -95,6 +95,7 @@ export interface SignupRequest {
     dateOfBirth: string; // YYYY-MM-DD format
     phoneNumber?: string;
     password: string;
+    anonymous_user_id?: string;
 }
 
 // API Response interfaces

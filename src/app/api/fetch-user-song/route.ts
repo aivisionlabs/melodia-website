@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { and, desc, eq, or, isNull } from 'drizzle-orm'
+import { and, desc, eq, or, isNull, ne } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   lyricsDraftsTable,
@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
 
     const userIdParam = searchParams.get('userId')
     const anonymousUserIdParam = searchParams.get('anonymousUserId')
-
+    
+    
     const currentUser = await getCurrentUser()
     const userId = userContext.userId || currentUser?.id || (userIdParam ? parseInt(userIdParam) : null)
     const anonymousUserId = sanitizeAnonymousUserId(anonymousUserIdParam || userContext.anonymousUserId)
@@ -58,6 +59,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause for ownership filtering
+    // If user is logged in, fetch all their songs (including previously anonymous ones that were merged)
+    // If user is anonymous, only fetch anonymous songs
     const ownershipFilter = userId
       ? eq(songRequestsTable.user_id, userId)
       : eq(songRequestsTable.anonymous_user_id, anonymousUserId!)
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
       .from(songsTable)
       .where(
         // Filter songs that are not deleted
-        isNull(songsTable.is_deleted)
+        ne(songsTable.is_deleted, true),
       )
 
     const completedSongsAll = (completedSongsQuery as SelectSong[]).filter((s) => completedRequestIds.has(s.song_request_id))

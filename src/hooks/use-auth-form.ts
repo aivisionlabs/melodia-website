@@ -170,7 +170,7 @@ export const useAuthForm = (): AuthFormState => {
   ]);
 
   // Computed values
-  const isFormValid = 
+  const isFormValid = Boolean(
     email.trim() && 
     password.trim() && 
     !validation.errors.email && 
@@ -181,7 +181,8 @@ export const useAuthForm = (): AuthFormState => {
       !validation.errors.name && 
       !validation.errors.dateOfBirth &&
       (!phoneNumber.trim() || !validation.errors.phoneNumber)
-    ));
+    ))
+  );
 
   // Interface Segregation: Return only what's needed
   return {

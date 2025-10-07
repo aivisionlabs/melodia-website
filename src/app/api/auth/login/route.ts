@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginUser } from '@/lib/user-actions'
 import { db } from '@/lib/db'
-import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { songRequestsTable, paymentsTable, songsTable } from '@/lib/db/schema'
+import { eq, inArray } from 'drizzle-orm'
 import { generateJWT } from '@/lib/auth/jwt'
 
 export async function POST(request: NextRequest) {
@@ -60,6 +60,22 @@ export async function POST(request: NextRequest) {
             .returning({ id: paymentsTable.id })
 
           console.log(`Merged ${paymentUpdateResult.length} anonymous payments for user ${result.user.id}`)
+
+          // Update songs that belong to the merged song requests
+          // Get the song request IDs that were just merged
+          const mergedRequestIds = updateResult.map(r => r.id);
+          
+          if (mergedRequestIds.length > 0) {
+            const songUpdateResult = await db
+              .update(songsTable)
+              .set({
+                user_id: result.user.id
+              })
+              .where(inArray(songsTable.song_request_id, mergedRequestIds))
+              .returning({ id: songsTable.id });
+
+            console.log(`Merged ${songUpdateResult.length} anonymous songs for user ${result.user.id}`)
+          }
         } catch (mergeError) {
           console.error('Failed to merge anonymous user data:', mergeError)
           // Don't fail login if merge fails, just log the error

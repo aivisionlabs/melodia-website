@@ -44,7 +44,14 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
-
+    console.log(
+      {
+        finalUserId,
+        finalAnonymousUserId,
+        songRequest: songRequest[0]
+      }
+    );
+    
     // Check ownership for both user types
     const isOwner = (finalUserId && songRequest[0].user_id === finalUserId) ||
       (finalAnonymousUserId && songRequest[0].anonymous_user_id === finalAnonymousUserId)

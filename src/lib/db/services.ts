@@ -185,7 +185,7 @@ export async function createSong(songData: {
   negative_tags?: string;
   prompt?: string;
   song_request_id: number;
-  user_id: number;
+  user_id?: number | null;
 }): Promise<{ success: boolean; songId?: number; error?: string }> {
   try {
     // Validate title
@@ -205,6 +205,7 @@ export async function createSong(songData: {
 
     const newSong = {
       song_request_id: songData.song_request_id,
+      user_id: songData.user_id || null,
       slug,
       status: 'draft',
       is_featured: false,
@@ -332,10 +333,20 @@ export async function createOrUpdateSongWithTask(
       const baseSlug = generateBaseSlug(songTitle);
       const slug = await generateUniqueSlug(baseSlug);
 
+      // Get user_id from the song request
+      const songRequest = await db
+        .select({ user_id: songRequestsTable.user_id })
+        .from(songRequestsTable)
+        .where(eq(songRequestsTable.id, requestId))
+        .limit(1);
+
+      const userId = songRequest[0]?.user_id || null;
+
       const [newSong] = await db
         .insert(songsTable)
         .values({
           song_request_id: requestId,
+          user_id: userId, // Set user_id from song request
           slug,
           status: 'pending',
           song_variants: {},

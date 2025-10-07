@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { usersTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { usersTable, songRequestsTable, paymentsTable, songsTable } from '@/lib/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { validateRequest } from '@/lib/validation/middleware';
 import { signupSchema } from '@/lib/validation/schemas';
 import { signupRateLimit } from '@/lib/utils/rate-limit';
@@ -20,7 +20,7 @@ const handler = signupRateLimit(
       
       try {
         const validatedData = (request as any).validatedData as SignupRequest;
-        const { name, email, dateOfBirth, phoneNumber, password } = validatedData;        
+        const { name, email, dateOfBirth, phoneNumber, password, anonymous_user_id } = validatedData;        
         
         // Hash password
         const saltRounds = 12;
@@ -126,6 +126,53 @@ const handler = signupRateLimit(
           .returning();
 
         const userData = newUser[0];
+
+        // Handle anonymous user data merge
+        if (anonymous_user_id) {
+          try {
+            // Update song requests
+            const updateResult = await db
+              .update(songRequestsTable)
+              .set({
+                user_id: userData.id,
+                anonymous_user_id: null
+              })
+              .where(eq(songRequestsTable.anonymous_user_id, anonymous_user_id))
+              .returning({ id: songRequestsTable.id });
+
+            console.log(`Merged ${updateResult.length} anonymous requests for new user ${userData.id}`);
+
+            // Update payments
+            const paymentUpdateResult = await db
+              .update(paymentsTable)
+              .set({
+                user_id: userData.id,
+                anonymous_user_id: null
+              })
+              .where(eq(paymentsTable.anonymous_user_id, anonymous_user_id))
+              .returning({ id: paymentsTable.id });
+
+            console.log(`Merged ${paymentUpdateResult.length} anonymous payments for new user ${userData.id}`);
+
+            // Update songs that belong to the merged song requests
+            const mergedRequestIds = updateResult.map(r => r.id);
+            
+            if (mergedRequestIds.length > 0) {
+              const songUpdateResult = await db
+                .update(songsTable)
+                .set({
+                  user_id: userData.id
+                })
+                .where(inArray(songsTable.song_request_id, mergedRequestIds))
+                .returning({ id: songsTable.id });
+
+              console.log(`Merged ${songUpdateResult.length} anonymous songs for new user ${userData.id}`);
+            }
+          } catch (mergeError) {
+            console.error('Failed to merge anonymous user data (signup):', mergeError);
+            // Don't fail signup if merge fails, just log the error
+          }
+        }
 
         // Generate JWT token
         const token = generateJWT({

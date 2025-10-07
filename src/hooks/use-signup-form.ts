@@ -48,7 +48,7 @@ export const useSignupForm = (): SignupFormState => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dependencies
-  const { register, add } = useAuth();
+  const { register } = useAuth();
   const validation = useFormValidation();
 
   // Single Responsibility: Handle email changes with validation
@@ -102,7 +102,6 @@ export const useSignupForm = (): SignupFormState => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    clearError();
     validation.clearErrors();
 
     // Validate all fields
@@ -132,12 +131,11 @@ export const useSignupForm = (): SignupFormState => {
     dateOfBirth,
     phoneNumber,
     validation,
-    clearError,
     register
   ]);
 
   // Computed values
-  const isFormValid = 
+  const isFormValid = Boolean(
     name.trim() && 
     email.trim() && 
     password.trim() && 
@@ -146,7 +144,8 @@ export const useSignupForm = (): SignupFormState => {
     !validation.errors.email && 
     !validation.errors.password && 
     !validation.errors.dateOfBirth &&
-    (!phoneNumber.trim() || !validation.errors.phoneNumber);
+    (!phoneNumber.trim() || !validation.errors.phoneNumber)
+  );
 
   // Interface Segregation: Return only what's needed for signup
   return {

@@ -91,6 +91,7 @@ export async function getSongWithLyricsDraft(id: number): Promise<(SelectSong & 
       id: songsTable.id,
       created_at: songsTable.created_at,
       song_request_id: songsTable.song_request_id,
+      user_id: songsTable.user_id,
       slug: songsTable.slug,
       status: songsTable.status,
       is_featured: songsTable.is_featured,

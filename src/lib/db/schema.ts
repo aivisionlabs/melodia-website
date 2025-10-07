@@ -15,6 +15,7 @@ import {
 export const songsTable = pgTable('songs', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull().unique(), // Each request generates one song record
+  user_id: integer('user_id'), // Links to users table (can be null for anonymous)
 
   created_at: timestamp('created_at').notNull().defaultNow(),
   slug: text('slug').notNull().unique(),

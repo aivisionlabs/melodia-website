@@ -136,7 +136,8 @@ export const useProfileInfoForm = (): ProfileInfoFormState => {
         email: email.trim().toLowerCase(),
         dateOfBirth: convertDateFormat(dateOfBirth.trim(), 'DD/MM/YYYY', 'YYYY-MM-DD'), // Convert to backend format
         phoneNumber: phoneNumber.trim() || undefined,
-        password: password.trim()
+        password: password.trim(),
+        anonymous_user_id: localStorage.getItem('anonymous_user_id') || undefined
       };
       
       // Call signup API
