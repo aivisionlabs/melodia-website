@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { useAnonymousUser } from '@/hooks/use-anonymous-user'
 
@@ -40,7 +41,7 @@ export class AuthenticatedApiClient {
   /**
    * Make an authenticated request with proper headers
    */
-  private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
     // Get anonymous user ID from localStorage if available
     const anonymousUserId = typeof window !== 'undefined'
       ? localStorage.getItem('anonymous_user_id')
@@ -73,7 +74,8 @@ export const useAuthenticatedApi = () => {
   const { user } = useAuth()
   const { anonymousUserId } = useAnonymousUser()
 
-  const apiClient = new AuthenticatedApiClient()
+  // Memoize the API client to prevent infinite re-renders
+  const apiClient = useMemo(() => new AuthenticatedApiClient(), [])
 
   return {
     apiClient,

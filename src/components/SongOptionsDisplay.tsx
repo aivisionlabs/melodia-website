@@ -165,11 +165,7 @@ export default function SongOptionsDisplay({
       );
 
       if (result.success && songStatus.slug) {
-        router.push(
-          `/song/${songStatus.slug}?variantId=${selectedVariant.id}&userId=${
-            songStatus.userId || ""
-          }&anonymousUserId=${songStatus.anonymousUserId || ""}`
-        );
+        router.push(`/song/${songStatus.slug}`);
       } else {
         console.error("Failed to process lyrics:", result.error);
         alert(`Error: ${result.error}`);
@@ -231,9 +227,7 @@ export default function SongOptionsDisplay({
                 }
                 onViewLyricalSong={() => {
                   router.push(
-                    `/song/${songStatus.slug}?variantId=${variant.id}&userId=${
-                      songStatus.userId || ""
-                    }&anonymousUserId=${songStatus.anonymousUserId || ""}`
+                    `/song/${songStatus.slug}?variantId=${variant.id}}`
                   );
                 }}
               />
@@ -258,7 +252,7 @@ export default function SongOptionsDisplay({
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-2">
               <h1 className="font-heading text-melodia-teal">
                 Choose Your Song
               </h1>
@@ -280,9 +274,11 @@ export default function SongOptionsDisplay({
             size="lg"
             disabled={isProcessingLyrics}
           >
-            {isProcessingLyrics
-              ? "Processing Lyrics..."
-              : "Create Lyrical Version"}
+            {isProcessingLyrics ? (
+              "Processing Lyrics..."
+            ) : (
+              <span className="font-semibold">Create Lyrical Version</span>
+            )}
           </Button>
         </div>
       )}

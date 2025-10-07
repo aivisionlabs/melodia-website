@@ -183,9 +183,7 @@ export default function MySongsPage() {
 
         {inProgressRequests.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold font-heading mb-4">
-              In progress
-            </h2>
+            <div className="text-xl font-semibold  mb-4">In progress</div>
             <div className="space-y-4">
               {inProgressRequests.map((r) => (
                 <SongRequestInProgressCard

@@ -155,9 +155,6 @@ export const paymentsTable = pgTable('payments', {
   metadata: jsonb('metadata'),
 });
 
-// Pricing plans table - REMOVED
-// This table has been removed as part of migration 0005_remove_pricing_plans.sql
-
 // Payment webhooks table
 export const paymentWebhooksTable = pgTable('payment_webhooks', {
   id: serial('id').primaryKey(),

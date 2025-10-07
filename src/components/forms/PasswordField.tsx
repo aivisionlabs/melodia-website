@@ -1,6 +1,6 @@
-import React from 'react';
-import { Input } from '@/components/ui/input';
-import { FormField } from './FormField';
+import React from "react";
+import { Input } from "@/components/ui/input";
+import { FormField } from "./FormField";
 
 // Single Responsibility: Component handles password field with show/hide functionality
 interface PasswordFieldProps {
@@ -24,7 +24,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
   error,
   required = false,
   showPassword,
-  onToggleVisibility
+  onToggleVisibility,
 }) => {
   return (
     <FormField
@@ -43,8 +43,8 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
           value={value}
           onChange={onChange}
           required={required}
-          className={`w-full bg-white border text-melodia-teal placeholder-melodia-teal/60 rounded-xl p-3 focus:ring-2 focus:ring-melodia-yellow focus:border-transparent transition pr-10 ${
-            error ? 'border-red-500' : 'border-melodia-teal/20'
+          className={`w-full h-14 bg-white border text-melodia-teal placeholder-melodia-teal/60 rounded-xl p-3 focus:ring-2 focus:ring-melodia-yellow focus:border-transparent transition pr-10 ${
+            error ? "border-red-500" : "border-melodia-teal/20"
           }`}
         />
         <button

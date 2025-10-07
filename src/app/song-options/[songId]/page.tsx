@@ -49,11 +49,6 @@ export default function SongOptionsPage({
     router.back();
   };
 
-  const handleBackupWithGoogle = () => {
-    // LoginPromptCard handles navigation internally
-    // This function is kept for compatibility but not used
-  };
-
   // Loading state
   if (isLoading) {
     console.log("⏳ [PAGE] Rendering loading state");
