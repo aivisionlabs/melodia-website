@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,6 +13,14 @@ import { GoogleAuthButton } from "@/components/forms/GoogleAuthButton";
 
 // Single Responsibility: Component handles login page UI and authentication
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const { user, error, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
