@@ -100,6 +100,9 @@ export default function VerifyEmailPage() {
             if (data.success) {
                 // Redirect to success page
                 router.push('/profile/signup/success');
+            } else if (data.error?.code === 'ALREADY_VERIFIED') {
+                // If already verified, redirect to success page
+                router.push('/profile/signup/success');
             } else {
                 setError(data.error?.message || 'Invalid verification code');
                 setAttemptsRemaining(

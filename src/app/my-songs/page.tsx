@@ -33,6 +33,7 @@ type ApiSongItem = {
   songId: number;
   requestId: number;
   title: string;
+  slug: string;
   createdAt: string;
   variants: ApiSongVariant[];
   selectedVariantIndex?: number | null;
@@ -141,7 +142,7 @@ export default function MySongsPage() {
       success: true,
       status: "COMPLETED",
       songId: song.songId,
-      slug: "", // Not available here, will need adjustment if lyrical song nav is direct
+      slug: song.slug, // Now available from API
       selectedVariantIndex: song.selectedVariantIndex,
       variantTimestampLyricsProcessed: song.variantTimestampLyricsProcessed,
       variants: song.variants.map((variant) => ({
@@ -285,13 +286,6 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {/* Results info */}
-        {totalSongs > 0 && !loading && (
-          <div className="text-center text-sm text-dark-teal/70 mt-4">
-            Showing {(currentPage - 1) * pageSize + 1}-
-            {Math.min(currentPage * pageSize, totalSongs)} of {totalSongs} songs
-          </div>
-        )}
       </div>
 
       <BottomNavigation />

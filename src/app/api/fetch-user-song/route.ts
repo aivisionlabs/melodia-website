@@ -30,6 +30,7 @@ type ApiSongItem = {
   songId: number
   requestId: number
   title: string
+  slug: string
   createdAt: string
   variants: ApiSongVariant[]
   selectedVariantIndex?: number | null
@@ -180,6 +181,7 @@ export async function GET(request: NextRequest) {
         songId: song.id,
         requestId,
         title,
+        slug: song.slug, // Add slug for lyrics navigation
         createdAt: (song.created_at as unknown as Date).toISOString?.() || String(song.created_at),
         variants: apiVariants,
         selectedVariantIndex: song.selected_variant,

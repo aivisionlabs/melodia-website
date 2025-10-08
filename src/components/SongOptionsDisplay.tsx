@@ -225,10 +225,7 @@ export default function SongOptionsDisplay({
                 duration={playbackState.duration}
                 isSelected={isSelected}
                 isPermanentlySelected={isPermanentlySelected}
-                showLyricalSongButton={
-                  isSelected &&
-                  songStatus.variantTimestampLyricsProcessed?.[index]
-                }
+                showLyricalSongButton={true}
                 onViewLyricalSong={() => {
                   router.push(
                     `/song/${songStatus.slug}?variantId=${variant.id}&userId=${
