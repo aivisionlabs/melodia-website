@@ -13,6 +13,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   clearError: () => void;
@@ -271,6 +272,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [setCachedAuth]);
 
+  // Google login function
+  const loginWithGoogle = useCallback(async () => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      // Redirect to Google OAuth
+      window.location.href = '/api/auth/google';
+      return { success: true };
+    } catch (error) {
+      const errorMessage = 'Failed to initiate Google authentication';
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+      }));
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
   // Logout function
   const logout = useCallback(async () => {
     try {
@@ -344,6 +364,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...authState,
     login,
     register,
+    loginWithGoogle,
     logout,
     refreshUser,
     clearError,
