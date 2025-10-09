@@ -77,7 +77,7 @@ export interface SunoTimestampedLyricsResponse {
 
 // Mock implementation for testing
 class MockSunoAPI {
-  private tasks: Map<string, { status: string; variants: SunoVariant[]; createdAt: number }> = new Map();
+  private tasks: Map<string, { status: string; variants: SunoVariant[]; createdAt: number; callbackUrl?: string }> = new Map();
   private taskCounter = 0;
 
   constructor() {
@@ -118,13 +118,16 @@ class MockSunoAPI {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Store task for polling
+    // Store task for polling with callback URL
     this.tasks.set(taskId, {
       status: 'PENDING',
       variants: [],
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      callbackUrl: request.callBackUrl // Store callback URL for demo mode
     });
     this.saveTasks();
+
+    console.log(`🎭 [DEMO] Task ${taskId} created with callback URL:`, request.callBackUrl);
 
     // Simulate progression through new two-level status system
     setTimeout(() => {
@@ -309,11 +312,12 @@ class MockSunoAPI {
 
   // Method to create a task with a specific ID (for client-side task creation)
   createTaskWithId(taskId: string, request: SunoGenerateRequest) {
-    // Store task for polling
+    // Store task for polling with callback URL
     this.tasks.set(taskId, {
       status: 'PENDING',
       variants: [],
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      callbackUrl: request.callBackUrl // Store callback URL for demo mode
     });
     this.saveTasks();
 

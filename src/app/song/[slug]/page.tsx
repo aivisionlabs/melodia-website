@@ -12,6 +12,8 @@ interface SongLyricsData {
   slug: string;
   title: string;
   lyrics: LyricLine[];
+  rawLyricsText: string; // Raw lyrics text for non-English songs
+  language: string; // Language of the lyrics
   audioUrl: string | null;
   imageUrl: string | null;
   selectedVariant: number;
@@ -186,6 +188,8 @@ export default function SongLyricsPage() {
       artistName="Melodia"
       audioUrl={songData.audioUrl}
       lyrics={songData.lyrics}
+      rawLyricsText={songData.rawLyricsText}
+      language={songData.language}
       imageUrl={songData.imageUrl || undefined}
       showDownload={songData.canDownload}
       showShare={true}

@@ -423,7 +423,8 @@ export default function CreateSongPage() {
                     {moods.includes("Other") ? customMood : moods.join(", ")}
                   </span>{" "}
                   song in <span className="font-bold">{languages}</span> for{" "}
-                  <span className="font-bold">{recipientDetails}</span>, for{" "}
+                  <span className="font-bold">{recipientDetails}</span>, for the
+                  occassion of{" "}
                   <span className="font-bold">
                     {occasion === "Other" ? customOccasion : occasion}
                   </span>

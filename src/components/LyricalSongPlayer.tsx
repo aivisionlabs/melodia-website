@@ -16,16 +16,16 @@ import { LyricLine } from "@/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Slider } from "@/components/ui/slider";
-
-interface ParsedLyricLine extends LyricLine {
-  isSection?: boolean;
-}
+import SynchronizedLyricsDisplay from "@/components/SynchronizedLyricsDisplay";
+import StaticLyricsDisplay from "@/components/StaticLyricsDisplay";
 
 interface LyricalSongPlayerProps {
   songTitle: string;
   artistName?: string;
   audioUrl?: string | null;
   lyrics: LyricLine[];
+  rawLyricsText?: string; // Raw lyrics text for non-English songs
+  language?: string; // Language of the lyrics
   imageUrl?: string;
   showDownload?: boolean;
   showShare?: boolean;
@@ -38,16 +38,21 @@ interface LyricalSongPlayerProps {
   onClose?: () => void;
 }
 
-// Parse section headers like "(Verse 1)", "(Chorus)", etc.
-function parseLyricsWithSections(lyrics: LyricLine[]): ParsedLyricLine[] {
-  return lyrics.map((line) => {
-    // Defensive programming: ensure text property exists
-    const text = line.text ? line.text.trim() : "";
-    const isSection = /^\([^)]+\)\s*$/.test(text);
+// Parse raw lyrics text into sections and lines for static display
+function parseRawLyricsText(lyricsText: string) {
+  const lines = lyricsText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  return lines.map((line, index) => {
+    // Check if it's a section header (e.g., "(Verse 1)", "(Chorus)")
+    const isSection = /^\([^)]+\)\s*$/.test(line);
+
     return {
-      ...line,
-      text: text, // Ensure text is clean and exists
+      text: line,
       isSection,
+      index,
     };
   });
 }
@@ -57,6 +62,8 @@ export default function LyricalSongPlayer({
   artistName = "Melodia",
   audioUrl,
   lyrics,
+  rawLyricsText,
+  language = "English",
   imageUrl = "/images/melodia-logo.png",
   showDownload = false,
   showShare = true,
@@ -70,6 +77,7 @@ export default function LyricalSongPlayer({
 }: LyricalSongPlayerProps) {
   const [controlsHeight, setControlsHeight] = React.useState<number>(0);
   const controlsRef = React.useRef<HTMLDivElement>(null);
+
   // Defensive programming: filter out invalid lyrics entries
   const validLyrics = lyrics.filter(
     (line) =>
@@ -81,7 +89,9 @@ export default function LyricalSongPlayer({
       typeof line.index === "number"
   );
 
-  const parsedLyrics = parseLyricsWithSections(validLyrics);
+  // Determine if we should show synchronized lyrics or static lyrics
+  const isEnglish = language.toLowerCase() === "english";
+  const shouldShowStaticLyrics = !isEnglish && rawLyricsText;
 
   // Compute visible height for lyrics area (viewport height minus header and controls)
   const visibleLyricsHeight = React.useMemo(() => {
@@ -110,12 +120,12 @@ export default function LyricalSongPlayer({
     getLyricsWithState,
   } = useLyricsSync({
     audioUrl,
-    lyrics: parsedLyrics,
+    lyrics: shouldShowStaticLyrics ? [] : validLyrics, // Only pass synchronized lyrics for English
     controlsHeight,
     visibleHeight: visibleLyricsHeight,
   });
 
-  const lyricsWithState = getLyricsWithState();
+  const lyricsWithState = shouldShowStaticLyrics ? [] : getLyricsWithState();
 
   // Measure controls height on mount and when layout changes
   React.useEffect(() => {
@@ -237,63 +247,22 @@ export default function LyricalSongPlayer({
             >
               {/* Top padding to ensure first lyrics are centered */}
               <div className="h-24 md:h-32"></div>
-              <div className="space-y-6 md:space-y-8">
-                {lyricsWithState.map((line, index) => {
-                  const parsedLine = parsedLyrics[index];
 
-                  if (parsedLine.isSection) {
-                    // Render section headers
-                    return (
-                      <div
-                        key={index}
-                        ref={(el) => {
-                          lyricRefs.current[index] = el;
-                        }}
-                        className="text-center text-sm md:text-base font-body font-semibold text-neutral-400 uppercase tracking-wider py-4"
-                      >
-                        {line.text}
-                      </div>
-                    );
+              {/* Lyrics Display */}
+              {shouldShowStaticLyrics ? (
+                <StaticLyricsDisplay
+                  lyrics={
+                    rawLyricsText ? parseRawLyricsText(rawLyricsText) : []
                   }
-
-                  // Render regular lyrics
-                  return (
-                    <div
-                      key={index}
-                      ref={(el) => {
-                        lyricRefs.current[index] = el;
-                      }}
-                      className={cn(
-                        "text-center transition-all duration-700 ease-out min-h-[3rem] md:min-h-[3.5rem] flex items-center justify-center relative cursor-pointer",
-                        line.isActive
-                          ? "text-2xl md:text-4xl font-bold font-heading text-melodia-coral transform scale-105"
-                          : line.isPast
-                          ? "text-base md:text-xl font-body text-neutral-400 opacity-60"
-                          : "text-base md:text-xl font-body text-neutral-500 opacity-80"
-                      )}
-                      onClick={() => seekTo(line.start / 1000)}
-                      style={{
-                        transform: line.isActive ? "scale(1.05)" : "scale(1)",
-                        transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    >
-                      {/* Active lyric indicator */}
-                      {line.isActive && (
-                        <div className="absolute -left-5 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-melodia-coral rounded-full animate-pulse shadow-lg"></div>
-                      )}
-
-                      <span className="px-4 md:px-6 py-2 md:py-3 rounded-lg leading-relaxed whitespace-pre-line break-words max-w-full">
-                        {line.text || "\u00A0"}
-                      </span>
-
-                      {/* Subtle glow effect for active lyric */}
-                      {line.isActive && (
-                        <div className="absolute inset-0 bg-melodia-coral/10 rounded-lg blur-sm"></div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                  lyricRefs={lyricRefs}
+                />
+              ) : (
+                <SynchronizedLyricsDisplay
+                  lyrics={lyricsWithState}
+                  lyricRefs={lyricRefs}
+                  seekTo={seekTo}
+                />
+              )}
 
               {/* Bottom padding equals measured controls height + buffer */}
               <div style={{ height: Math.max(controlsHeight + 40, 120) }}></div>

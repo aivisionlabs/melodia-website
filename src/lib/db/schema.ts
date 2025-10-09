@@ -84,6 +84,7 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   generated_text: text('generated_text').notNull(),
   song_title: text('song_title'),
   music_style: text('music_style'),
+  language: text('language').notNull().default('English'), // Language of the generated lyrics
   llm_model_name: text('llm_model_name'),
   status: text('status').notNull().default('draft'),
   created_by_user_id: integer('created_by_user_id'), // Reference to users table

@@ -226,9 +226,7 @@ export default function SongOptionsDisplay({
                   songStatus.variantTimestampLyricsProcessed?.[index]
                 }
                 onViewLyricalSong={() => {
-                  router.push(
-                    `/song/${songStatus.slug}?variantId=${variant.id}}`
-                  );
+                  router.push(`/song/${songStatus.slug}`);
                 }}
               />
             </div>
