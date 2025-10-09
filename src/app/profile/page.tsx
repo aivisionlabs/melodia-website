@@ -10,7 +10,7 @@ import { GoogleAuthButton } from "@/components/forms/GoogleAuthButton";
 
 // Single Responsibility: Component handles profile page with login/signup
 export default function ProfilePage() {
-  const { user, error, isAuthenticated, loading, loginWithGoogle, login } = useAuth();
+  const { user, error, isAuthenticated, loading, loginWithGoogle, login, clearError } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -31,6 +31,8 @@ export default function ProfilePage() {
     
     if (message === 'password-reset-success') {
       setSuccessMessage('Password reset successful! You can now log in with your new password.');
+      // Clear any existing auth errors when showing success message
+      clearError();
       setTimeout(() => setSuccessMessage(null), 5000);
     }
     
@@ -54,7 +56,7 @@ export default function ProfilePage() {
       const detailedMessage = searchParams.get('message');
       setFormError(detailedMessage ? `${errorMessage}: ${decodeURIComponent(detailedMessage)}` : errorMessage);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, clearError]);
 
   // Single Responsibility: Handle authentication redirect
   useEffect(() => {
@@ -63,18 +65,41 @@ export default function ProfilePage() {
     }
   }, [loading, isAuthenticated, user, router]);
 
+  // Clear errors when component unmounts or user navigates away
+  useEffect(() => {
+    return () => {
+      // Clear auth errors and form errors when leaving the page
+      clearError();
+      setFormError(null);
+    };
+  }, [clearError]);
+
   // Form handlers
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
+    // Clear all errors when user starts typing
     if (errors.email) {
       setErrors(prev => ({ ...prev, email: undefined }));
+    }
+    if (formError) {
+      setFormError(null);
+    }
+    if (error) {
+      clearError();
     }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
+    // Clear all errors when user starts typing
     if (errors.password) {
       setErrors(prev => ({ ...prev, password: undefined }));
+    }
+    if (formError) {
+      setFormError(null);
+    }
+    if (error) {
+      clearError();
     }
   };
 
@@ -118,12 +143,22 @@ export default function ProfilePage() {
   // Single Responsibility: Handle Google authentication
   const handleGoogleAuth = async () => {
     setGoogleLoading(true);
+    // Clear errors when user tries Google auth
+    if (formError) setFormError(null);
+    if (error) clearError();
+    
     try {
       await loginWithGoogle();
     } catch (error) {
       console.error('Google auth error:', error);
       setGoogleLoading(false);
     }
+  };
+
+  // Clear errors when user focuses on form fields
+  const handleFormFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (formError) setFormError(null);
+    if (error) clearError();
   };
 
   // Show loading while checking authentication
@@ -183,6 +218,7 @@ export default function ProfilePage() {
                 placeholder="Email"
                 value={email}
                 onChange={handleEmailChange}
+                onFocus={handleFormFocus}
                 error={errors.email}
                 required
                 className="w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body"
@@ -201,7 +237,7 @@ export default function ProfilePage() {
 
               <div className="text-right">
                 <Link 
-                  href="/auth/forgot-password" 
+                  href="/profile/forgot-password" 
                   className="text-accent text-sm font-medium hover:underline font-body"
                 >
                   Forgot Password?

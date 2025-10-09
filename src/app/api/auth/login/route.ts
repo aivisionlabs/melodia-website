@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
+        { 
+          success: false, 
+          error: { 
+            message: 'Email and password are required',
+            code: 'VALIDATION_ERROR'
+          }
+        },
         { status: 400 }
       )
     }
@@ -20,7 +26,13 @@ export async function POST(request: NextRequest) {
     // Validate anonymous_user_id format if provided
     if (anonymous_user_id && typeof anonymous_user_id !== 'string') {
       return NextResponse.json(
-        { success: false, error: 'Invalid anonymous user ID format' },
+        { 
+          success: false, 
+          error: { 
+            message: 'Invalid anonymous user ID format',
+            code: 'VALIDATION_ERROR'
+          }
+        },
         { status: 400 }
       )
     }
@@ -116,14 +128,26 @@ export async function POST(request: NextRequest) {
       return response
     } else {
       return NextResponse.json(
-        { success: false, error: result.error },
+        { 
+          success: false, 
+          error: { 
+            message: result.error || 'Login failed',
+            code: 'AUTH_FAILED'
+          }
+        },
         { status: 401 }
       )
     }
   } catch (error) {
     console.error('Error in login API:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: { 
+          message: 'Internal server error',
+          code: 'SERVER_ERROR'
+        }
+      },
       { status: 500 }
     )
   }

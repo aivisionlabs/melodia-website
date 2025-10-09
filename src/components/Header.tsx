@@ -87,7 +87,7 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <Link href="/sign-in">
+            <Link href="/profile">
               <Button
                 size="sm"
                 className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
@@ -95,7 +95,7 @@ const Header = () => {
                 Sign In
               </Button>
             </Link>
-            <Link href="/sign-up">
+            <Link href="/auth/signup">
               <Button
                 size="sm"
                 className="bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground"
@@ -124,7 +124,7 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Link href="/sign-in">
+            <Link href="/profile">
               <Button
                 size="sm"
                 className="bg-foreground hover:bg-foreground/90 text-background text-xs"
@@ -202,7 +202,7 @@ const Header = () => {
             ) : (
               <>
                 <Link
-                  href="/sign-in"
+                  href="/profile"
                   className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign In"
@@ -210,7 +210,7 @@ const Header = () => {
                   Sign In
                 </Link>
                 <Link
-                  href="/sign-up"
+                  href="/auth/signup"
                   className="px-4 py-3 text-foreground hover:text-accent hover:bg-melodia-teal-light font-medium font-body transition-colors focus:bg-melodia-teal-light"
                   onClick={() => setIsMenuOpen(false)}
                   aria-label="Sign Up"

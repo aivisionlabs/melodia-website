@@ -12,7 +12,7 @@ import { GoogleAuthButton } from "@/components/forms/GoogleAuthButton";
 
 // Single Responsibility: Component handles login page UI and authentication
 export default function LoginPage() {
-  const { user, error, isAuthenticated, loading } = useAuth();
+  const { user, error, isAuthenticated, loading, clearError } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -25,10 +25,12 @@ export default function LoginPage() {
     const message = searchParams.get('message');
     if (message === 'password-reset-success') {
       setSuccessMessage('Password reset successful! You can now log in with your new password.');
+      // Clear any existing auth errors when showing success message
+      clearError();
       // Clear the message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);
     }
-  }, [searchParams]);
+  }, [searchParams, clearError]);
 
   // Single Responsibility: Handle authentication redirect
   useEffect(() => {

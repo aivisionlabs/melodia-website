@@ -9,6 +9,7 @@ interface FormFieldProps {
   placeholder?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   error?: string;
   required?: boolean;
   maxLength?: number;
@@ -23,6 +24,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   placeholder,
   value,
   onChange,
+  onFocus,
   error,
   required = false,
   maxLength,
@@ -48,6 +50,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
+          onFocus={onFocus}
           required={required}
           maxLength={maxLength}
           className={`w-full h-14 px-5 bg-white border border-text/20 rounded-lg placeholder-text/50 focus:ring-2 focus:ring-primary focus:border-transparent font-body ${
