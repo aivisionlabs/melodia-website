@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refineLyricsAction } from '@/lib/lyrics-actions';
-import { getCurrentUser } from '@/lib/user-actions';
-import { getUserContextFromRequest } from '@/lib/middleware-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { requestId, refineText, userId, anonymous_user_id } = body;
+    const { requestId, refineText } = body;
 
     if (!requestId || !refineText) {
       return NextResponse.json(
@@ -15,30 +13,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user context from middleware
-    const userContext = getUserContextFromRequest(request);
-
-    // Get user information
-    let currentUser = null;
-    if (userContext.userId) {
-      currentUser = { id: userContext.userId } as any;
-    } else if (userId) {
-      currentUser = { id: userId } as any;
-    } else {
-      currentUser = await getCurrentUser();
-    }
-
     const result = await refineLyricsAction(
       refineText,
-      parseInt(requestId),
-      currentUser?.id,
-      userContext.anonymousUserId || anonymous_user_id
+      parseInt(requestId)
     );
 
-    if (result.success) {
+    if (result.success && result.draft) {
       return NextResponse.json({
         success: true,
-        draft: result.draft
+        draft: {
+          id: result.draft.id,
+          generatedText: result.draft.generated_text,
+          status: result.draft.status,
+          version: result.draft.version,
+          createdAt: result.draft.created_at.toISOString(),
+          musicStyle: result.draft.music_style || '',
+          title: result.draft.song_title || '',
+          language: result.draft.language || 'English'
+        }
       });
     } else {
       return NextResponse.json(

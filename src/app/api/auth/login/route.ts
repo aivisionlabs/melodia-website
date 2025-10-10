@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginUser } from '@/lib/user-actions'
 import { db } from '@/lib/db'
-import { songRequestsTable, paymentsTable } from '@/lib/db/schema'
+import { songRequestsTable, paymentsTable, anonymousUsersTable } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { generateJWT } from '@/lib/auth/jwt'
 
@@ -60,6 +60,14 @@ export async function POST(request: NextRequest) {
             .returning({ id: paymentsTable.id })
 
           console.log(`Merged ${paymentUpdateResult.length} anonymous payments for user ${result.user.id}`)
+
+          // Delete anonymous user record after successful merge
+          try {
+            await db.delete(anonymousUsersTable).where(eq(anonymousUsersTable.id, anonymous_user_id))
+            console.log(`Deleted anonymous user ${anonymous_user_id} after merge`)
+          } catch (delErr) {
+            console.warn('Failed to delete anonymous user after merge (login):', delErr)
+          }
         } catch (mergeError) {
           console.error('Failed to merge anonymous user data:', mergeError)
           // Don't fail login if merge fails, just log the error
@@ -70,7 +78,10 @@ export async function POST(request: NextRequest) {
       const jwtToken = generateJWT({
         userId: result.user.id.toString(),
         email: result.user.email,
-        verified: result.user.email_verified || false
+        name: result.user.name,
+        verified: result.user.email_verified || false,
+        phoneNumber: result.user.phone_number,
+        profilePicture: result.user.profile_picture
       })
 
       // Create response with user data
@@ -84,14 +95,6 @@ export async function POST(request: NextRequest) {
       // Set JWT token cookie for authentication
       response.cookies.set('auth-token', jwtToken, {
         httpOnly: true, // Secure: prevent XSS attacks
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7 // 7 days
-      })
-
-      // Also set user-session cookie for client-side access (legacy support)
-      response.cookies.set('user-session', JSON.stringify(result.user), {
-        httpOnly: false, // Allow client-side access for localStorage sync
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7 // 7 days

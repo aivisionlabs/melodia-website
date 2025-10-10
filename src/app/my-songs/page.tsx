@@ -34,6 +34,7 @@ type ApiSongItem = {
   songId: number;
   requestId: number;
   title: string;
+  slug: string;
   createdAt: string;
   variants: ApiSongVariant[];
   selectedVariantIndex?: number | null;
@@ -47,11 +48,12 @@ type FetchResponse = {
   total: number;
   hasMore: boolean;
   songs: ApiSongItem[];
-  inProgressRequests: {
-    id: number;
-    status: string | null;
-    created_at: string;
+  items: {
+    requestId: number;
+    createdAt: string;
+    stage: "SONG_REQUEST_CREATED" | "LYRICS_CREATED" | "SONG_CREATED";
     title: string;
+    song: { id: number; slug: string } | null;
   }[];
 };
 
@@ -63,11 +65,17 @@ export default function MySongsPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalSongs, setTotalSongs] = useState(0);
+  // Track pagination only
   const [loading, setLoading] = useState(false);
   const [songs, setSongs] = useState<ApiSongItem[]>([]);
-  const [inProgressRequests, setInProgressRequests] = useState<
-    { id: number; status: string | null; created_at: string; title: string }[]
+  const [items, setItems] = useState<
+    {
+      requestId: number;
+      createdAt: string;
+      stage: "SONG_REQUEST_CREATED" | "LYRICS_CREATED" | "SONG_CREATED";
+      title: string;
+      song: { id: number; slug: string } | null;
+    }[]
   >([]);
 
   const isAuthResolved = !authLoading && !anonLoading;
@@ -98,9 +106,8 @@ export default function MySongsPage() {
 
         if (data?.success) {
           setSongs(data.songs);
-          setTotalSongs(data.total);
           setTotalPages(Math.ceil(data.total / pageSize));
-          if (page === 1) setInProgressRequests(data.inProgressRequests || []);
+          if (page === 1) setItems(data.items || []);
         }
       } catch (error) {
         console.error("Error fetching user songs:", error);
@@ -115,10 +122,9 @@ export default function MySongsPage() {
   useEffect(() => {
     if (isAuthResolved) {
       setSongs([]);
-      setInProgressRequests([]);
+      setItems([]);
       setCurrentPage(1);
       setTotalPages(1);
-      setTotalSongs(0);
     }
   }, [isAuthResolved, hasUserContext]);
 
@@ -150,7 +156,7 @@ export default function MySongsPage() {
       success: true,
       status: "COMPLETED",
       songId: song.songId,
-      slug: "", // Not available here, will need adjustment if lyrical song nav is direct
+      slug: song.slug, // Now available from API
       selectedVariantIndex: song.selectedVariantIndex,
       variantTimestampLyricsProcessed: song.variantTimestampLyricsProcessed,
       variants: song.variants.map((variant) => ({
@@ -181,18 +187,26 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {inProgressRequests.length > 0 && (
+        {items.filter((i) => i.stage !== "SONG_CREATED").length > 0 && (
           <div className="mb-8">
             <div className="text-xl font-semibold  mb-4">In progress</div>
             <div className="space-y-4">
-              {inProgressRequests.map((r) => (
-                <SongRequestInProgressCard
-                  key={r.id}
-                  variant="in-progress"
-                  title={r.title}
-                  onView={() => router.push(`/generate-lyrics/${r.id}`)}
-                />
-              ))}
+              {items
+                .filter(
+                  (i) =>
+                    i.stage === "SONG_REQUEST_CREATED" ||
+                    i.stage === "LYRICS_CREATED"
+                )
+                .map((i) => (
+                  <SongRequestInProgressCard
+                    key={i.requestId}
+                    variant="in-progress"
+                    title={i.title}
+                    onView={() =>
+                      router.push(`/generate-lyrics/${i.requestId}`)
+                    }
+                  />
+                ))}
             </div>
           </div>
         )}
@@ -214,7 +228,7 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {songs.length === 0 && inProgressRequests.length === 0 && !loading && (
+        {songs.length === 0 && items.length === 0 && !loading && (
           <div className="text-center py-12">
             <h2 className="text-2xl font-heading font-bold mb-2">
               No songs yet
@@ -289,14 +303,6 @@ export default function MySongsPage() {
         {loading && (
           <div className="py-6 text-center text-sm opacity-70">
             Loading songs...
-          </div>
-        )}
-
-        {/* Results info */}
-        {totalSongs > 0 && !loading && (
-          <div className="text-center text-sm text-dark-teal/70 mt-4">
-            Showing {(currentPage - 1) * pageSize + 1}-
-            {Math.min(currentPage * pageSize, totalSongs)} of {totalSongs} songs
           </div>
         )}
       </div>

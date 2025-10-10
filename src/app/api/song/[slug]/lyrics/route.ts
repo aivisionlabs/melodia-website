@@ -134,6 +134,84 @@ export async function GET(
       }
     }
 
+    // Fallback: If no timestamped lyrics, use lyrics from lyrics_drafts table
+    if (lyrics.length === 0) {
+      const { lyricsDraftsTable } = await import('@/lib/db/schema');
+      const { desc } = await import('drizzle-orm');
+      
+      const lyricsDrafts = await db
+        .select({
+          generated_text: lyricsDraftsTable.generated_text,
+        })
+        .from(lyricsDraftsTable)
+        .where(eq(lyricsDraftsTable.song_request_id, song.song_request_id))
+        .orderBy(desc(lyricsDraftsTable.version), desc(lyricsDraftsTable.created_at))
+        .limit(1);
+
+      if (lyricsDrafts.length > 0 && lyricsDrafts[0].generated_text) {
+        // Convert plain text lyrics to timed lyrics format
+        const lyricsText = lyricsDrafts[0].generated_text;
+        const lines = lyricsText.split('\n').filter(line => line.trim().length > 0);
+        const songDurationMs = 180000; // Default 3 minutes for demo
+        const lineDuration = songDurationMs / lines.length;
+
+        lyrics = lines.map((line, index) => ({
+          index,
+          text: line.trim(),
+          start: index * lineDuration,
+          end: (index + 1) * lineDuration,
+        }));
+      } else {
+        // Demo mode fallback: Create dummy lyrics for testing
+        const dummyLyrics = [
+          "Verse 1",
+          "",
+          "The first time I saw your face",
+          "You smiled and lit up the whole place",
+          "A tiny hand in mine to hold",
+          "A story waiting to unfold",
+          "",
+          "Chorus",
+          "",
+          "You're my sunshine on a cloudy day",
+          "You chase all of the blues away",
+          "My little star, you shine so bright",
+          "Filling my world with pure delight",
+          "",
+          "Verse 2",
+          "",
+          "Every laugh and every tear",
+          "Makes my love for you more clear",
+          "Growing up so fast it seems",
+          "Living all your wildest dreams",
+          "",
+          "Chorus",
+          "",
+          "You're my sunshine on a cloudy day",
+          "You chase all of the blues away",
+          "My little star, you shine so bright",
+          "Filling my world with pure delight",
+          "",
+          "Bridge",
+          "",
+          "No matter where life takes you",
+          "Remember that I love you",
+          "Forever and always",
+          "Through all of your days"
+        ];
+
+        const songDurationMs = 180000; // 3 minutes
+        const lineDuration = songDurationMs / dummyLyrics.length;
+
+        lyrics = dummyLyrics.map((line, index) => ({
+          index,
+          text: line,
+          start: index * lineDuration,
+          end: (index + 1) * lineDuration,
+        }));
+      }
+    }
+
     // Get audio URL from variant
     const audioUrl = variantData?.audioUrl || variantData?.sourceStreamAudioUrl || variantData?.streamAudioUrl || null;
     const imageUrl = variantData?.imageUrl || null;

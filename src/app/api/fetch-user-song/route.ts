@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { and, desc, eq, or, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   lyricsDraftsTable,
@@ -7,10 +5,11 @@ import {
   songRequestsTable,
   songsTable,
 } from '@/lib/db/schema'
-import { getCurrentUser } from '@/lib/user-actions'
-import { sanitizeAnonymousUserId, validateUserOwnership } from '@/lib/utils/validation'
-import { calculateVariantStatus, VariantData } from '@/lib/services/song-status-calculation-service'
 import { getUserContextFromRequest } from '@/lib/middleware-utils'
+import { calculateVariantStatus, VariantData } from '@/lib/services/song-status-calculation-service'
+import { sanitizeAnonymousUserId } from '@/lib/utils/validation'
+import { desc, eq, inArray, ne } from 'drizzle-orm'
+import { NextRequest, NextResponse } from 'next/server'
 
 type ApiSongVariant = {
   index: number
@@ -30,6 +29,7 @@ type ApiSongItem = {
   songId: number
   requestId: number
   title: string
+  slug: string
   createdAt: string
   variants: ApiSongVariant[]
   selectedVariantIndex?: number | null
@@ -74,12 +74,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause for ownership filtering
+    // If user is logged in, fetch all their songs (including previously anonymous ones that were merged)
+    // If user is anonymous, only fetch anonymous songs
     const ownershipFilter = userId
       ? eq(songRequestsTable.user_id, userId)
       : eq(songRequestsTable.anonymous_user_id, anonymousUserId!)
 
-    // 1) Fetch completed song requests with recipient details
-    const completedRequests = await db
+    // Fetch all song requests for owner
+    const allRequests = await db
       .select({
         id: songRequestsTable.id,
         status: songRequestsTable.status,
@@ -87,51 +89,25 @@ export async function GET(request: NextRequest) {
         recipient_details: songRequestsTable.recipient_details,
       })
       .from(songRequestsTable)
-      .where(
-        and(
-          ownershipFilter,
-          eq(songRequestsTable.status, 'completed')
-        )
-      )
+      .where(ownershipFilter)
       .orderBy(desc(songRequestsTable.created_at))
 
-
-    // 2) Fetch not completed song requests (pending/processing) with recipient details
-    const inProgressRequests = await db
-      .select({
-        id: songRequestsTable.id,
-        status: songRequestsTable.status,
-        created_at: songRequestsTable.created_at,
-        recipient_details: songRequestsTable.recipient_details,
-      })
-      .from(songRequestsTable)
-      .where(
-        and(
-          ownershipFilter,
-          or(eq(songRequestsTable.status, 'pending'), eq(songRequestsTable.status, 'processing'))
-        )
-      )
-      .orderBy(desc(songRequestsTable.created_at))
-
-    // 3) Fetch songs for completed requests only
-    const completedRequestIds = new Set(completedRequests.map((r) => r.id))
-
-    const completedSongsQuery = await db
+    // Fetch songs for all owner requests
+    const requestIds = new Set(allRequests.map((r) => r.id))
+    const songsQuery = await db
       .select()
       .from(songsTable)
       .where(
         // Filter songs that are not deleted
-        isNull(songsTable.is_deleted)
+        ne(songsTable.is_deleted, true),
       )
-
-    const completedSongsAll = (completedSongsQuery as SelectSong[]).filter((s) => completedRequestIds.has(s.song_request_id))
-    // Sort by created_at desc
-    completedSongsAll.sort((a, b) => new Date(b.created_at as any).getTime() - new Date(a.created_at as any).getTime())
-
-    const total = completedSongsAll.length
+    const songsAll = (songsQuery as SelectSong[]).filter((s) => requestIds.has(s.song_request_id))
+    // Sort songs by created_at desc for pagination of completed section
+    songsAll.sort((a, b) => new Date(b.created_at as any).getTime() - new Date(a.created_at as any).getTime())
+    const total = songsAll.length
     const start = (page - 1) * pageSize
     const end = start + pageSize
-    const pageSongs = completedSongsAll.slice(start, end)
+    const pageSongs = songsAll.slice(start, end)
 
     // Helper: fetch latest lyrics draft title for a request
     async function fetchTitleForRequest(requestId: number): Promise<string> {
@@ -193,6 +169,7 @@ export async function GET(request: NextRequest) {
         songId: song.id,
         requestId,
         title,
+        slug: song.slug, // Add slug for lyrics navigation
         createdAt: (song.created_at as unknown as Date).toISOString?.() || String(song.created_at),
         variants: apiVariants,
         selectedVariantIndex: song.selected_variant,
@@ -200,18 +177,45 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Helper: fetch song title for in-progress requests
-    const inProgressWithTitles = await Promise.all(
-      inProgressRequests.map(async (r) => {
-        const title = await fetchTitleForRequest(r.id);
-        return {
-          id: r.id,
-          status: r.status,
-          created_at: r.created_at,
-          title: title !== 'Untitled Song' ? title : `For ${r.recipient_details}`,
-        };
-      })
-    );
+    // Build stage-based items list
+    type Stage = 'SONG_REQUEST_CREATED' | 'LYRICS_CREATED' | 'SONG_CREATED'
+    const songRequestIdToSong: Record<number, SelectSong | undefined> = {}
+    for (const s of songsAll) songRequestIdToSong[s.song_request_id] = s
+
+    // For lyrics presence check, fetch draft existence per request
+    const draftsExistence: Record<number, boolean> = {}
+    if (allRequests.length > 0) {
+      const ids = allRequests.map(r => r.id)
+      // Efficient existence check per request
+      // Note: drizzle lacks EXISTS per-group; fetch last draft ids
+      const latestDrafts = await db
+        .select({
+          id: lyricsDraftsTable.id,
+          song_request_id: lyricsDraftsTable.song_request_id,
+          version: lyricsDraftsTable.version
+        })
+        .from(lyricsDraftsTable)
+        .where(inArray(lyricsDraftsTable.song_request_id, ids))
+      for (const d of latestDrafts) draftsExistence[d.song_request_id] = true
+    }
+
+    const items = await Promise.all(allRequests.map(async (r) => {
+      const hasSong = Boolean(songRequestIdToSong[r.id])
+      const hasDraft = Boolean(draftsExistence[r.id])
+      const stage: Stage = hasSong ? 'SONG_CREATED' : (hasDraft ? 'LYRICS_CREATED' : 'SONG_REQUEST_CREATED')
+      const title = await fetchTitleForRequest(r.id)
+      return {
+        requestId: r.id,
+        createdAt: r.created_at,
+        stage,
+        title: title !== 'Untitled Song' ? title : `For ${r.recipient_details}`,
+        // Only when song exists, attach minimal song summary for convenience
+        song: hasSong ? {
+          id: songRequestIdToSong[r.id]!.id,
+          slug: songRequestIdToSong[r.id]!.slug,
+        } : null
+      }
+    }))
 
     return NextResponse.json({
       success: true,
@@ -220,7 +224,7 @@ export async function GET(request: NextRequest) {
       total,
       hasMore: end < total,
       songs,
-      inProgressRequests: inProgressWithTitles,
+      items,
     })
   } catch (error) {
     console.error('Error in fetch-user-song:', error)

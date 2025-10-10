@@ -8,6 +8,7 @@ import { cookies } from 'next/headers'
 import { eq } from 'drizzle-orm'
 import { checkRateLimit, RATE_LIMITS } from './utils/rate-limiting'
 import { validateEmail, validatePassword, validateName, sanitizeInput } from './security'
+import { verifyJWT } from './auth/jwt'
 
 
 /**
@@ -204,7 +205,7 @@ export async function loginUser(
         error: 'Invalid email or password.'
       }
     }
-    
+
     const isPasswordValid = await bcrypt.compare(password, userData.password_hash)
 
     if (!isPasswordValid) {
@@ -214,8 +215,9 @@ export async function loginUser(
       }
     }
 
+
     // Remove password hash from response and convert dates to strings
-    const { password_hash: _, ...userWithoutPassword } = userData
+    const { password_hash: _password_hash, ...userWithoutPassword } = userData;
     const userForResponse: User = {
       ...userWithoutPassword,
       date_of_birth: userData.date_of_birth, // Already in YYYY-MM-DD format
@@ -237,30 +239,82 @@ export async function loginUser(
 }
 
 /**
- * Get current user from session
+ * Get current user from JWT token (optimized - no DB query)
+ * Returns user info directly from JWT token for maximum performance
  */
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies()
-    const session = cookieStore.get('user-session')?.value
+    const authToken = cookieStore.get('auth-token')?.value
 
-    if (!session) {
+    if (!authToken) {
       return null
     }
 
-    try {
-      const parsed = JSON.parse(session)
-      // Minimal shape validation
-      if (parsed && typeof parsed.id === 'number' && typeof parsed.email === 'string') {
-        return parsed as User
-      }
-    } catch {
+    // Verify JWT token
+    const payload = verifyJWT(authToken)
+    if (!payload || !payload.userId) {
       return null
     }
 
-    return null
+    // Return user data directly from JWT token (no DB query needed)
+    // This covers 95% of use cases and is much faster
+    return {
+      id: parseInt(payload.userId, 10),
+      email: payload.email,
+      name: payload.name,
+      date_of_birth: '', // Not stored in JWT - only used for profile pages
+      phone_number: payload.phoneNumber || null,
+      profile_picture: payload.profilePicture || null,
+      email_verified: payload.verified,
+      created_at: '', // Not stored in JWT - rarely used
+      updated_at: '' // Not stored in JWT - rarely used
+    }
   } catch (error) {
     console.error('Error getting current user:', error)
+    return null
+  }
+}
+
+/**
+ * Get full user data from database (use only when complete user data is needed)
+ * This should be used sparingly for profile pages, user settings, etc.
+ */
+export async function getFullUserData(): Promise<User | null> {
+  try {
+    const cookieStore = await cookies()
+    const authToken = cookieStore.get('auth-token')?.value
+
+    if (!authToken) {
+      return null
+    }
+
+    // Verify JWT token
+    const payload = verifyJWT(authToken)
+    if (!payload || !payload.userId) {
+      return null
+    }
+
+    // Get full user from database using the userId from JWT
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, parseInt(payload.userId, 10)))
+      .limit(1)
+
+    if (user.length === 0) {
+      return null
+    }
+
+    const dbUser = user[0]
+    // Convert Date objects to strings to match User interface
+    return {
+      ...dbUser,
+      created_at: dbUser.created_at.toISOString(),
+      updated_at: dbUser.updated_at.toISOString()
+    }
+  } catch (error) {
+    console.error('Error getting full user data:', error)
     return null
   }
 }
@@ -274,7 +328,7 @@ export async function logoutUser(): Promise<{
 }> {
   try {
     const cookieStore = await cookies()
-    cookieStore.delete('user-session')
+    cookieStore.delete('auth-token')
 
     return {
       success: true

@@ -3,30 +3,28 @@ import { useAuth } from './use-auth';
 import { useFormValidation } from './use-form-validation';
 import { formatDateOfBirth, formatPhoneNumber } from '@/lib/validation';
 
-// Single Responsibility: Hook manages authentication form state and logic
-export interface AuthFormState {
+// Single Responsibility: Hook manages signup form state and logic
+export interface SignupFormState {
   // Form data
   email: string;
   password: string;
   name: string;
   dateOfBirth: string;
   phoneNumber: string;
-  isSignUp: boolean;
   showPassword: boolean;
   isSubmitting: boolean;
-
+  
   // Validation
   validation: ReturnType<typeof useFormValidation>;
-
+  
   // Actions
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
   setName: (name: string) => void;
   setDateOfBirth: (dateOfBirth: string) => void;
   setPhoneNumber: (phoneNumber: string) => void;
-  setIsSignUp: (isSignUp: boolean) => void;
   setShowPassword: (showPassword: boolean) => void;
-
+  
   // Handlers
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -34,25 +32,23 @@ export interface AuthFormState {
   handleDateOfBirthChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePhoneNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
-  toggleSignUpMode: () => void;
-
+  
   // Computed values
   isFormValid: boolean;
 }
 
-export const useAuthForm = (): AuthFormState => {
+export const useSignupForm = (): SignupFormState => {
   // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dependencies
-  const { login, register, clearError } = useAuth();
+  const { register } = useAuth();
   const validation = useFormValidation();
 
   // Single Responsibility: Handle email changes with validation
@@ -102,89 +98,56 @@ export const useAuthForm = (): AuthFormState => {
     }
   }, [validation]);
 
-  // Single Responsibility: Toggle between sign up and login modes
-  const toggleSignUpMode = useCallback(() => {
-    setIsSignUp(!isSignUp);
-    clearError();
-    validation.clearErrors();
-
-    // Clear additional fields when switching to login mode
-    if (!isSignUp) {
-      setDateOfBirth("");
-      setPhoneNumber("");
-    }
-  }, [isSignUp, clearError, validation]);
-
   // Single Responsibility: Handle form submission
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    clearError();
     validation.clearErrors();
 
     // Validate all fields
-    let isValid = true;
+    const nameValid = validation.validateField("name", name);
+    const emailValid = validation.validateField("email", email);
+    const passwordValid = validation.validateField("password", password);
+    const dobValid = validation.validateField("dateOfBirth", dateOfBirth);
+    const phoneValid = phoneNumber.trim() ? validation.validateField("phoneNumber", phoneNumber) : true;
 
-    if (isSignUp) {
-      isValid = validation.validateField("name", name) && isValid;
-      isValid = validation.validateField("dateOfBirth", dateOfBirth) && isValid;
-      if (phoneNumber.trim()) {
-        isValid = validation.validateField("phoneNumber", phoneNumber) && isValid;
-      }
-    }
-
-    isValid = validation.validateField("email", email) && isValid;
-    isValid = validation.validateField("password", password) && isValid;
-
-    if (!isValid) {
+    if (!nameValid || !emailValid || !passwordValid || !dobValid || !phoneValid) {
       setIsSubmitting(false);
       return;
     }
 
     try {
-      let result;
-      if (isSignUp) {
-        result = await register(email, password, name);
-      } else {
-        result = await login(email, password);
-      }
-
+      await register(email, password, name);
       // Note: Navigation is handled by the parent component
-      // This keeps the hook focused on form logic only
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('Signup error:', error);
     } finally {
       setIsSubmitting(false);
     }
   }, [
-    isSignUp,
     name,
-    dateOfBirth,
-    phoneNumber,
     email,
     password,
+    dateOfBirth,
+    phoneNumber,
     validation,
-    clearError,
-    register,
-    login
+    register
   ]);
 
   // Computed values
   const isFormValid = Boolean(
-    email.trim() &&
-    password.trim() &&
-    !validation.errors.email &&
-    !validation.errors.password &&
-    (!isSignUp || (
-      !!name.trim() &&
-      !!dateOfBirth.trim() &&
-      !validation.errors.name &&
-      !validation.errors.dateOfBirth &&
-      (!phoneNumber.trim() || !validation.errors.phoneNumber)
-    ))
+    name.trim() && 
+    email.trim() && 
+    password.trim() && 
+    dateOfBirth.trim() && 
+    !validation.errors.name && 
+    !validation.errors.email && 
+    !validation.errors.password && 
+    !validation.errors.dateOfBirth &&
+    (!phoneNumber.trim() || !validation.errors.phoneNumber)
   );
 
-  // Interface Segregation: Return only what's needed
+  // Interface Segregation: Return only what's needed for signup
   return {
     // Form data
     email,
@@ -192,22 +155,20 @@ export const useAuthForm = (): AuthFormState => {
     name,
     dateOfBirth,
     phoneNumber,
-    isSignUp,
     showPassword,
     isSubmitting,
-
+    
     // Validation
     validation,
-
+    
     // Actions
     setEmail,
     setPassword,
     setName,
     setDateOfBirth,
     setPhoneNumber,
-    setIsSignUp,
     setShowPassword,
-
+    
     // Handlers
     handleEmailChange,
     handlePasswordChange,
@@ -215,8 +176,7 @@ export const useAuthForm = (): AuthFormState => {
     handleDateOfBirthChange,
     handlePhoneNumberChange,
     handleSubmit,
-    toggleSignUpMode,
-
+    
     // Computed values
     isFormValid
   };

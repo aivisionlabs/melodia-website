@@ -8,7 +8,7 @@ import { lyricsDraftsTable, songRequestsTable } from './db/schema'
 import { refineLyrics } from './services/llm/llm-lyrics-opearation'
 
 // Refine lyrics using Vertex AI
-export async function refineLyricsAction(refineText: string, requestId: number, userId?: number, anonymousUserId?: string) {
+export async function refineLyricsAction(refineText: string, requestId: number) {
   try {
     // Fetch only the latest version of the lyrics draft for this request
     const latestLyricsDraft = await db
@@ -53,9 +53,7 @@ export async function refineLyricsAction(refineText: string, requestId: number, 
           song_title: latestDraft.song_title,
           music_style: latestDraft.music_style,
           language: latestDraft.language || 'English',
-          status: 'draft',
-          created_by_user_id: userId || null,
-          created_by_anonymous_user_id: anonymousUserId || null
+          status: 'draft'
         })
         .returning()
 
@@ -80,9 +78,7 @@ export async function refineLyricsAction(refineText: string, requestId: number, 
         song_title: latestDraft.song_title,
         music_style: latestDraft.music_style,
         language: latestDraft.language || 'English',
-        status: 'draft',
-        created_by_user_id: userId || null,
-        created_by_anonymous_user_id: anonymousUserId || null
+        status: 'draft'
       })
       .returning()
 

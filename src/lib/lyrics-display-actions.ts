@@ -5,17 +5,20 @@ import { eq, desc } from 'drizzle-orm';
 export interface LyricsDisplayData {
   songRequest: {
     id: number;
-    recipient_details: string;
+    recipientDetails: string;
     languages: string;
-    requester_name: string;
-    created_at: string;
+    requesterName: string;
+    createdAt: string;
   };
   lyricsDraft: {
     id: number;
-    generated_text: string;
+    generatedText: string;
     status: string;
     version: number;
-    created_at: string;
+    createdAt: string;
+    musicStyle: string;
+    title: string;
+    language: string;
   };
 }
 
@@ -47,17 +50,20 @@ export async function getLyricsDisplayData(requestId: number): Promise<LyricsDis
     return {
       songRequest: {
         id: songRequest[0].id,
-        recipient_details: songRequest[0].recipient_details,
+        recipientDetails: songRequest[0].recipient_details,
         languages: songRequest[0].languages || '',
-        requester_name: songRequest[0].requester_name,
-        created_at: songRequest[0].created_at.toISOString()
+        requesterName: songRequest[0].requester_name,
+        createdAt: songRequest[0].created_at.toISOString()
       },
       lyricsDraft: {
         id: lyricsDraft[0].id,
-        generated_text: lyricsDraft[0].generated_text,
+        generatedText: lyricsDraft[0].generated_text,
         status: lyricsDraft[0].status,
         version: lyricsDraft[0].version,
-        created_at: lyricsDraft[0].created_at.toISOString()
+        createdAt: lyricsDraft[0].created_at.toISOString(),
+        musicStyle: lyricsDraft[0].music_style || '',
+        title: lyricsDraft[0].song_title || '',
+        language: lyricsDraft[0].language || 'English'
       }
     };
   } catch (error) {

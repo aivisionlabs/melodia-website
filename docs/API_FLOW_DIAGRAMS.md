@@ -38,7 +38,8 @@
     ▼
 ┌─────────────────┐
 │ Payment         │ ──► POST /api/payments/create-order
-│ Creation        │     Body: { songRequestId, planId, anonymous_user_id }
+│ Creation        │     Body: { songRequestId, anonymous_user_id }
+│                 │     Note: Fixed price ₹299 (no planId needed)
 └─────────────────┘
     │
     ▼
@@ -63,7 +64,7 @@
     │
     ▼
 ┌─────────────────┐
-│ Status          │ ──► GET /api/song-status/[taskId]
+│ Status          │ ──► GET /api/song-status/[songId]
 │ Monitoring      │     (Polling for completion)
 └─────────────────┘
     │
@@ -75,7 +76,7 @@
     │
     ▼
 ┌─────────────────┐
-│ Content         │ ──► GET /api/user-content?anonymousUserId=uuid
+│ Content         │ ──► GET /api/fetch-user-song?anonymousUserId=uuid
 │ Management      │     (View all user's songs and lyrics)
 └─────────────────┘
 ```
@@ -107,8 +108,9 @@
 3️⃣ PAYMENT FLOW
    ┌─────────────────┐
    │ Create Order    │ ──► POST /api/payments/create-order
-   │                 │     Body: { songRequestId: 123, planId: 1, anonymous_user_id: uuid }
-   │                 │     Response: { orderId: "order_123", key: "rzp_key", ... }
+   │                 │     Body: { songRequestId: 123, anonymous_user_id: uuid }
+   │                 │     Response: { orderId: "order_123", amount: 29900, key: "rzp_key", ... }
+   │                 │     Note: Fixed price ₹299 (no planId needed)
    └─────────────────┘
    │
    ┌─────────────────┐
@@ -124,7 +126,7 @@
 
 4️⃣ CONTENT ACCESS
    ┌─────────────────┐
-   │ View Content    │ ──► GET /api/user-content?anonymousUserId=uuid
+   │ View Content    │ ──► GET /api/fetch-user-song
    │                 │     Response: { content: [songs, lyrics_drafts, requests] }
    └─────────────────┘
 ```
@@ -140,7 +142,8 @@
 
 1️⃣ REGISTRATION
    ┌─────────────────┐
-   │ Register        │ ──► POST /api/auth/register
+   │ Register        │ ──► POST /api/auth/register (simple) OR
+   │                 │     POST /api/auth/signup (comprehensive)
    │                 │     Body: { email, password, name, anonymous_user_id? }
    │                 │     Response: { success: true, user: {...} }
    │                 │     Data Migration: Merges anonymous data automatically
@@ -164,8 +167,9 @@
 4️⃣ PAYMENT FLOW
    ┌─────────────────┐
    │ Create Order    │ ──► POST /api/payments/create-order
-   │                 │     Body: { songRequestId: 124, planId: 1, user_id: 123 }
-   │                 │     Response: { orderId: "order_124", ... }
+   │                 │     Body: { songRequestId: 124, user_id: 123 }
+   │                 │     Response: { orderId: "order_124", amount: 29900, ... }
+   │                 │     Note: Fixed price ₹299 (no planId needed)
    └─────────────────┘
    │
    ┌─────────────────┐
@@ -181,8 +185,112 @@
 
 5️⃣ CONTENT ACCESS
    ┌─────────────────┐
-   │ View Content    │ ──► GET /api/user-content?userId=123
+   │ View Content    │ ──► GET /api/fetch-user-song?userId=123
    │                 │     Response: { content: [songs, lyrics_drafts, requests] }
+   └─────────────────┘
+```
+
+---
+
+## 🔐 Additional Authentication Endpoints
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        ADDITIONAL AUTHENTICATION ENDPOINTS                       │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+📧 EMAIL VERIFICATION FLOW
+   ┌─────────────────┐
+   │ Send Verification│ ──► POST /api/auth/send-verification
+   │                 │     Body: { userId }
+   │                 │     Response: { success: true }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Verify Email    │ ──► POST /api/auth/verify-email
+   │                 │     Body: { userId, code }
+   │                 │     Response: { success: true, verified: true }
+   └─────────────────┘
+
+🔒 PASSWORD RESET FLOW
+   ┌─────────────────┐
+   │ Forgot Password │ ──► POST /api/auth/forgot-password
+   │                 │     Body: { email }
+   │                 │     Response: { success: true }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Verify OTP      │ ──► POST /api/auth/verify-forgot-password-otp
+   │                 │     Body: { email, code }
+   │                 │     Response: { success: true, token }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Reset Password  │ ──► POST /api/auth/reset-password
+   │                 │     Body: { token, newPassword }
+   │                 │     Response: { success: true }
+   └─────────────────┘
+
+👤 USER MANAGEMENT
+   ┌─────────────────┐
+   │ Get User Info   │ ──► GET /api/users/me
+   │                 │     Response: { success: true, user: {...} }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Update Profile  │ ──► PATCH /api/users/me
+   │                 │     Body: { name, phone_number, date_of_birth, profile_picture }
+   │                 │     Response: { success: true, user: {...} }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Logout          │ ──► POST /api/auth/logout
+   │                 │     Response: { success: true }
+   └─────────────────┘
+```
+
+---
+
+## 🎵 Additional Song Management Endpoints
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        ADDITIONAL SONG MANAGEMENT ENDPOINTS                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+📝 LYRICS MANAGEMENT
+   ┌─────────────────┐
+   │ Approve Lyrics  │ ──► POST /api/approve-lyrics
+   │                 │     Body: { requestId, lyricsId }
+   │                 │     Response: { success: true }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Refine Lyrics   │ ──► POST /api/refine-lyrics
+   │                 │     Body: { requestId, refinement }
+   │                 │     Response: { success: true, newLyrics }
+   └─────────────────┘
+
+🎼 SONG LIBRARY
+   ┌─────────────────┐
+   │ Best Songs      │ ──► GET /api/songs/best
+   │                 │     Response: { songs: [...] }
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Song Library    │ ──► GET /api/songs/library
+   │                 │     Response: { songs: [...] }
+   └─────────────────┘
+
+🔗 WEBHOOKS
+   ┌─────────────────┐
+   │ Razorpay        │ ──► POST /api/webhooks/razorpay
+   │ Webhook         │     Payment status updates from Razorpay
+   └─────────────────┘
+   │
+   ┌─────────────────┐
+   │ Suno Webhook    │ ──► POST /api/suno-webhook
+   │                 │     Song generation status updates from Suno
    └─────────────────┘
 ```
 
@@ -205,7 +313,8 @@
    ▼
 🔐 REGISTRATION WITH MERGE
    ┌─────────────────┐
-   │ Register        │ ──► POST /api/auth/register
+   │ Register        │ ──► POST /api/auth/register (simple) OR
+   │                 │     POST /api/auth/signup (comprehensive with email verification)
    │                 │     Body: { email, password, name, anonymous_user_id: "uuid-123" }
    │                 │     Response: { success: true, user: { id: 456 } }
    └─────────────────┘
@@ -251,8 +360,9 @@
    │
    ┌─────────────────┐
    │ Create Order    │ ──► POST /api/payments/create-order
-   │                 │     Body: { songRequestId, planId, user_id/anonymous_user_id }
-   │                 │     Response: { orderId, amount, key, prefill, ... }
+   │                 │     Body: { songRequestId, user_id/anonymous_user_id }
+   │                 │     Response: { orderId, amount: 29900, key, prefill, ... }
+   │                 │     Note: Fixed price ₹299 (no planId needed)
    └─────────────────┘
 
 2️⃣ RAZORPAY PAYMENT
@@ -328,7 +438,7 @@
 
 3️⃣ STATUS MONITORING
    ┌─────────────────┐
-   │ Status Polling   │ ──► GET /api/song-status/[taskId]
+   │ Status Polling   │ ──► GET /api/song-status/[songId]
    │                 │     Frontend polls every 10 seconds
    │                 │     Response: { status: "processing/completed/failed" }
    └─────────────────┘
@@ -364,7 +474,7 @@
 
 1️⃣ CONTENT RETRIEVAL
    ┌─────────────────┐
-   │ My Songs Page   │ ──► GET /api/user-content
+   │ My Songs Page   │ ──► GET /api/fetch-user-song
    │                 │     Query: ?userId=123 OR ?anonymousUserId=uuid
    │                 │     Response: { content: [...] }
    └─────────────────┘
@@ -492,5 +602,40 @@
 ```
 
 ---
+
+---
+
+## 📋 API Endpoint Summary
+
+### Core Endpoints
+- **Anonymous User**: `POST /api/users/anonymous`
+- **Song Request**: `POST /api/create-song-request`
+- **Lyrics Generation**: `POST /api/generate-lyrics`
+- **Lyrics Fetching**: `GET /api/fetch-lyrics?requestId=123`
+- **Payment Order**: `POST /api/payments/create-order` (Fixed ₹299)
+- **Payment Verify**: `POST /api/payments/verify`
+- **Song Generation**: `POST /api/generate-song`
+- **Song Status**: `GET /api/song-status/[songId]`
+- **User Content**: `GET /api/fetch-user-song`
+
+### Authentication Endpoints
+- **Simple Registration**: `POST /api/auth/register`
+- **Comprehensive Signup**: `POST /api/auth/signup` (with email verification)
+- **Login**: `POST /api/auth/login`
+- **Email Verification**: `POST /api/auth/verify-email`
+- **Password Reset**: `POST /api/auth/forgot-password`
+- **User Profile**: `GET /api/users/me`, `PATCH /api/users/me`
+
+### Additional Features
+- **Lyrics Management**: `POST /api/approve-lyrics`, `POST /api/refine-lyrics`
+- **Song Library**: `GET /api/songs/best`, `GET /api/songs/library`
+- **Webhooks**: `POST /api/webhooks/razorpay`, `POST /api/suno-webhook`
+
+### Key Changes from Original Documentation
+1. **Fixed Pricing**: No `planId` parameter - all songs cost ₹299
+2. **Dual Registration**: Both `/api/auth/register` and `/api/auth/signup` available
+3. **Correct Endpoints**: `/api/fetch-user-song` instead of `/api/user-content`
+4. **Song Status**: Uses `[songId]` instead of `[taskId]`
+5. **Additional Endpoints**: Many authentication and management endpoints added
 
 *These flow diagrams show the complete API journey for Melodia, covering both anonymous and registered user experiences, payment flows, song generation, and content management.*

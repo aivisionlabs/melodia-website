@@ -87,8 +87,6 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   language: text('language').notNull().default('English'), // Language of the generated lyrics
   llm_model_name: text('llm_model_name'),
   status: text('status').notNull().default('draft'),
-  created_by_user_id: integer('created_by_user_id'), // Reference to users table
-  created_by_anonymous_user_id: uuid('created_by_anonymous_user_id'), // Reference to anonymous_users table
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });

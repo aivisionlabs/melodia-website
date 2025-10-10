@@ -13,6 +13,8 @@ export default function ConditionalHeader() {
     "/profile/forgot-password",
     "/profile/register",
     "/profile/login",
+    "/profile/signup/verify",
+    "/profile/signup",
   ];
   const shouldHide =
     hideOnPaths.some((path) => pathname.startsWith(path)) ||

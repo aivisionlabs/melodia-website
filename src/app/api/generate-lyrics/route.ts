@@ -6,7 +6,7 @@ import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipientDetails, languages, occassion, songStory, mood, userId, anonymousUserId } = await request.json();
+    const { requestId, recipientDetails, languages, occassion, songStory, mood } = await request.json();
 
     if (!requestId || !recipientDetails || !languages) {
       return NextResponse.json(
@@ -75,9 +75,7 @@ export async function POST(request: NextRequest) {
         music_style: generatedResponse.musicStyle,
         language: generatedResponse.language || 'English',
         llm_model_name: llmModelName,
-        status: 'draft',
-        created_by_user_id: userId || null,
-        created_by_anonymous_user_id: anonymousUserId || null
+        status: 'draft'
       })
       .returning();
 

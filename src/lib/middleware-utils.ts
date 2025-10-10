@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { verifyJWT } from '@/lib/auth/jwt'
 
 export interface UserContext {
   userId?: number
@@ -7,17 +8,58 @@ export interface UserContext {
 }
 
 /**
- * Extract user context from request headers set by middleware
+ * Extract user context from request headers set by middleware or directly from cookies/headers
  * This should be used in API routes to get user information
  */
 export function getUserContextFromRequest(request: NextRequest): UserContext {
+  // First try to get from middleware headers
   const userIdHeader = request.headers.get('x-user-id')
   const anonymousUserIdHeader = request.headers.get('x-anonymous-user-id')
   const isAuthenticatedHeader = request.headers.get('x-is-authenticated')
 
-  const userId = userIdHeader ? parseInt(userIdHeader, 10) : undefined
-  const anonymousUserId = anonymousUserIdHeader || undefined
-  const isAuthenticated = isAuthenticatedHeader === 'true'
+  if (userIdHeader || anonymousUserIdHeader || isAuthenticatedHeader) {
+    const userId = userIdHeader ? parseInt(userIdHeader, 10) : undefined
+    const anonymousUserId = anonymousUserIdHeader || undefined
+    const isAuthenticated = isAuthenticatedHeader === 'true'
+
+    return {
+      userId,
+      anonymousUserId,
+      isAuthenticated
+    }
+  }
+
+  // Fallback: Extract directly from cookies and headers (if middleware didn't run)
+  return extractUserContextDirect(request)
+}
+
+/**
+ * Direct extraction from cookies and headers (fallback when middleware doesn't run)
+ */
+function extractUserContextDirect(request: NextRequest): UserContext {
+  let userId: number | undefined
+  let anonymousUserId: string | undefined
+  let isAuthenticated = false
+
+  // Try to get authenticated user from JWT token
+  const authToken = request.cookies.get('auth-token')
+  if (authToken?.value) {
+    try {
+      const payload = verifyJWT(authToken.value)
+      if (payload && payload.userId) {
+        userId = parseInt(payload.userId, 10)
+        isAuthenticated = true
+      }
+    } catch (error) {
+      console.warn('Invalid JWT token in direct extraction:', error)
+    }
+  }
+
+  // Try to get anonymous user ID from request headers (sent by frontend)
+  const localStorageAnonymousId = request.headers.get('x-local-anonymous-user-id')
+  if (localStorageAnonymousId) {
+    anonymousUserId = localStorageAnonymousId
+  }
 
   return {
     userId,

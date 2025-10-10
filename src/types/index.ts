@@ -95,6 +95,7 @@ export interface SignupRequest {
     dateOfBirth: string; // YYYY-MM-DD format
     phoneNumber?: string;
     password: string;
+    anonymous_user_id?: string;
 }
 
 // API Response interfaces
@@ -161,8 +162,6 @@ export interface LyricsDraft {
     language: string;
     llm_model_name?: string;
     status: 'draft' | 'needs_review' | 'approved' | 'archived';
-    created_by_user_id?: number;
-    created_by_anonymous_user_id?: string;
     created_at: string;
     updated_at: string;
 }

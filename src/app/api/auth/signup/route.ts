@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { usersTable } from '@/lib/db/schema';
+import { usersTable, songRequestsTable, paymentsTable, anonymousUsersTable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { validateRequest } from '@/lib/validation/middleware';
 import { signupSchema } from '@/lib/validation/schemas';
@@ -17,11 +17,11 @@ const handler = signupRateLimit(
   validateRequest(signupSchema)(
     async (request: NextRequest) => {
       const requestId = (request as any).requestId || generateRequestId();
-      
+
       try {
         const validatedData = (request as any).validatedData as SignupRequest;
-        const { name, email, dateOfBirth, phoneNumber, password } = validatedData;        
-        
+        const { name, email, dateOfBirth, phoneNumber, password, anonymous_user_id } = validatedData;
+
         // Hash password
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -35,7 +35,7 @@ const handler = signupRateLimit(
 
         if (existingUser.length > 0) {
           const user = existingUser[0];
-          
+
           // If user exists and is verified, return conflict
           if (user.email_verified) {
             return NextResponse.json(
@@ -53,7 +53,7 @@ const handler = signupRateLimit(
               { status: 409 }
             );
           }
-          
+
           // If user exists but not verified, update the record (allow re-signup)
           const updatedUser = await db
             .update(usersTable)
@@ -68,12 +68,15 @@ const handler = signupRateLimit(
             .returning();
 
           const userData = updatedUser[0];
-          
+
           // Generate JWT token
           const token = generateJWT({
             userId: userData.id.toString(),
             email: userData.email,
-            verified: false
+            name: userData.name,
+            verified: false,
+            phoneNumber: userData.phone_number,
+            profilePicture: userData.profile_picture
           });
 
           // Set HTTP-only cookie
@@ -82,10 +85,10 @@ const handler = signupRateLimit(
           // Initialize email verification process
           const emailService = createEmailService();
           const otpService = createOTPService();
-          
+
           const verificationCode = otpService.generateCode();
           await otpService.storeCode(userData.id.toString(), verificationCode);
-          
+
           // Send verification email (don't fail signup if email fails)
           try {
             await emailService.sendVerificationEmail(userData.email, verificationCode, userData.name);
@@ -127,11 +130,54 @@ const handler = signupRateLimit(
 
         const userData = newUser[0];
 
+        // Handle anonymous user data merge
+        if (anonymous_user_id) {
+          try {
+            // Update song requests
+            const updateResult = await db
+              .update(songRequestsTable)
+              .set({
+                user_id: userData.id,
+                anonymous_user_id: null
+              })
+              .where(eq(songRequestsTable.anonymous_user_id, anonymous_user_id))
+              .returning({ id: songRequestsTable.id });
+
+            console.log(`Merged ${updateResult.length} anonymous requests for new user ${userData.id}`);
+
+            // Update payments
+            const paymentUpdateResult = await db
+              .update(paymentsTable)
+              .set({
+                user_id: userData.id,
+                anonymous_user_id: null
+              })
+              .where(eq(paymentsTable.anonymous_user_id, anonymous_user_id))
+              .returning({ id: paymentsTable.id });
+
+            console.log(`Merged ${paymentUpdateResult.length} anonymous payments for new user ${userData.id}`);
+
+            // Delete anonymous user record after successful merge
+            try {
+              await db.delete(anonymousUsersTable).where(eq(anonymousUsersTable.id, anonymous_user_id))
+              console.log(`Deleted anonymous user ${anonymous_user_id} after merge (signup)`)
+            } catch (delErr) {
+              console.warn('Failed to delete anonymous user after merge (signup):', delErr)
+            }
+          } catch (mergeError) {
+            console.error('Failed to merge anonymous user data (signup):', mergeError);
+            // Don't fail signup if merge fails, just log the error
+          }
+        }
+
         // Generate JWT token
         const token = generateJWT({
           userId: userData.id.toString(),
           email: userData.email,
-          verified: false
+          name: userData.name,
+          verified: false,
+          phoneNumber: userData.phone_number,
+          profilePicture: userData.profile_picture
         });
 
         // Set HTTP-only cookie
@@ -140,10 +186,10 @@ const handler = signupRateLimit(
         // Initialize email verification process
         const emailService = createEmailService();
         const otpService = createOTPService();
-        
+
         const verificationCode = otpService.generateCode();
         await otpService.storeCode(userData.id.toString(), verificationCode);
-        
+
         // Send verification email (don't fail signup if email fails)
         try {
           await emailService.sendVerificationEmail(userData.email, verificationCode, userData.name);
@@ -171,7 +217,7 @@ const handler = signupRateLimit(
 
       } catch (error) {
         console.error('Signup error:', error);
-        
+
         return NextResponse.json(
           {
             success: false,

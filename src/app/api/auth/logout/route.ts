@@ -1,4 +1,4 @@
-import {  NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export async function POST() {
   try {
@@ -7,9 +7,8 @@ export async function POST() {
       success: true
     })
 
-    // Clear both authentication cookies
+    // Clear authentication cookie
     response.cookies.delete('auth-token')
-    response.cookies.delete('user-session')
 
     return response
   } catch (error) {

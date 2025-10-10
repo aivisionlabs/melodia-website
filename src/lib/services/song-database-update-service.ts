@@ -141,8 +141,8 @@ export class SongDatabaseUpdateService {
     // Update the song first
     const songUpdateResult = await this.updateSongWithRetry(song.id, updateData)
 
-    // If song update was successful and status is COMPLETED, update the related song_request
-    if (songUpdateResult.success && status === SONG_STATUS_MAP.COMPLETED && song.song_request_id) {
+    // If song update was successful and status is COMPLETED or STREAM_AVAILABLE, update the related song_request
+    if (songUpdateResult.success && (status === SONG_STATUS_MAP.COMPLETED || status === SONG_STATUS_MAP.STREAM_AVAILABLE) && song.song_request_id) {
       try {
         await db
           .update(songRequestsTable)

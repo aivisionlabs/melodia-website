@@ -65,20 +65,20 @@ export default function GenerateLyricsPage({
 
           // If lyrics exist, populate the form with existing lyrics
           if (data.data.lyricsDraft) {
-            const lyricsText = data.data.lyricsDraft.generated_text;
+            const lyricsText = data.data.lyricsDraft.generatedText;
             setEditedLyrics(lyricsText);
-            setGeneratedTitle(`For ${data.data.songRequest.recipient_details}`);
-            setGeneratedStyle("Personalized song style");
+            setGeneratedTitle(
+              data.data.lyricsDraft.title ||
+                `For ${data.data.songRequest.recipientDetails}`
+            );
+            setGeneratedStyle(
+              data.data.lyricsDraft.musicStyle || "Generating..."
+            );
             return true; // Lyrics exist
           }
         }
       } else if (response.status === 404) {
         // No lyrics exist yet - this is expected for new requests
-        console.log(
-          "No existing lyrics found for request",
-          requestId,
-          "- this is normal for new requests"
-        );
         return false; // No lyrics exist
       } else {
         // Handle other error cases
@@ -245,10 +245,12 @@ export default function GenerateLyricsPage({
       console.log("Updated lyrics response:", data);
 
       if (data.success && data.draft) {
-        console.log("Successfully updated lyrics:", data.draft.generated_text);
-        setEditedLyrics(data.draft.generated_text);
-        setGeneratedTitle(`${songRequest.recipient_details}'s Song`);
-        setGeneratedStyle("Personalized song style");
+        console.log("Successfully updated lyrics:", data.draft.generatedText);
+        setEditedLyrics(data.draft.generatedText);
+        setGeneratedTitle(
+          data.draft.title || `${songRequest.recipient_details}'s Song`
+        );
+        setGeneratedStyle(data.draft.musicStyle || "Personalized song style");
         setUserEditInput("");
         setIsEditingLyrics(false);
       } else {

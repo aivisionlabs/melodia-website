@@ -37,7 +37,11 @@ export const signupSchema = z.object({
   
   password: z.string()
     .min(6, 'Password must be at least 6 characters')
-    .transform(str => str.trim())
+    .transform(str => str.trim()),
+  
+  anonymous_user_id: z.string()
+    .uuid('Invalid anonymous user ID format')
+    .optional()
 });
 
 // Email verification schema

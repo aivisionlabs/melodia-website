@@ -61,18 +61,12 @@ function LoginPageContent() {
     }
   }, [loading, isAuthenticated, user, form.isSubmitting, router]);
 
-  // Fallback redirect mechanism - check for successful login in localStorage
+  // Fallback redirect mechanism - check for successful login
   useEffect(() => {
     const checkForSuccessfulLogin = () => {
-      // Check if we have user data in localStorage (indicating successful login)
-      const userSession = localStorage.getItem("user-session");
-      if (userSession && !loading && isAuthenticated) {
-        try {
-          JSON.parse(userSession);
-          router.replace("/profile/logged-in");
-        } catch (error) {
-          // Invalid session data, ignore
-        }
+      // Check if user is authenticated (from JWT token)
+      if (!loading && isAuthenticated && user) {
+        router.replace("/profile/logged-in");
       }
     };
 
@@ -81,7 +75,7 @@ function LoginPageContent() {
     const timer = setTimeout(checkForSuccessfulLogin, 500);
 
     return () => clearTimeout(timer);
-  }, [loading, isAuthenticated, router]);
+  }, [loading, isAuthenticated, user, router]);
 
   // Single Responsibility: Handle Google authentication
   const handleGoogleAuth = () => {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyJWT } from '@/lib/auth/jwt'
 
 interface UserContext {
   userId?: number
@@ -44,19 +45,26 @@ export function middleware(request: NextRequest) {
   // Extract user context
   const userContext = extractUserContext(request)
 
-  // Create response
-  const response = NextResponse.next()
+  // Create response with modified request headers
+  const requestHeaders = new Headers(request.headers)
 
   // Add user context to request headers for API routes to access
   if (userContext.userId) {
-    response.headers.set('x-user-id', userContext.userId.toString())
+    requestHeaders.set('x-user-id', userContext.userId.toString())
   }
 
   if (userContext.anonymousUserId) {
-    response.headers.set('x-anonymous-user-id', userContext.anonymousUserId)
+    requestHeaders.set('x-anonymous-user-id', userContext.anonymousUserId)
   }
 
-  response.headers.set('x-is-authenticated', userContext.isAuthenticated.toString())
+  requestHeaders.set('x-is-authenticated', userContext.isAuthenticated.toString())
+
+  // Create new request with modified headers
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
 
   return response
 }
@@ -70,17 +78,17 @@ function extractUserContext(request: NextRequest): UserContext {
   let anonymousUserId: string | undefined
   let isAuthenticated = false
 
-  // Try to get authenticated user from session cookie
-  const sessionCookie = request.cookies.get('user-session')
-  if (sessionCookie?.value) {
+  // Try to get authenticated user from JWT token
+  const authToken = request.cookies.get('auth-token')
+  if (authToken?.value) {
     try {
-      const userSession = JSON.parse(sessionCookie.value)
-      if (userSession && typeof userSession.id === 'number') {
-        userId = userSession.id
+      const payload = verifyJWT(authToken.value)
+      if (payload && payload.userId) {
+        userId = parseInt(payload.userId, 10)
         isAuthenticated = true
       }
     } catch (error) {
-      console.warn('Invalid user session cookie:', error)
+      console.warn('Invalid JWT token:', error)
     }
   }
 
