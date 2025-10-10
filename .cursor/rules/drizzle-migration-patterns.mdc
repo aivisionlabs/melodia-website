@@ -1,0 +1,366 @@
+# Drizzle Migration Management Rules
+
+## CRITICAL: Always Use Drizzle-Generated Migrations
+
+### ❌ NEVER Create Manual Migration Files
+```bash
+# WRONG: Creating manual SQL files
+touch drizzle/migrations/0004_manual_migration.sql
+echo "DROP TABLE pricing_plans;" > drizzle/migrations/0004_manual_migration.sql
+```
+
+### ✅ ALWAYS Use Drizzle Commands
+```bash
+# CORRECT: Use Drizzle's migration system
+npx drizzle-kit generate  # Generate migration from schema changes
+npx drizzle-kit migrate    # Apply the generated migration
+```
+
+## Migration Workflow (MANDATORY)
+
+### 1. Schema-First Approach
+```typescript
+// 1. Make changes in src/lib/db/schema.ts
+export const newTable = pgTable('new_table', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  // ... other columns
+});
+```
+
+### 2. Generate Migration
+```bash
+# Generate migration from schema changes
+npx drizzle-kit generate
+```
+
+### 3. Review Generated Migration
+```bash
+# Check the generated SQL file
+cat drizzle/migrations/XXXX_migration_name.sql
+```
+
+### 4. Apply Migration
+```bash
+# Apply the migration to database
+npx drizzle-kit migrate
+```
+
+### 5. Verify Success
+```bash
+# Verify no pending changes
+npx drizzle-kit generate  # Should show "No schema changes"
+```
+
+## Migration Commands Reference
+
+### Essential Commands
+```bash
+# Generate migration from schema changes
+npx drizzle-kit generate
+
+# Apply pending migrations
+npx drizzle-kit migrate
+
+# Push schema directly (development only)
+npx drizzle-kit push
+
+# Open Drizzle Studio to inspect database
+npx drizzle-kit studio
+```
+
+### Verification Commands
+```bash
+# Check for pending migrations
+npx drizzle-kit generate
+
+# View database schema
+npx drizzle-kit studio
+
+# Check migration status
+npx drizzle-kit migrate --verbose
+```
+
+## Common Migration Patterns
+
+### Adding New Table
+```typescript
+// 1. Add to schema.ts
+export const newTable = pgTable('new_table', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+});
+
+// 2. Generate and apply
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+### Adding New Column
+```typescript
+// 1. Add column to existing table
+export const existingTable = pgTable('existing_table', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  new_column: text('new_column'), // Add this
+});
+
+// 2. Generate and apply
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+### Removing Column
+```typescript
+// 1. Remove column from schema
+export const existingTable = pgTable('existing_table', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  // removed_column: text('removed_column'), // Remove this
+});
+
+// 2. Generate and apply
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+### Dropping Table
+```typescript
+// 1. Remove table definition from schema
+// export const oldTable = pgTable('old_table', { ... }); // Comment out or remove
+
+// 2. Generate and apply
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+## Migration File Management
+
+### File Naming Convention
+- **Drizzle-generated**: `0001_descriptive_name.sql`
+- **Never manually create**: Files with migration indices
+- **Never duplicate**: Migration indices (0001, 0002, etc.)
+
+### Migration Directory Structure
+```
+drizzle/
+├── migrations/
+│   ├── 0000_initial_schema.sql
+│   ├── 0001_add_users_table.sql
+│   ├── 0002_add_songs_table.sql
+│   └── meta/
+│       ├── _journal.json
+│       ├── 0000_snapshot.json
+│       └── 0001_snapshot.json
+└── config.ts
+```
+
+### Migration Metadata
+- **Never edit**: `meta/_journal.json` manually
+- **Never edit**: `meta/*_snapshot.json` files manually
+- **Let Drizzle manage**: All migration tracking
+
+## Error Prevention
+
+### ❌ Common Mistakes to Avoid
+
+#### 1. Manual Migration Files
+```bash
+# WRONG: Creating manual migration files
+echo "DROP TABLE test;" > drizzle/migrations/0004_manual.sql
+```
+
+#### 2. Mixed Migration Types
+```bash
+# WRONG: Mixing manual and generated migrations
+# This causes tracking conflicts
+```
+
+#### 3. Skipping Migration Generation
+```bash
+# WRONG: Directly editing database without migration
+# This breaks schema synchronization
+```
+
+#### 4. Editing Generated Files
+```bash
+# WRONG: Editing Drizzle-generated migration files
+# This can cause inconsistencies
+```
+
+### ✅ Best Practices
+
+#### 1. Always Generate Before Migrating
+```bash
+# CORRECT: Always generate first
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+#### 2. Review Generated SQL
+```bash
+# CORRECT: Review before applying
+npx drizzle-kit generate
+cat drizzle/migrations/XXXX_migration_name.sql
+npx drizzle-kit migrate
+```
+
+#### 3. Use Development Push Sparingly
+```bash
+# CORRECT: Use push only for development
+npx drizzle-kit push  # Only in development
+```
+
+## Production Migration Workflow
+
+### 1. Development Environment
+```bash
+# Make schema changes
+# Generate migration
+npx drizzle-kit generate
+
+# Apply to development database
+npx drizzle-kit migrate
+
+# Test thoroughly
+npm run test
+```
+
+### 2. Production Deployment
+```bash
+# Deploy code with new migration files
+# Run migrations in production
+npx drizzle-kit migrate
+
+# Verify deployment
+npx drizzle-kit generate  # Should show "No schema changes"
+```
+
+## Troubleshooting Migration Issues
+
+### Issue: "Migration already applied"
+```bash
+# Check migration status
+npx drizzle-kit migrate
+
+# If stuck, check database directly
+npx drizzle-kit studio
+```
+
+### Issue: "Schema out of sync"
+```bash
+# Generate migration to see differences
+npx drizzle-kit generate
+
+# Apply pending migrations
+npx drizzle-kit migrate
+```
+
+### Issue: "Migration conflicts"
+```bash
+# Check migration journal
+cat drizzle/migrations/meta/_journal.json
+
+# Regenerate if needed
+npx drizzle-kit generate
+```
+
+## Migration Safety Guidelines
+
+### 1. Always Backup Before Major Changes
+```bash
+# Backup database before destructive migrations
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### 2. Test Migrations in Development First
+```bash
+# Test in development environment
+npx drizzle-kit migrate
+
+# Verify schema changes
+npx drizzle-kit studio
+```
+
+### 3. Review Generated SQL Carefully
+```bash
+# Always review before applying
+npx drizzle-kit generate
+cat drizzle/migrations/XXXX_migration_name.sql
+```
+
+### 4. Use Transactions for Complex Changes
+```typescript
+// For complex schema changes, consider breaking into multiple migrations
+// Migration 1: Add new columns
+// Migration 2: Migrate data
+// Migration 3: Remove old columns
+```
+
+## Environment-Specific Considerations
+
+### Development
+```bash
+# Use push for rapid iteration
+npx drizzle-kit push
+```
+
+### Staging/Production
+```bash
+# Always use proper migrations
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+## Migration Rollback Strategy
+
+### For Development
+```bash
+# Reset database to clean state
+npx drizzle-kit push --force
+```
+
+### For Production
+```bash
+# Create rollback migration
+# Add opposite changes to schema
+npx drizzle-kit generate
+npx drizzle-kit migrate
+```
+
+## Code Review Checklist
+
+### Migration Review Requirements
+- [ ] **Schema changes** are in `src/lib/db/schema.ts`
+- [ ] **Migration generated** using `npx drizzle-kit generate`
+- [ ] **No manual SQL files** created
+- [ ] **Migration applied** using `npx drizzle-kit migrate`
+- [ ] **Schema verified** using `npx drizzle-kit generate` (should show "No schema changes")
+- [ ] **Database tested** in development environment
+- [ ] **Backup created** before production deployment
+
+### Red Flags in Code Review
+- [ ] Manual migration files in `drizzle/migrations/`
+- [ ] Direct database modifications without migrations
+- [ ] Mixed manual and generated migration files
+- [ ] Uncommitted migration files
+- [ ] Schema changes without corresponding migrations
+
+## Summary
+
+**ALWAYS FOLLOW THIS WORKFLOW:**
+1. **Modify schema** in `src/lib/db/schema.ts`
+2. **Generate migration** with `npx drizzle-kit generate`
+3. **Review generated SQL** carefully
+4. **Apply migration** with `npx drizzle-kit migrate`
+5. **Verify success** with `npx drizzle-kit generate`
+
+**NEVER:**
+- Create manual migration files
+- Mix manual and generated migrations
+- Skip migration generation
+- Edit generated migration files
+- Apply migrations without reviewing them first
+
+This ensures consistent, trackable, and reliable database schema management across all environments.

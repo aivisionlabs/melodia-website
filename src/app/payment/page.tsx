@@ -3,8 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useAnonymousUser } from "@/hooks/use-anonymous-user";
-import { getCurrentUser } from "@/lib/user-actions";
+import { useAuthenticatedApi } from "@/lib/api-client";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -14,10 +13,9 @@ function PaymentPageContent() {
   const searchParams = useSearchParams();
   const requestId = searchParams.get("requestId");
   const { addToast } = useToast();
-  const { anonymousUserId } = useAnonymousUser();
+  const { apiClient, hasUserContext } = useAuthenticatedApi();
 
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     if (!requestId) {
@@ -26,36 +24,13 @@ function PaymentPageContent() {
     }
   }, [requestId, router]);
 
-  // Get current user on component mount
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-      } catch (error) {
-        console.log("No user logged in or error getting user:", error);
-        setCurrentUser(null);
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
-
   const handlePayment = async () => {
-    if (!requestId) return;
+    if (!requestId || !hasUserContext) return;
 
     setLoading(true);
     try {
-      const response = await fetch("/api/payment/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestId: parseInt(requestId),
-          userId: currentUser?.id || null,
-          anonymousUserId: anonymousUserId || null,
-        }),
+      const response = await apiClient.post("/api/payment/create", {
+        requestId: parseInt(requestId),
       });
 
       const data = await response.json();
@@ -89,15 +64,9 @@ function PaymentPageContent() {
 
   const handlePaymentSuccess = async (paymentId: string, requestId: string) => {
     try {
-      const response = await fetch("/api/payment/success", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentId,
-          requestId,
-        }),
+      const response = await apiClient.post("/api/payment/success", {
+        paymentId,
+        requestId,
       });
 
       const data = await response.json();

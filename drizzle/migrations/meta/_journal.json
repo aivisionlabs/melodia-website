@@ -29,6 +29,34 @@
       "when": 1759587700338,
       "tag": "0003_tricky_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1759827680084,
+      "tag": "0004_exotic_malice",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1759934210427,
+      "tag": "0005_public_maelstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760000270140,
+      "tag": "0006_nosy_lily_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1760004073382,
+      "tag": "0008_unique_nighthawk",
+      "breakpoints": true
     }
   ]
 }

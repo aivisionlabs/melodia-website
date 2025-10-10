@@ -1,10 +1,14 @@
 import jwt from 'jsonwebtoken';
 
-// JWT payload interface
+// JWT payload interface - includes essential user fields for performance
 export interface JWTPayload {
   userId: string;
   email: string;
+  name: string;
   verified: boolean;
+  // Optional fields that are commonly used but not always needed
+  phoneNumber?: string | null;
+  profilePicture?: string | null;
   purpose?: string; // Optional purpose field for different token types
   iat: number;
   exp: number;

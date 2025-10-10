@@ -19,7 +19,7 @@ const handler = withAuth(
         const requestId = (request as any).requestId || generateRequestId();
         const user = (request as any).user;
         const validatedData = (request as any).validatedData as VerifyEmailRequest;
-        
+
         try {
           const { code } = validatedData;
 
@@ -130,7 +130,10 @@ const handler = withAuth(
           const newToken = generateJWT({
             userId: verifiedUser.id.toString(),
             email: verifiedUser.email,
-            verified: true
+            name: verifiedUser.name,
+            verified: true,
+            phoneNumber: verifiedUser.phone_number,
+            profilePicture: verifiedUser.profile_picture
           });
 
           // Update auth cookie
@@ -158,7 +161,7 @@ const handler = withAuth(
 
         } catch (error) {
           console.error('Verify email error:', error);
-          
+
           return NextResponse.json(
             {
               success: false,

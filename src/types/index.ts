@@ -157,9 +157,11 @@ export interface LyricsDraft {
     version: number;
     lyrics_edit_prompt?: string;
     generated_text: string;
+    song_title?: string;
+    music_style?: string;
+    language: string;
+    llm_model_name?: string;
     status: 'draft' | 'needs_review' | 'approved' | 'archived';
-    created_by_user_id?: number;
-    created_by_anonymous_user_id?: string;
     created_at: string;
     updated_at: string;
 }

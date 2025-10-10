@@ -1,0 +1,43 @@
+POST http://localhost:3000/api/suno-webhook?&anonymousUserId=2a651edd-35ba-47f7-af18-91492aec1cad&requestId=86
+Content-Type: application/json
+
+{
+  "code": 200,
+  "msg": "All generated successfully.",
+  "data": {
+    "callbackType": "complete",
+    "task_id": "mock_task_1_1759920055317",
+    "data": [
+      {
+        "id": "78df5b9b-6168-4524-81c0-969adee3073a",
+        "audio_url": "https://apiboxfiles.erweima.ai/NzhkZjViOWItNjE2OC00NTI0LTgxYzAtOTY5YWRlZTMwNzNh.mp3",
+        "source_audio_url": "https://cdn1.suno.ai/78df5b9b-6168-4524-81c0-969adee3073a.mp3",
+        "stream_audio_url": "https://mfile.erweima.ai/NzhkZjViOWItNjE2OC00NTI0LTgxYzAtOTY5YWRlZTMwNzNh",
+        "source_stream_audio_url": "https://cdn1.suno.ai/78df5b9b-6168-4524-81c0-969adee3073a.mp3",
+        "image_url": "https://apiboxfiles.erweima.ai/NzhkZjViOWItNjE2OC00NTI0LTgxYzAtOTY5YWRlZTMwNzNh.jpeg",
+        "source_image_url": "https://cdn2.suno.ai/image_78df5b9b-6168-4524-81c0-969adee3073a.jpeg",
+        "prompt": "a happy song",
+        "model_name": "chirp-v4-5plus",
+        "title": "My Test Song - Acoustic Version",
+        "tags": "acoustic",
+        "createTime": "2025-01-01T10:00:00.000Z",
+        "duration": 150
+      },
+      {
+        "id": "980396fc-b213-4112-a903-419a3d1a9dc3",
+        "audio_url": "https://apiboxfiles.erweima.ai/OTgwMzk2ZmMtYjIxMy00MTEyLWE5MDMtNDE5YTNkMWE5ZGMz.mp3",
+        "source_audio_url": "https://cdn1.suno.ai/980396fc-b213-4112-a903-419a3d1a9dc3.mp3",
+        "stream_audio_url": "https://mfile.erweima.ai/OTgwMzk2ZmMtYjIxMy00MTEyLWE5MDMtNDE5YTNkMWE5ZGMz",
+        "source_stream_audio_url": "https://cdn1.suno.ai/980396fc-b213-4112-a903-419a3d1a9dc3.mp3",
+        "image_url": "https://apiboxfiles.erweima.ai/OTgwMzk2ZmMtYjIxMy00MTEyLWE5MDMtNDE5YTNkMWE5ZGMz.jpeg",
+        "source_image_url": "https://cdn2.suno.ai/image_980396fc-b213-4112-a903-419a3d1a9dc3.jpeg",
+        "prompt": "a happy song",
+        "model_name": "chirp-v4-5plus",
+        "title": "My Test Song - Electric Version",
+        "tags": "electric",
+        "createTime": "2025-01-01T10:00:00.000Z",
+        "duration": 180
+      }
+    ]
+  }
+}

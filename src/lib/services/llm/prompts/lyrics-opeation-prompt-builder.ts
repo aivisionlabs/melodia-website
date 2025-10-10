@@ -6,7 +6,7 @@ import { SongFormData } from '../llm-lyrics-opearation';
  */
 export function buildGenerationPrompt(): string {
   return `You are an expert songs producer writer who can produce songs in various music styles and in multiple languages, your job is to create a personalised song's
-  Lyrics, Title and Style of Music for the given requirements.
+  Lyrics, Title, Style of Music, Language of Lyrics for the given requirements.
 
 Make sure all the lyrics you produce have correct meaning and they rhyme well and they convey the feel which user wants to create from the song.
 Selection of the music instrument should also be thought of and mentioned in the music style.
@@ -21,14 +21,15 @@ Length of Music Style music style must be less than 1000 characters.
 If only if the time of the song is mentioned in the user input then consider reviewing and thinking which part of the song's structure can be shortened or removed?
 
 IMPORTANT:
-1. The song style that you produce should not include the name of any singer or music band.
-2. The Lyrics text script should be in the language which is provided in the user input.
+1. The song style that you produce should not include the name of any artist, singer or music band.
+2. The Lyrics text script should be in the language which is provided in the user input. If multiple langauges are provided then use the first language.
 3. All the numbers mentioned(if any) should be written in English.
-
+4. Title and music style of the song should always be in English.
+5. You must identify and return the language of the generated lyrics in the "language" field. Use the full language name (e.g., "English", "Spanish", "French", "Hindi", "German", etc.).
 
 STRICT OUTPUT RULES:
 - Output ONLY a single JSON object. No markdown, no code fences, no commentary, no extra text.
-- Do not include keys other than title, musicStyle, lyrics.
+- Do not include keys other than title, musicStyle, lyrics, language.
 - If you need line breaks, use \\n inside JSON strings.
 - Do not use any emojis or emoticons in the output text
 - Do not use excessive punctuation like !!..??.. or repetitive symbols
@@ -41,11 +42,9 @@ STRICT FORMAT CONSTRAINTS:
 
 LYRICS STRUCTURE RULES:
 - Use explicit section labels in brackets exactly as lines by themselves.
-- Start with a line like: (Music: brief intro mood/instrumentation)
-- Then use sections like: (Verse 1), (Chorus), (Verse 2), (Bridge), (Outro)
+- Use sections like: (Verse 1), (Chorus), (Verse 2), (Bridge), (Outro)
 - If there is an instrumental or melody, include it in brackets, e.g.: (Guitar Solo - soft and romantic)
 - Place the actual lyric lines immediately after each bracketed section label.
-- Keep labels and content clean and machine-parseable.
 
 Example (format only, not content):
 (Music: Starts with a soft, acoustic guitar melody)
@@ -70,7 +69,8 @@ The output should be in the following JSON format:
 {
   "title": "<a short title of the song, must be less than 8 words>",
   "musicStyle": "<description of the music style in 2-3 paragraphs>",
-  "lyrics": "<Songs Lyrics>"
+  "lyrics": "<Songs Lyrics>",
+  "language": "<the language of the lyrics (e.g., English, Spanish, French, etc.)>"
 }`;
 }
 

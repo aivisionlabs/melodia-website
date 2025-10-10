@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ArrowLeft, X } from "lucide-react";
 import { getSongRequestDataAction } from "@/lib/lyrics-actions";
 import { DBSongRequest } from "@/types/song-request";
+import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
 
 export default function GenerateLyricsPage({
   params,
@@ -55,9 +56,7 @@ export default function GenerateLyricsPage({
   // Check for existing lyrics
   const checkExistingLyrics = async (requestId: number) => {
     try {
-      const response = await fetch(
-        `/api/lyrics-display?requestId=${requestId}`
-      );
+      const response = await fetch(`/api/fetch-lyrics?requestId=${requestId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -66,20 +65,20 @@ export default function GenerateLyricsPage({
 
           // If lyrics exist, populate the form with existing lyrics
           if (data.data.lyricsDraft) {
-            const lyricsText = data.data.lyricsDraft.generated_text;
+            const lyricsText = data.data.lyricsDraft.generatedText;
             setEditedLyrics(lyricsText);
-            setGeneratedTitle(`For ${data.data.songRequest.recipient_details}`);
-            setGeneratedStyle("Personalized song style");
+            setGeneratedTitle(
+              data.data.lyricsDraft.title ||
+                `For ${data.data.songRequest.recipientDetails}`
+            );
+            setGeneratedStyle(
+              data.data.lyricsDraft.musicStyle || "Generating..."
+            );
             return true; // Lyrics exist
           }
         }
       } else if (response.status === 404) {
         // No lyrics exist yet - this is expected for new requests
-        console.log(
-          "No existing lyrics found for request",
-          requestId,
-          "- this is normal for new requests"
-        );
         return false; // No lyrics exist
       } else {
         // Handle other error cases
@@ -104,7 +103,7 @@ export default function GenerateLyricsPage({
       setIsGeneratingLyrics(true);
 
       try {
-        const response = await fetch("/api/generate-lyrics-with-storage", {
+        const response = await fetch("/api/generate-lyrics", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -130,12 +129,6 @@ export default function GenerateLyricsPage({
         console.log("API Response:", data);
 
         if (data.success && data.lyrics) {
-          console.log(
-            "🎵 Lyrics generated successfully, title:",
-            data.title,
-            "style:",
-            data.styleOfMusic
-          );
           setEditedLyrics(data.lyrics);
           setGeneratedTitle(
             data.title || `${songRequest.recipient_details}'s Song`
@@ -181,8 +174,8 @@ export default function GenerateLyricsPage({
           // Convert Date objects to strings for SongRequest type
           const songRequest: DBSongRequest = {
             ...songRequestFromDB,
-            languages: Array.isArray(songRequestFromDB.languages) 
-              ? songRequestFromDB.languages.join(',') 
+            languages: Array.isArray(songRequestFromDB.languages)
+              ? songRequestFromDB.languages.join(",")
               : songRequestFromDB.languages,
             created_at: songRequestFromDB.created_at.toISOString(),
             updated_at: songRequestFromDB.updated_at.toISOString(),
@@ -252,10 +245,12 @@ export default function GenerateLyricsPage({
       console.log("Updated lyrics response:", data);
 
       if (data.success && data.draft) {
-        console.log("Successfully updated lyrics:", data.draft.generated_text);
-        setEditedLyrics(data.draft.generated_text);
-        setGeneratedTitle(`${songRequest.recipient_details}'s Song`);
-        setGeneratedStyle("Personalized song style");
+        console.log("Successfully updated lyrics:", data.draft.generatedText);
+        setEditedLyrics(data.draft.generatedText);
+        setGeneratedTitle(
+          data.draft.title || `${songRequest.recipient_details}'s Song`
+        );
+        setGeneratedStyle(data.draft.musicStyle || "Personalized song style");
         setUserEditInput("");
         setIsEditingLyrics(false);
       } else {
@@ -286,9 +281,8 @@ export default function GenerateLyricsPage({
       setIsCreatingSong(true);
 
       // Step 1: Fetch lyrics draft
-      console.log("🎵 Fetching lyrics draft for requestId:", songRequest.id);
       const drafts = await fetch(
-        `/api/lyrics-display?requestId=${songRequest.id}`
+        `/api/fetch-lyrics?requestId=${songRequest.id}`
       );
 
       if (!drafts.ok) {
@@ -367,12 +361,11 @@ export default function GenerateLyricsPage({
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-melodia-cream text-melodia-teal flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-melodia-coral mx-auto mb-4"></div>
-          <p className="text-melodia-teal">Loading...</p>
-        </div>
-      </div>
+      <SongCreationLoadingScreen
+        duration={20}
+        title="Producing your lyrics"
+        message="Your materpeice needs perfect lyrics. We are working on it."
+      />
     );
   }
 

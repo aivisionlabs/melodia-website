@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import SongOptionsDisplay from "@/components/SongOptionsDisplay";
 import SongCreationLoadingScreen from "@/components/SongCreationLoadingScreen";
 import { useSongStatusPolling } from "@/hooks/use-song-status-polling";
@@ -49,15 +50,12 @@ export default function SongOptionsPage({
     router.back();
   };
 
-  const handleBackupWithGoogle = () => {
-    // LoginPromptCard handles navigation internally
-    // This function is kept for compatibility but not used
-  };
+  let content = null;
 
   // Loading state
   if (isLoading) {
     console.log("⏳ [PAGE] Rendering loading state");
-    return (
+    content = (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-melodia-coral mx-auto mb-4"></div>
@@ -69,11 +67,7 @@ export default function SongOptionsPage({
 
   // Error state
   if (error || !songStatus) {
-    console.log("❌ [PAGE] Rendering error state:", {
-      error,
-      hasSongStatus: !!songStatus,
-    });
-    return (
+    content = (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -111,7 +105,7 @@ export default function SongOptionsPage({
 
   // Song creation loading screen - show for PENDING status or when explicitly loading
   if (showLoadingScreen || songStatus?.status === "PENDING") {
-    return (
+    content = (
       <SongCreationLoadingScreen
         duration={45}
         title="Crafting your song..."
@@ -123,7 +117,7 @@ export default function SongOptionsPage({
 
   // Handle NOT_FOUND status - show error state
   if (songStatus?.status === "NOT_FOUND") {
-    return (
+    content = (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -160,8 +154,8 @@ export default function SongOptionsPage({
   }
 
   // No variants available - show this for non-PENDING statuses without variants
-  if (!songStatus.variants || songStatus.variants.length === 0) {
-    return (
+  if (!songStatus?.variants || songStatus.variants.length === 0) {
+    content = (
       <div className="min-h-screen bg-white text-melodia-teal flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -197,5 +191,37 @@ export default function SongOptionsPage({
     );
   }
 
-  return <SongOptionsDisplay songStatus={songStatus!} onBack={handleBack} />;
+  if (content) {
+    return (
+      <>
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={handleBack}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="w-6 h-6 text-text" />
+          </button>
+          <div className="flex-1"></div>
+        </div>
+        {content}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between p-4">
+        <button
+          onClick={handleBack}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Go back"
+        >
+          <ChevronLeft className="w-6 h-6 text-text" />
+        </button>
+        <div className="flex-1"></div>
+      </div>
+      <SongOptionsDisplay songStatus={songStatus!} onBack={handleBack} />
+    </>
+  );
 }

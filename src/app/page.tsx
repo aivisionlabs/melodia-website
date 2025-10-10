@@ -120,7 +120,11 @@ export default function CreateSongPage() {
       });
 
       if (!createRequestResponse.ok) {
-        throw new Error("Failed to create song request");
+        const errorData = await createRequestResponse.json();
+        console.log("🎵 Error data:", errorData);
+        throw new Error(
+          errorData?.errorMessage || "Failed to create song request"
+        );
       }
 
       const createRequestData = await createRequestResponse.json();
@@ -133,8 +137,7 @@ export default function CreateSongPage() {
       router.push(`/generate-lyrics/${newRequestId}`);
     } catch (error) {
       console.error("Error creating song request:", error);
-      const errorMessage =
-        "Sorry, there was an error creating your song request. Please check your connection and try again.";
+      const errorMessage = `Sorry, there was an error creating your song request. ${error}`;
       setError(errorMessage);
     }
   };
@@ -252,41 +255,44 @@ export default function CreateSongPage() {
 
         {step === 2 && (
           <div className="space-y-8">
-            <header className="text-center">
-              <div className="flex items-start justify-center gap-4 mb-4">
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity p-2 mt-1"
+            <header>
+              {/* Back Button */}
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-melodia-teal hover:opacity-70 transition-opacity py-2 mb-4"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <h1 className="text-3xl font-bold font-heading text-melodia-teal">
-                  Add your personal touch
-                </h1>
-              </div>
-              <p className="text-base text-gray-500">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Title */}
+              <h2 className="font-bold[!important] text-melodia-teal leading-tight mb-1">
+                Add your personal touch
+              </h2>
+
+              {/* Subtitle */}
+              <p className="text-sm text-gray-500 leading-relaxed">
                 This step is optional, but it makes the song truly unique!
               </p>
             </header>
             <div>
               <label
-                className="text-xl font-bold font-heading mb-2 block text-melodia-teal"
+                className="text-lg mb-2 block text-melodia-teal"
                 htmlFor="song-story"
               >
                 The Story Behind the Song{" "}
-                <span className="font-normal text-gray-400 text-sm">
+                <span className="font-normal text-gray-400 text-xs">
                   (Optional)
                 </span>
               </label>
@@ -295,14 +301,16 @@ export default function CreateSongPage() {
                 value={story}
                 onChange={(e) => setStory(e.target.value)}
                 placeholder="Share a memory, an inside joke, or what makes them special."
-                className="w-full min-h-40 p-4 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent text-melodia-teal placeholder:text-gray-400 transition-all duration-200"
+                className="w-full min-h-32 p-4 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-melodia-yellow focus:border-transparent text-melodia-teal placeholder:text-gray-400 transition-all duration-200 text-sm"
               />
             </div>
             <div>
-              <h2 className="text-xl font-bold font-heading mb-4 text-melodia-teal">
+              <h3 className="text-lg font-bold font-heading mb-4 text-melodia-teal">
                 The Vibe
-              </h2>
-              <h3 className="font-semibold text-lg mb-3 text-gray-600">Mood</h3>
+              </h3>
+              <h3 className="font-semibold text-base mb-3 text-gray-600">
+                Mood
+              </h3>
               <div className="flex flex-wrap gap-3">
                 {(
                   [
@@ -390,7 +398,7 @@ export default function CreateSongPage() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto bg-melodia-yellow">
-            <div className="min-h-full flex items-center justify-center p-6">
+            <div className="min-h-full flex justify-center p-6">
               <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
                 {/* Sparkle Icon */}
                 <div className="flex justify-center mb-6">
@@ -415,12 +423,20 @@ export default function CreateSongPage() {
                     {moods.includes("Other") ? customMood : moods.join(", ")}
                   </span>{" "}
                   song in <span className="font-bold">{languages}</span> for{" "}
-                  <span className="font-bold">{recipientDetails}</span>, for{" "}
+                  <span className="font-bold">{recipientDetails}</span>, for the
+                  occassion of{" "}
                   <span className="font-bold">
                     {occasion === "Other" ? customOccasion : occasion}
                   </span>
                   . Ready to see the magic?
                 </p>
+
+                {/* Error Display */}
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm font-medium">{error}</p>
+                  </div>
+                )}
 
                 {/* Create Button */}
                 <Button

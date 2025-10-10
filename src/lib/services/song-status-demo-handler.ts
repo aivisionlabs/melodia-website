@@ -46,28 +46,12 @@ export async function handleDemoMode(songId: string, taskId: string) {
   // Calculate status using the same service as production
   const statusResult = calculateSongStatus(variantData)
   const calculatedStatus = statusResult.songStatus
-
-  console.log('🧮 [DEMO] Calculated status from variant data:', {
-    songStatus: calculatedStatus,
-    variantsCount: variantData.length,
-    hasAnyStreamReady: statusResult.hasAnyStreamReady,
-    hasAnyDownloadReady: statusResult.hasAnyDownloadReady,
-    allVariantsDownloadReady: statusResult.allVariantsDownloadReady
-  })
-
   // Update database using the same service as production
   await updateDatabase(songId, calculatedStatus, demoSunoData)
 
   // After updating database, fetch the updated song to get the database status
   const updatedSong = await fetchUpdatedSong(songId)
   const databaseStatus = updatedSong.status as SongStatus
-
-  console.log('🎭 [DEMO] Using database status after update:', {
-    calculatedStatus: calculatedStatus,
-    databaseStatus: databaseStatus,
-    variantsCount: demoSunoData.length
-  })
-
   // Return response using database status
   return NextResponse.json(createApiResponse(databaseStatus, demoSunoData, updatedSong));
 }

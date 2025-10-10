@@ -15,7 +15,6 @@ import {
 export const songsTable = pgTable('songs', {
   id: serial('id').primaryKey(),
   song_request_id: integer('song_request_id').notNull().unique(), // Each request generates one song record
-  user_id: integer('user_id'), // Links to users table (can be null for anonymous)
 
   created_at: timestamp('created_at').notNull().defaultNow(),
   slug: text('slug').notNull().unique(),
@@ -85,10 +84,9 @@ export const lyricsDraftsTable = pgTable('lyrics_drafts', {
   generated_text: text('generated_text').notNull(),
   song_title: text('song_title'),
   music_style: text('music_style'),
+  language: text('language').notNull().default('English'), // Language of the generated lyrics
   llm_model_name: text('llm_model_name'),
   status: text('status').notNull().default('draft'),
-  created_by_user_id: integer('created_by_user_id'), // Reference to users table
-  created_by_anonymous_user_id: uuid('created_by_anonymous_user_id'), // Reference to anonymous_users table
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -156,19 +154,6 @@ export const paymentsTable = pgTable('payments', {
   metadata: jsonb('metadata'),
 });
 
-// Pricing plans table
-export const pricingPlansTable = pgTable('pricing_plans', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
-  currency: text('currency').default('INR'),
-  features: jsonb('features'),
-  is_active: boolean('is_active').default(true),
-  created_at: timestamp('created_at').defaultNow(),
-  updated_at: timestamp('updated_at').defaultNow(),
-});
-
 // Payment webhooks table
 export const paymentWebhooksTable = pgTable('payment_webhooks', {
   id: serial('id').primaryKey(),
@@ -185,8 +170,8 @@ export const paymentWebhooksTable = pgTable('payment_webhooks', {
 export type InsertPayment = typeof paymentsTable.$inferInsert;
 export type SelectPayment = typeof paymentsTable.$inferSelect;
 
-export type InsertPricingPlan = typeof pricingPlansTable.$inferInsert;
-export type SelectPricingPlan = typeof pricingPlansTable.$inferSelect;
+// Pricing plan types - REMOVED
+// These types have been removed as part of migration 0005_remove_pricing_plans.sql
 
 export type InsertPaymentWebhook = typeof paymentWebhooksTable.$inferInsert;
 export type SelectPaymentWebhook = typeof paymentWebhooksTable.$inferSelect;

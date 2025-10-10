@@ -19,10 +19,10 @@ const verifyOTPSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const requestId = generateRequestId();
-  
+
   try {
     const body = await request.json();
-    
+
     // Validate request data
     const validationResult = verifyOTPSchema.safeParse(body);
     if (!validationResult.success) {
@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
     const resetToken = generateJWT({
       userId: user.id.toString(),
       email: user.email,
+      name: user.name,
       verified: true,
       purpose: 'password_reset' // Special purpose for password reset
     });
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Verify forgot password OTP error:', error);
-    
+
     return NextResponse.json(
       {
         success: false,

@@ -11,7 +11,6 @@ export default function BestSongsPage() {
   useEffect(() => {
     (async () => {
       try {
-        console.log("Fetching library songs from frontend...");
         setLoading(true);
         const res = await fetch("/api/songs/library");
         const data = await res.json();

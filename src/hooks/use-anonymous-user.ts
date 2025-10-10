@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiPost } from '@/lib/api-utils'
+import { useAuth } from '@/hooks/use-auth'
 
 interface AnonymousUserState {
   anonymousUserId: string | null
@@ -13,8 +14,10 @@ interface AnonymousUserState {
  * Hook for managing anonymous user sessions
  * Automatically creates anonymous user on first visit
  * Persists session until browser close
+ * Only creates anonymous user if user is not authenticated
  */
 export const useAnonymousUser = () => {
+  const { user, loading: authLoading } = useAuth()
   const [state, setState] = useState<AnonymousUserState>({
     anonymousUserId: null,
     loading: true,
@@ -61,6 +64,16 @@ export const useAnonymousUser = () => {
   useEffect(() => {
     const initializeAnonymousUser = async () => {
       try {
+        // Don't create anonymous user if user is authenticated
+        if (user) {
+          setState({
+            anonymousUserId: null,
+            loading: false,
+            error: null
+          })
+          return
+        }
+
         // Check if anonymous user already exists in localStorage
         const existingAnonymousId = localStorage.getItem('anonymous_user_id')
 
@@ -73,7 +86,7 @@ export const useAnonymousUser = () => {
             error: null
           })
         } else {
-          // Create new anonymous user
+          // Create new anonymous user only if not authenticated
           await createAnonymousUser()
         }
       } catch (error) {
@@ -86,8 +99,11 @@ export const useAnonymousUser = () => {
       }
     }
 
-    initializeAnonymousUser()
-  }, [createAnonymousUser])
+    // Only initialize if auth loading is complete
+    if (!authLoading) {
+      initializeAnonymousUser()
+    }
+  }, [createAnonymousUser, user, authLoading])
 
   // Clear anonymous user (useful when user logs in)
   const clearAnonymousUser = useCallback(() => {
@@ -100,8 +116,8 @@ export const useAnonymousUser = () => {
   }, [])
 
   return {
-    anonymousUserId: state.anonymousUserId,
-    loading: state.loading,
+    anonymousUserId: user ? null : state.anonymousUserId, // Always null if user is authenticated
+    loading: authLoading || state.loading,
     error: state.error,
     createAnonymousUser,
     clearAnonymousUser

@@ -14,10 +14,10 @@ export interface AuthFormState {
   isSignUp: boolean;
   showPassword: boolean;
   isSubmitting: boolean;
-  
+
   // Validation
   validation: ReturnType<typeof useFormValidation>;
-  
+
   // Actions
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
@@ -26,7 +26,7 @@ export interface AuthFormState {
   setPhoneNumber: (phoneNumber: string) => void;
   setIsSignUp: (isSignUp: boolean) => void;
   setShowPassword: (showPassword: boolean) => void;
-  
+
   // Handlers
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -35,7 +35,7 @@ export interface AuthFormState {
   handlePhoneNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   toggleSignUpMode: () => void;
-  
+
   // Computed values
   isFormValid: boolean;
 }
@@ -107,7 +107,7 @@ export const useAuthForm = (): AuthFormState => {
     setIsSignUp(!isSignUp);
     clearError();
     validation.clearErrors();
-    
+
     // Clear additional fields when switching to login mode
     if (!isSignUp) {
       setDateOfBirth("");
@@ -124,7 +124,7 @@ export const useAuthForm = (): AuthFormState => {
 
     // Validate all fields
     let isValid = true;
-    
+
     if (isSignUp) {
       isValid = validation.validateField("name", name) && isValid;
       isValid = validation.validateField("dateOfBirth", dateOfBirth) && isValid;
@@ -132,7 +132,7 @@ export const useAuthForm = (): AuthFormState => {
         isValid = validation.validateField("phoneNumber", phoneNumber) && isValid;
       }
     }
-    
+
     isValid = validation.validateField("email", email) && isValid;
     isValid = validation.validateField("password", password) && isValid;
 
@@ -171,14 +171,14 @@ export const useAuthForm = (): AuthFormState => {
 
   // Computed values
   const isFormValid = Boolean(
-    email.trim() && 
-    password.trim() && 
-    !validation.errors.email && 
+    email.trim() &&
+    password.trim() &&
+    !validation.errors.email &&
     !validation.errors.password &&
     (!isSignUp || (
-      name.trim() && 
-      dateOfBirth.trim() && 
-      !validation.errors.name && 
+      !!name.trim() &&
+      !!dateOfBirth.trim() &&
+      !validation.errors.name &&
       !validation.errors.dateOfBirth &&
       (!phoneNumber.trim() || !validation.errors.phoneNumber)
     ))
@@ -195,10 +195,10 @@ export const useAuthForm = (): AuthFormState => {
     isSignUp,
     showPassword,
     isSubmitting,
-    
+
     // Validation
     validation,
-    
+
     // Actions
     setEmail,
     setPassword,
@@ -207,7 +207,7 @@ export const useAuthForm = (): AuthFormState => {
     setPhoneNumber,
     setIsSignUp,
     setShowPassword,
-    
+
     // Handlers
     handleEmailChange,
     handlePasswordChange,
@@ -216,7 +216,7 @@ export const useAuthForm = (): AuthFormState => {
     handlePhoneNumberChange,
     handleSubmit,
     toggleSignUpMode,
-    
+
     // Computed values
     isFormValid
   };

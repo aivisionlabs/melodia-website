@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import LyricalSongPlayer from "@/components/LyricalSongPlayer";
 import { LyricLine } from "@/types";
 import { Loader2 } from "lucide-react";
+import { useAuthenticatedApi } from "@/lib/api-client";
 
 interface SongLyricsData {
   id: number;
   slug: string;
   title: string;
   lyrics: LyricLine[];
+  rawLyricsText: string; // Raw lyrics text for non-English songs
+  language: string; // Language of the lyrics
   audioUrl: string | null;
   imageUrl: string | null;
   selectedVariant: number;
@@ -23,58 +26,57 @@ export default function SongLyricsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const searchParams = useSearchParams();
+  const { apiClient, hasUserContext } = useAuthenticatedApi();
 
   const [songData, setSongData] = useState<SongLyricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchSongData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchSongData = useCallback(async () => {
+    if (!hasUserContext) {
+      setError(
+        "Authentication required. Please ensure you have an active session."
+      );
+      setLoading(false);
+      return;
+    }
 
-        // Get user identification from URL parameters
-        const userId = searchParams.get("userId");
-        const anonymousUserId = searchParams.get("anonymousUserId");
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Build the API URL with user parameters
-        const apiUrl = new URL(
-          `/api/song/${slug}/lyrics`,
-          window.location.origin
-        );
-        if (userId) apiUrl.searchParams.set("userId", userId);
-        if (anonymousUserId)
-          apiUrl.searchParams.set("anonymousUserId", anonymousUserId);
+      const response = await apiClient.get(`/api/song/${slug}/lyrics`);
+      const data = await response.json();
 
-        const response = await fetch(apiUrl.toString());
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            setError("This song is private. Please sign in to view it.");
-          } else if (response.status === 404) {
-            setError("Song not found");
-          } else {
-            setError(data.error || "Failed to load song");
-          }
-          return;
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError(
+            "Authentication required. Please log in or ensure you have an active session."
+          );
+        } else if (response.status === 403) {
+          setError("This song is private. Please sign in to view it.");
+        } else if (response.status === 404) {
+          setError("Song not found");
+        } else {
+          setError(data.error || "Failed to load song");
         }
-
-        setSongData(data);
-      } catch (err) {
-        console.error("Error fetching song data:", err);
-        setError("Failed to load song. Please try again.");
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    if (slug) {
+      setSongData(data);
+    } catch (err) {
+      console.error("Error fetching song data:", err);
+      setError("Failed to load song. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, apiClient, hasUserContext]);
+
+  useEffect(() => {
+    if (slug && hasUserContext) {
       fetchSongData();
     }
-  }, [slug, searchParams]);
+  }, [slug, hasUserContext, fetchSongData]);
 
   const handleBack = () => {
     router.back();
@@ -186,6 +188,8 @@ export default function SongLyricsPage() {
       artistName="Melodia"
       audioUrl={songData.audioUrl}
       lyrics={songData.lyrics}
+      rawLyricsText={songData.rawLyricsText}
+      language={songData.language}
       imageUrl={songData.imageUrl || undefined}
       showDownload={songData.canDownload}
       showShare={true}

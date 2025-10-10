@@ -66,12 +66,6 @@ export async function tryRespondFromDatabase(song: any): Promise<DatabaseRespons
   const calculated = calculateSongStatus(variantData)
   const databaseStatus = song.status as SongStatus
 
-  console.log("🏁 [DB-FIRST] Database status check:", {
-    databaseStatus,
-    calculatedStatus: calculated.songStatus,
-    variantsCount: sunoData.length
-  })
-
   // If COMPLETE or FAILED in our DB view, we treat DB as source of truth
   if (databaseStatus === SONG_STATUS_MAP.COMPLETED) {
     return { shouldReturn: true, status: 'COMPLETED', sunoData: calculated.variants }

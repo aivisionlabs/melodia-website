@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 # Coding Standards for Melodia
 
@@ -95,24 +95,24 @@ interface ComponentProps {
 export const ComponentName = ({ onAction, isVisible, className }: ComponentProps) => {
   // State declarations - keep related state together
   const [state, setState] = useState<StateType>(initialValue);
-  
+
   // Refs
   const ref = useRef<HTMLElement>(null);
-  
+
   // Effects - single responsibility per effect
   useEffect(() => {
     // Effect logic
   }, [dependencies]);
-  
+
   // Event handlers - pure functions when possible
   const handleEvent = useCallback((event: EventType) => {
     // Handler logic - keep small and focused
     onAction(processedData);
   }, [onAction, dependencies]);
-  
+
   // Early returns for better readability
   if (!isVisible) return null;
-  
+
   return (
     <div className={className}>
       {/* JSX - semantic HTML */}
@@ -188,23 +188,23 @@ export async function createSong(
     // Input validation - single responsibility
     const validationResult = validateSongInput(title, artist);
     if (!validationResult.isValid) {
-      return { 
-        data: null, 
+      return {
+        data: null,
         error: validationResult.error,
-        success: false 
+        success: false
       };
     }
-    
+
     // Rate limiting - separate concern
     const rateLimitResult = await checkRateLimit(ip);
     if (!rateLimitResult.allowed) {
-      return { 
-        data: null, 
+      return {
+        data: null,
         error: 'Too many requests',
-        success: false 
+        success: false
       };
     }
-    
+
     // Database operations - dependency injection
     const supabase = createServerSupabaseClient();
     const result = await supabase
@@ -212,19 +212,19 @@ export async function createSong(
       .insert({ title, artist })
       .select()
       .single();
-    
-    return { 
-      data: result.data, 
+
+    return {
+      data: result.data,
       error: null,
-      success: true 
+      success: true
     };
   } catch (error) {
     // Error handling - consistent structure
     console.error('Error in createSong:', error);
-    return { 
-      data: null, 
+    return {
+      data: null,
       error: 'Internal server error',
-      success: false 
+      success: false
     };
   }
 }
@@ -255,16 +255,16 @@ export const useSongs = (userId?: string) => {
   const [songs, setSongs] = useState<Song[]>([])
   const [loadingState, setLoadingState] = useState<LoadingState>('idle')
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pure function - no side effects
   const fetchSongs = useCallback(async () => {
     try {
       setLoadingState('loading')
       setError(null)
-      
+
       // Dependency Inversion: Abstract the API call
       const response = await songService.getSongs(userId)
-      
+
       if (response.success) {
         setSongs(response.data || [])
         setLoadingState('success')
@@ -277,14 +277,14 @@ export const useSongs = (userId?: string) => {
       setLoadingState('error')
     }
   }, [userId])
-  
+
   // Single responsibility effect
   useEffect(() => {
     if (userId) {
       fetchSongs()
     }
   }, [fetchSongs, userId])
-  
+
   // Interface Segregation: Return only what's needed
   return {
     songs,
@@ -298,7 +298,7 @@ export const useSongs = (userId?: string) => {
 // DRY: Reusable validation hook
 export const useValidation = (rules: ValidationRule[]) => {
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
+
   const validate = useCallback((field: string, value: any) => {
     const rule = rules.find(r => r.field === field)
     if (rule) {
@@ -311,7 +311,7 @@ export const useValidation = (rules: ValidationRule[]) => {
     }
     return true
   }, [rules])
-  
+
   return { errors, validate, isValid: Object.values(errors).every(e => !e) }
 }
 ```
@@ -402,14 +402,14 @@ export const validateEmail = (email: string): boolean => {
 export const createValidator = (rules: ValidationRule[]) => {
   return (data: Record<string, any>) => {
     const errors: Record<string, string> = {};
-    
+
     rules.forEach(rule => {
       const result = rule.validate(data[rule.field]);
       if (!result.isValid) {
         errors[rule.field] = result.message;
       }
     });
-    
+
     return {
       isValid: Object.keys(errors).length === 0,
       errors
@@ -437,7 +437,7 @@ export class SongService {
     private db: DatabaseService,
     private email: EmailService
   ) {}
-  
+
   async createSong(songData: CreateSongData): Promise<ApiResponse<Song>> {
     // Single Responsibility: Only handles song creation
     const song = await this.db.create('songs', songData);
@@ -468,7 +468,7 @@ describe('validateEmail', () => {
   it('should return true for valid email', () => {
     expect(validateEmail('test@example.com')).toBe(true);
   });
-  
+
   it('should return false for invalid email', () => {
     expect(validateEmail('invalid-email')).toBe(false);
   });
@@ -482,13 +482,13 @@ describe('SongList', () => {
   it('should display songs when data is loaded', () => {
     const mockSongs = [{ id: 1, title: 'Test Song' }];
     render(<SongList songs={mockSongs} />);
-    
+
     expect(screen.getByText('Test Song')).toBeInTheDocument();
   });
-  
+
   it('should show loading state initially', () => {
     render(<SongList songs={[]} loading={true} />);
-    
+
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 });

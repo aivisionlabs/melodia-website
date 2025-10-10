@@ -4,12 +4,21 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Music, Heart, Zap, Users } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function OnboardingPage() {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Redirect authenticated users away from onboarding
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   const onboardingSteps = [
     {
@@ -62,6 +71,12 @@ export default function OnboardingPage() {
 
   // Handle CTA button click
   const handleStartCreating = async () => {
+    // Don't create anonymous user if user is already authenticated
+    if (user) {
+      router.push("/");
+      return;
+    }
+
     setIsCreatingUser(true);
     try {
       // Create anonymous user

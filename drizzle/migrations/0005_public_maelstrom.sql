@@ -1,0 +1,1 @@
+ALTER TABLE "lyrics_drafts" ADD COLUMN "language" text DEFAULT 'English' NOT NULL;

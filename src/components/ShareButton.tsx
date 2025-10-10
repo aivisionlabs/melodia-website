@@ -26,8 +26,8 @@ export const ShareButton = ({
   const handleShare = async () => {
     // Use slug-based URL if available, otherwise fall back to songId
     const url = slug
-      ? `${window.location.origin}/library/${slug}`
-      : `${window.location.origin}/library/${songId}`;
+      ? `${window.location.origin}/song/${slug}`
+      : `${window.location.origin}/song/${songId}`;
 
     if (navigator.share) {
       try {

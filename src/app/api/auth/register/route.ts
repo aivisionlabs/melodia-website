@@ -82,7 +82,10 @@ export async function POST(request: NextRequest) {
       const jwtToken = generateJWT({
         userId: result.user.id.toString(),
         email: result.user.email,
-        verified: result.user.email_verified || false
+        name: result.user.name,
+        verified: result.user.email_verified || false,
+        phoneNumber: result.user.phone_number,
+        profilePicture: result.user.profile_picture
       })
 
       // Create response with user data
@@ -94,14 +97,6 @@ export async function POST(request: NextRequest) {
       // Set JWT token cookie for authentication
       response.cookies.set('auth-token', jwtToken, {
         httpOnly: true, // Secure: prevent XSS attacks
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7 // 7 days
-      })
-
-      // Also set user-session cookie for client-side access (legacy support)
-      response.cookies.set('user-session', JSON.stringify(result.user), {
-        httpOnly: false, // Allow client-side access for localStorage sync
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7 // 7 days

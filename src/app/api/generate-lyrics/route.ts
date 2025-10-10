@@ -6,7 +6,7 @@ import { eq, desc } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { requestId, recipientDetails, languages, occassion, songStory, mood, userId, anonymousUserId } = await request.json();
+    const { requestId, recipientDetails, languages, occassion, songStory, mood } = await request.json();
 
     if (!requestId || !recipientDetails || !languages) {
       return NextResponse.json(
@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       generatedResponse = {
         title: `Demo Song for ${recipientDetails}`,
         musicStyle: 'Temp Music Style',
-        lyrics: `Demo lyrics for ${recipientDetails}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipientDetails}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`
+        lyrics: `Demo lyrics for ${recipientDetails}:\n\nVerse 1:\nThis is a demo song\nCreated just for you\nWith love and care\nAnd friendship true\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nVerse 2:\nMemories we've shared\nWill always remain\nIn our hearts forever\nThrough joy and pain\n\nChorus:\nHappy birthday to you\nMay all your dreams come true\nThis special day is yours\nThrough and through\n\nOutro:\nSo here's to you, ${recipientDetails}\nOn this wonderful day\nMay happiness and joy\nAlways come your way`,
+        language: 'English'
       };
     } else {
       // Try to generate lyrics using the existing LLM integration
@@ -72,10 +73,9 @@ export async function POST(request: NextRequest) {
         generated_text: generatedResponse.lyrics || '',
         song_title: generatedResponse.title,
         music_style: generatedResponse.musicStyle,
+        language: generatedResponse.language || 'English',
         llm_model_name: llmModelName,
-        status: 'draft',
-        created_by_user_id: userId || null,
-        created_by_anonymous_user_id: anonymousUserId || null
+        status: 'draft'
       })
       .returning();
 
@@ -92,12 +92,13 @@ export async function POST(request: NextRequest) {
       title: generatedResponse.title,
       styleOfMusic: generatedResponse.musicStyle,
       lyrics: generatedResponse.lyrics || '',
+      language: generatedResponse.language || 'English',
       draftId: draft.id,
       requestId: requestId
     });
 
   } catch (error) {
-    console.error('Error in generate-lyrics-with-storage API:', error);
+    console.error('Error in generate-lyrics API:', error);
     return NextResponse.json(
       {
         error: true,

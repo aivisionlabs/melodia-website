@@ -46,15 +46,15 @@ function validateSongRequestForm(formData: SongRequestPayload): { isValid: boole
 
   // Required fields validation
   if (!formData.requesterName?.trim()) {
-    errors.requesterName = 'Your name is required'
+    errors.errorMessage = 'Your name is required'
   } else if (formData.requesterName.length < 2) {
-    errors.requesterName = 'Name must be at least 2 characters'
+    errors.errorMessage = 'Name must be at least 2 characters'
   }
 
   if (!formData.recipientDetails?.trim()) {
-    errors.recipientDetails = 'Recipient details are required'
+    errors.errorMessage = 'Recipient details are required'
   } else if (formData.recipientDetails.length < 3) {
-    errors.recipientDetails = 'Recipient details must be at least 3 characters'
+    errors.errorMessage = 'Recipient details must be at least 3 characters'
   }
 
 
@@ -79,6 +79,7 @@ export async function createSongRequest(
   success: boolean
   requestId?: number
   error?: string
+  errorMessage?: string
 }> {
   try {
     // Input validation
@@ -89,7 +90,8 @@ export async function createSongRequest(
       );
       return {
         success: false,
-        error: `Please fix the validation errors and try again.`
+        error: `Please fix the validation errors and try again.`,
+        errorMessage: validation.errors.errorMessage
       }
     }
 

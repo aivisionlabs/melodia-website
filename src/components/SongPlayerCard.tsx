@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Play,
   Pause,
@@ -19,6 +25,7 @@ interface SongPlayerCardProps {
   variant: SongVariant;
   variantIndex: number;
   variantLabel?: string; // Customizable label (e.g., "Song Option 1", "Completed")
+  songVariantSelected?: boolean;
   showSharing?: boolean;
   showEmailInput?: boolean;
   sharePublicly?: boolean;
@@ -41,10 +48,168 @@ interface SongPlayerCardProps {
   onViewLyricalSong?: () => void;
 }
 
-export default function SongPlayerCard({
+// Memoized Album Art Component to prevent unnecessary re-renders
+const AlbumArt = React.memo(
+  ({
+    imageUrl,
+    title,
+    className,
+  }: {
+    imageUrl: string;
+    title: string;
+    className?: string;
+  }) => {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+
+    // Memoize the fallback URL to prevent unnecessary changes
+    const fallbackUrl = useMemo(() => "/images/melodia-logo.png", []);
+
+    // Memoize the final image URL to prevent unnecessary re-renders
+    const finalImageUrl = useMemo(() => {
+      if (imageError || !imageUrl) return fallbackUrl;
+      return imageUrl;
+    }, [imageUrl, imageError, fallbackUrl]);
+
+    const handleImageLoad = useCallback(() => {
+      setImageLoading(false);
+    }, []);
+
+    const handleImageError = useCallback(() => {
+      setImageError(true);
+      setImageLoading(false);
+    }, []);
+
+    return (
+      <div
+        className={cn(
+          "w-full h-full bg-white rounded overflow-hidden relative",
+          className
+        )}
+      >
+        {imageLoading && (
+          <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        <Image
+          src={finalImageUrl}
+          alt={`${title} album art`}
+          width={80}
+          height={80}
+          className="w-full h-full object-cover"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          priority={false}
+          loading="lazy"
+          unoptimized={false}
+        />
+      </div>
+    );
+  }
+);
+
+AlbumArt.displayName = "AlbumArt";
+
+// Reusable Play Controls Component
+interface PlayControlsProps {
+  onPlayPause: () => void;
+  onSkipBackward: () => void;
+  onSkipForward: () => void;
+  onSeek?: (time: number) => void;
+  isPlaying: boolean;
+  isLoading: boolean;
+  duration: number;
+  streamAudioUrl: string;
+  variantStatus: string;
+  showStatusText?: boolean;
+  statusText?: string;
+  showDownloadButton?: boolean;
+  downloadUrl?: string;
+  onDownload?: () => void;
+}
+
+function PlayControls({
+  onPlayPause,
+  onSkipBackward,
+  onSkipForward,
+  onSeek,
+  isPlaying,
+  isLoading,
+  duration,
+  streamAudioUrl,
+  variantStatus,
+  showStatusText = false,
+  statusText,
+  showDownloadButton = false,
+  downloadUrl,
+  onDownload,
+}: PlayControlsProps) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onSkipBackward}
+          disabled={
+            !onSeek ||
+            duration === 0 ||
+            (variantStatus !== "STREAM_READY" &&
+              variantStatus !== "DOWNLOAD_READY")
+          }
+          className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Skip backward 15 seconds"
+        >
+          <Rewind className="w-6 h-6 text-melodia-teal" />
+        </button>
+        <button
+          onClick={onPlayPause}
+          disabled={isLoading || !streamAudioUrl}
+          className="w-16 h-16 bg-melodia-yellow hover:bg-melodia-yellow/90 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+        >
+          {isLoading ? (
+            <div className="animate-spin rounded-full h-8 w-8 border-3 border-melodia-teal border-t-transparent"></div>
+          ) : isPlaying ? (
+            <Pause className="w-8 h-8 text-melodia-teal" />
+          ) : (
+            <Play className="w-8 h-8 text-melodia-teal ml-1" />
+          )}
+        </button>
+        <button
+          onClick={onSkipForward}
+          disabled={
+            !onSeek ||
+            duration === 0 ||
+            (variantStatus !== "STREAM_READY" &&
+              variantStatus !== "DOWNLOAD_READY")
+          }
+          className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Skip forward 15 seconds"
+        >
+          <FastForward className="w-6 h-6 text-melodia-teal" />
+        </button>
+      </div>
+
+      {/* Right side: Download button or Status text */}
+      {showDownloadButton && downloadUrl && onDownload ? (
+        <button
+          onClick={onDownload}
+          className="w-12 h-12 bg-melodia-coral text-white rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center"
+          title="Download"
+        >
+          <Download className="w-5 h-5" />
+        </button>
+      ) : showStatusText ? (
+        <div className="text-sm font-body text-gray-500">{statusText}</div>
+      ) : null}
+    </div>
+  );
+}
+
+const SongPlayerCard = React.memo(function SongPlayerCard({
   variant,
   variantIndex,
   variantLabel = `Song Option ${variantIndex + 1}`,
+  songVariantSelected = false,
   showSharing = false,
   showEmailInput = false,
   sharePublicly = false,
@@ -66,24 +231,51 @@ export default function SongPlayerCard({
   showLyricalSongButton = false,
   onViewLyricalSong,
 }: SongPlayerCardProps) {
-  const formatTime = (time: number) => {
+  // Memoize expensive calculations
+  const formatTime = useCallback((time: number) => {
     if (time === 0) return "0:00";
     if (isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
+  }, []);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     onPlayPause();
-  };
+  }, [onPlayPause]);
 
-  const handleDownloadClick = () => {
+  const handleDownloadClick = useCallback(() => {
     const audioUrl = variant.audioUrl || variant.sourceAudioUrl || "";
     if (audioUrl && onDownload) {
       onDownload(audioUrl, variant.title);
     }
-  };
+  }, [variant.audioUrl, variant.sourceAudioUrl, variant.title, onDownload]);
+
+  // Memoize derived values
+  const streamAudioUrl = useMemo(() => {
+    return variant.sourceStreamAudioUrl || variant.streamAudioUrl || "";
+  }, [variant.sourceStreamAudioUrl, variant.streamAudioUrl]);
+
+  const downloadUrl = useMemo(() => {
+    return variant.audioUrl || variant.sourceAudioUrl || "";
+  }, [variant.audioUrl, variant.sourceAudioUrl]);
+
+  const progress = useMemo(() => {
+    return duration > 0 ? (currentTime / duration) * 100 : 0;
+  }, [currentTime, duration]);
+
+  const statusText = useMemo(() => {
+    switch (variant.variantStatus) {
+      case "DOWNLOAD_READY":
+        return "Ready to download";
+      case "STREAM_READY":
+        return "Preparing download...";
+      case "PENDING":
+        return "Generating...";
+      default:
+        return "Generating...";
+    }
+  }, [variant.variantStatus]);
 
   // Seekbar functionality
   const seekbarRef = useRef<HTMLDivElement>(null);
@@ -164,46 +356,21 @@ export default function SongPlayerCard({
     };
   }, [isDragging, handleSeekbarClick]);
 
-  const handleSkipBackward = () => {
+  const handleSkipBackward = useCallback(() => {
     if (onSkipBackward) {
       onSkipBackward();
     } else if (onSeek) {
       onSeek(Math.max(0, currentTime - 15));
     }
-  };
+  }, [onSkipBackward, onSeek, currentTime]);
 
-  const handleSkipForward = () => {
+  const handleSkipForward = useCallback(() => {
     if (onSkipForward) {
       onSkipForward();
     } else if (onSeek) {
       onSeek(Math.min(duration, currentTime + 15));
     }
-  };
-
-  const getStatusText = () => {
-    switch (variant.variantStatus) {
-      case "DOWNLOAD_READY":
-        return "Ready to download";
-      case "STREAM_READY":
-        return "Preparing download...";
-      case "PENDING":
-        return "Generating...";
-      default:
-        return "Generating...";
-    }
-  };
-
-  const getStreamAudioUrl = () => {
-    return variant.sourceStreamAudioUrl || variant.streamAudioUrl || "";
-  };
-
-  const getDownloadUrl = () => {
-    return variant.audioUrl || variant.sourceAudioUrl || "";
-  };
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const streamAudioUrl = getStreamAudioUrl();
-  const downloadUrl = getDownloadUrl();
+  }, [onSkipForward, onSeek, duration, currentTime]);
 
   return (
     <div
@@ -240,7 +407,7 @@ export default function SongPlayerCard({
             {/* Subtle text for STREAM_READY */}
             {variant.variantStatus === "STREAM_READY" && (
               <p className="text-xs text-gray-400 font-body mb-2">
-                Preview available - Download ready soon
+                Download Ready Soon
               </p>
             )}
           </div>
@@ -276,14 +443,25 @@ export default function SongPlayerCard({
                   ></div>
                 </div>
                 <span className="text-sm text-gray-600 font-body w-24 text-right">
-                  {formatTime(currentTime)}
+                  {formatTime(currentTime)} /{" "}
+                  {duration > 0 ? formatTime(duration) : "..."}
                 </span>
               </div>
 
-              {/* Status text */}
-              <p className="text-sm text-gray-500 font-body">
-                {getStatusText()}
-              </p>
+              {/* Player Controls for STREAM_READY */}
+              <PlayControls
+                onPlayPause={handlePlayPause}
+                onSkipBackward={handleSkipBackward}
+                onSkipForward={handleSkipForward}
+                onSeek={onSeek}
+                isPlaying={isPlaying}
+                isLoading={isLoading}
+                duration={duration}
+                streamAudioUrl={streamAudioUrl}
+                variantStatus={variant.variantStatus}
+                showStatusText={true}
+                statusText={statusText}
+              />
             </div>
           ) : variant.variantStatus === "DOWNLOAD_READY" ? (
             <div className="space-y-4">
@@ -336,145 +514,58 @@ export default function SongPlayerCard({
 
         {/* Right side: Album art */}
         <div className="w-20 h-20 bg-gradient-to-br from-melodia-yellow to-melodia-yellow/80 p-1 rounded-lg border-2 border-melodia-yellow/30 flex-shrink-0">
-          <div className="w-full h-full bg-white rounded overflow-hidden">
-            <Image
-              src={variant.imageUrl || "/images/melodia-logo.png"}
-              alt={`${variant.title} album art`}
-              width={80}
-              height={80}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "/images/melodia-logo.png";
-              }}
-            />
-          </div>
+          <AlbumArt imageUrl={variant.imageUrl || ""} title={variant.title} />
         </div>
       </div>
       {variant.variantStatus === "DOWNLOAD_READY" &&
         (showLyricalSongButton && onViewLyricalSong ? (
           <div className="mt-4 space-y-4">
-            {/* Player Controls - Left side */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleSkipBackward}
-                  disabled={
-                    !onSeek ||
-                    duration === 0 ||
-                    variant.variantStatus !== "DOWNLOAD_READY"
-                  }
-                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Skip backward 15 seconds"
-                >
-                  <Rewind className="w-6 h-6 text-melodia-teal" />
-                </button>
-                <button
-                  onClick={handlePlayPause}
-                  disabled={isLoading || !streamAudioUrl}
-                  className="w-16 h-16 bg-melodia-yellow hover:bg-melodia-yellow/90 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-melodia-teal border-t-transparent"></div>
-                  ) : isPlaying ? (
-                    <Pause className="w-8 h-8 text-melodia-teal" />
-                  ) : (
-                    <Play className="w-8 h-8 text-melodia-teal ml-1" />
-                  )}
-                </button>
-                <button
-                  onClick={handleSkipForward}
-                  disabled={
-                    !onSeek ||
-                    duration === 0 ||
-                    variant.variantStatus !== "DOWNLOAD_READY"
-                  }
-                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Skip forward 15 seconds"
-                >
-                  <FastForward className="w-6 h-6 text-melodia-teal" />
-                </button>
-              </div>
+            {/* Player Controls */}
+            <PlayControls
+              onPlayPause={handlePlayPause}
+              onSkipBackward={handleSkipBackward}
+              onSkipForward={handleSkipForward}
+              onSeek={onSeek}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              duration={duration}
+              streamAudioUrl={streamAudioUrl}
+              variantStatus={variant.variantStatus}
+              showDownloadButton={!!downloadUrl}
+              downloadUrl={downloadUrl}
+              onDownload={handleDownloadClick}
+            />
 
-              {/* Download Button - Right side */}
-              {downloadUrl ? (
+            {songVariantSelected && isPermanentlySelected && (
+              <>
+                <div className="border-t border-gray-200" />
                 <button
-                  onClick={handleDownloadClick}
-                  className="w-12 h-12 bg-melodia-coral text-white rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center"
-                  title="Download"
+                  onClick={onViewLyricalSong}
+                  className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
                 >
-                  <Download className="w-5 h-5" />
+                  <FileText className="w-5 h-5" />
+                  <span>View Lyrical Song</span>
                 </button>
-              ) : null}
-            </div>
-
-            <div className="border-t border-gray-200" />
-            <button
-              onClick={onViewLyricalSong}
-              className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
-            >
-              <FileText className="w-5 h-5" />
-              <span>View Lyrical Song</span>
-            </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="mt-4 space-y-4">
-            {/* Player Controls - Left side, Download - Right side */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleSkipBackward}
-                  disabled={
-                    !onSeek ||
-                    duration === 0 ||
-                    variant.variantStatus !== "DOWNLOAD_READY"
-                  }
-                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Skip backward 15 seconds"
-                >
-                  <Rewind className="w-6 h-6 text-melodia-teal" />
-                </button>
-                <button
-                  onClick={handlePlayPause}
-                  disabled={isLoading || !streamAudioUrl}
-                  className="w-16 h-16 bg-melodia-yellow hover:bg-melodia-yellow/90 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-melodia-teal border-t-transparent"></div>
-                  ) : isPlaying ? (
-                    <Pause className="w-8 h-8 text-melodia-teal" />
-                  ) : (
-                    <Play className="w-8 h-8 text-melodia-teal ml-1" />
-                  )}
-                </button>
-                <button
-                  onClick={handleSkipForward}
-                  disabled={
-                    !onSeek ||
-                    duration === 0 ||
-                    variant.variantStatus !== "DOWNLOAD_READY"
-                  }
-                  className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Skip forward 15 seconds"
-                >
-                  <FastForward className="w-6 h-6 text-melodia-teal" />
-                </button>
-              </div>
-
-              {/* Download Button - Right side */}
-              {downloadUrl ? (
-                <button
-                  onClick={handleDownloadClick}
-                  className="w-12 h-12 bg-melodia-coral text-white rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center"
-                  title="Download"
-                >
-                  <Download className="w-5 h-5" />
-                </button>
-              ) : (
-                <div className="text-sm font-body text-gray-500">
-                  {getStatusText()}
-                </div>
-              )}
-            </div>
+            {/* Player Controls */}
+            <PlayControls
+              onPlayPause={handlePlayPause}
+              onSkipBackward={handleSkipBackward}
+              onSkipForward={handleSkipForward}
+              onSeek={onSeek}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              duration={duration}
+              streamAudioUrl={streamAudioUrl}
+              variantStatus={variant.variantStatus}
+              showDownloadButton={!!downloadUrl}
+              downloadUrl={downloadUrl}
+              onDownload={handleDownloadClick}
+            />
           </div>
         ))}
 
@@ -529,4 +620,8 @@ export default function SongPlayerCard({
         )}
     </div>
   );
-}
+});
+
+SongPlayerCard.displayName = "SongPlayerCard";
+
+export default SongPlayerCard;

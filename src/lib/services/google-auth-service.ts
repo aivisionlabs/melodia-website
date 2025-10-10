@@ -83,6 +83,7 @@ export class GoogleAuthService {
       const jwtToken = generateJWT({
         userId: user.id.toString(),
         email: user.email,
+        name: user.name,
         verified: user.email_verified || false
       });
       console.log('JWT token generated successfully');

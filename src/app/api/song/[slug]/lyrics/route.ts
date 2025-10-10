@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { songsTable, songRequestsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { songsTable, songRequestsTable, lyricsDraftsTable } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { convertAlignedWordsToLyricLines } from '@/lib/utils';
 import { getUserContextFromRequest } from '@/lib/middleware-utils';
-import { sanitizeAnonymousUserId } from '@/lib/utils/validation';
 
 export async function GET(
   request: NextRequest,
@@ -20,15 +19,19 @@ export async function GET(
       );
     }
 
-    // Get user context from middleware and request parameters
+    // Get user context from middleware - this is the ONLY source of truth
     const userContext = getUserContextFromRequest(request);
-    const { searchParams } = new URL(request.url);
-    const userIdParam = searchParams.get('userId');
-    const anonymousUserIdParam = searchParams.get('anonymousUserId');
 
-    // Determine the user ID and anonymous user ID to use
-    const userId = userContext.userId || (userIdParam ? parseInt(userIdParam, 10) : null);
-    const anonymousUserId = sanitizeAnonymousUserId(anonymousUserIdParam || userContext.anonymousUserId);
+    // Validate that we have proper user context
+    if (!userContext.userId && !userContext.anonymousUserId) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please log in or ensure you have an active session.' },
+        { status: 401 }
+      );
+    }
+
+    const userId = userContext.userId;
+    const anonymousUserId = userContext.anonymousUserId;
 
     // Fetch song with song request data to check ownership
     const songsWithRequest = await db
@@ -93,6 +96,25 @@ export async function GET(
     // Get variant data
     const variants = song.song_variants as any;
     const variantData = variants?.[selectedVariant] || variants?.[0] || null;
+
+    // Get language and raw lyrics from lyrics_drafts table
+    let language = 'English'; // Default fallback
+    let rawLyricsText = ''; // Raw lyrics text for non-English songs
+    try {
+      const lyricsDraft = await db
+        .select({ language: lyricsDraftsTable.language, generated_text: lyricsDraftsTable.generated_text })
+        .from(lyricsDraftsTable)
+        .where(eq(lyricsDraftsTable.song_request_id, song.song_request_id))
+        .orderBy(desc(lyricsDraftsTable.version))
+        .limit(1);
+
+      if (lyricsDraft[0]) {
+        language = lyricsDraft[0].language || 'English';
+        rawLyricsText = lyricsDraft[0].generated_text || '';
+      }
+    } catch (error) {
+      console.warn('Could not fetch language from lyrics_drafts:', error);
+    }
 
     // Get timestamped lyrics for the selected variant
     const timestampLyrics = song.variant_timestamp_lyrics_processed as any;
@@ -209,6 +231,8 @@ export async function GET(
       slug: song.slug,
       title: songTitle,
       lyrics,
+      rawLyricsText, // Raw lyrics text for non-English songs
+      language, // Language of the lyrics
       audioUrl,
       imageUrl,
       selectedVariant,

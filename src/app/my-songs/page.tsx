@@ -11,6 +11,7 @@ import SongOptionsDisplay from "@/components/SongOptionsDisplay";
 import type { SongStatusResponse } from "@/lib/song-status-client";
 import { LoginPromptCard } from "@/components/LoginPromptCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuthenticatedApi } from "@/lib/api-client";
 
 type ApiSongVariant = {
   index: number;
@@ -47,11 +48,12 @@ type FetchResponse = {
   total: number;
   hasMore: boolean;
   songs: ApiSongItem[];
-  inProgressRequests: {
-    id: number;
-    status: string | null;
-    created_at: string;
+  items: {
+    requestId: number;
+    createdAt: string;
+    stage: "SONG_REQUEST_CREATED" | "LYRICS_CREATED" | "SONG_CREATED";
     title: string;
+    song: { id: number; slug: string } | null;
   }[];
 };
 
@@ -59,14 +61,21 @@ export default function MySongsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { anonymousUserId, loading: anonLoading } = useAnonymousUser();
+  const { apiClient, hasUserContext } = useAuthenticatedApi();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalSongs, setTotalSongs] = useState(0);
+  // Track pagination only
   const [loading, setLoading] = useState(false);
   const [songs, setSongs] = useState<ApiSongItem[]>([]);
-  const [inProgressRequests, setInProgressRequests] = useState<
-    { id: number; status: string | null; created_at: string; title: string }[]
+  const [items, setItems] = useState<
+    {
+      requestId: number;
+      createdAt: string;
+      stage: "SONG_REQUEST_CREATED" | "LYRICS_CREATED" | "SONG_CREATED";
+      title: string;
+      song: { id: number; slug: string } | null;
+    }[]
   >([]);
 
   const isAuthResolved = !authLoading && !anonLoading;
@@ -74,25 +83,31 @@ export default function MySongsPage() {
 
   const fetchPage = useCallback(
     async (page: number) => {
-      if (!isAuthResolved || loading) return;
+      if (!isAuthResolved || loading || !hasUserContext) return;
       setLoading(true);
 
       const qp = new URLSearchParams();
       qp.set("page", String(page));
       qp.set("pageSize", String(pageSize));
-      if (user?.id) qp.set("userId", String(user.id));
-      else if (anonymousUserId) qp.set("anonymousUserId", anonymousUserId);
 
       try {
-        const res = await fetch(`/api/fetch-user-song?${qp.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch songs");
+        const res = await apiClient.get(
+          `/api/fetch-user-song?${qp.toString()}`
+        );
+        if (!res.ok) {
+          if (res.status === 401) {
+            // Handle authentication error
+            console.warn("Authentication required for fetching songs");
+            return;
+          }
+          throw new Error("Failed to fetch songs");
+        }
         const data: FetchResponse = await res.json();
 
         if (data?.success) {
           setSongs(data.songs);
-          setTotalSongs(data.total);
           setTotalPages(Math.ceil(data.total / pageSize));
-          if (page === 1) setInProgressRequests(data.inProgressRequests || []);
+          if (page === 1) setItems(data.items || []);
         }
       } catch (error) {
         console.error("Error fetching user songs:", error);
@@ -101,18 +116,17 @@ export default function MySongsPage() {
         setLoading(false);
       }
     },
-    [isAuthResolved, loading, pageSize, user?.id, anonymousUserId]
+    [isAuthResolved, loading, pageSize, apiClient, hasUserContext]
   );
 
   useEffect(() => {
     if (isAuthResolved) {
       setSongs([]);
-      setInProgressRequests([]);
+      setItems([]);
       setCurrentPage(1);
       setTotalPages(1);
-      setTotalSongs(0);
     }
-  }, [isAuthResolved, user?.id, anonymousUserId]);
+  }, [isAuthResolved, hasUserContext]);
 
   useEffect(() => {
     if (isAuthResolved && currentPage === 1) {
@@ -173,29 +187,33 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {inProgressRequests.length > 0 && (
+        {items.filter((i) => i.stage !== "SONG_CREATED").length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold font-heading mb-4">
-              In progress
-            </h2>
+            <div className="text-xl font-semibold  mb-4">In progress</div>
             <div className="space-y-4">
-              {inProgressRequests.map((r) => (
-                <SongRequestInProgressCard
-                  key={r.id}
-                  variant="in-progress"
-                  title={r.title}
-                  onView={() => router.push(`/generate-lyrics/${r.id}`)}
-                />
-              ))}
+              {items
+                .filter(
+                  (i) =>
+                    i.stage === "SONG_REQUEST_CREATED" ||
+                    i.stage === "LYRICS_CREATED"
+                )
+                .map((i) => (
+                  <SongRequestInProgressCard
+                    key={i.requestId}
+                    variant="in-progress"
+                    title={i.title}
+                    onView={() =>
+                      router.push(`/generate-lyrics/${i.requestId}`)
+                    }
+                  />
+                ))}
             </div>
           </div>
         )}
 
         {songs.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold font-heading mb-4">
-              Completed songs
-            </h2>
+            <h2 className="text-l font-semibold mb-4">Completed songs</h2>
             <div className="space-y-4">
               {allSongs.map(({ song, songStatus }) => (
                 <SongOptionsDisplay
@@ -208,7 +226,7 @@ export default function MySongsPage() {
           </div>
         )}
 
-        {songs.length === 0 && inProgressRequests.length === 0 && !loading && (
+        {songs.length === 0 && items.length === 0 && !loading && (
           <div className="text-center py-12">
             <h2 className="text-2xl font-heading font-bold mb-2">
               No songs yet
@@ -285,7 +303,6 @@ export default function MySongsPage() {
             Loading songs...
           </div>
         )}
-
       </div>
 
       <BottomNavigation />

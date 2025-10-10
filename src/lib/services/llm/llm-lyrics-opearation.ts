@@ -8,6 +8,7 @@ const LLMResponseSchema = z.object({
   title: z.string().optional(),
   musicStyle: z.string().optional(),
   lyrics: z.string().optional(),
+  language: z.string().optional(),
 });
 
 export type LLMResponse = z.infer<typeof LLMResponseSchema>;

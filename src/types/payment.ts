@@ -99,7 +99,6 @@ export interface RazorpayWebhookEvent {
 // API Request/Response Types
 export interface CreateOrderRequest {
   songRequestId: number;
-  planId: number;
   anonymous_user_id?: string;
 }
 
