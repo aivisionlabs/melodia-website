@@ -162,7 +162,11 @@ export class GoogleAuthService {
 
         const user = updatedUsers[0];
         console.log(`User updated successfully:`, { id: user?.id, email: user?.email, name: user?.name });
-        return user || null;
+        return user ? {
+          ...user,
+          created_at: user.created_at.toISOString(),
+          updated_at: user.updated_at.toISOString()
+        } : null;
       } else {
         // Create new user
         console.log(`Creating new user: ${googleUser.email}`);
@@ -180,7 +184,11 @@ export class GoogleAuthService {
 
         const user = newUsers[0];
         console.log(`New user created successfully:`, { id: user?.id, email: user?.email, name: user?.name });
-        return user || null;
+        return user ? {
+          ...user,
+          created_at: user.created_at.toISOString(),
+          updated_at: user.updated_at.toISOString()
+        } : null;
       }
     } catch (error) {
       console.error('Error creating/updating user:', error);
