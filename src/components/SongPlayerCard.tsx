@@ -25,6 +25,7 @@ interface SongPlayerCardProps {
   variant: SongVariant;
   variantIndex: number;
   variantLabel?: string; // Customizable label (e.g., "Song Option 1", "Completed")
+  songVariantSelected?: boolean;
   showSharing?: boolean;
   showEmailInput?: boolean;
   sharePublicly?: boolean;
@@ -208,6 +209,7 @@ const SongPlayerCard = React.memo(function SongPlayerCard({
   variant,
   variantIndex,
   variantLabel = `Song Option ${variantIndex + 1}`,
+  songVariantSelected = false,
   showSharing = false,
   showEmailInput = false,
   sharePublicly = false,
@@ -534,14 +536,18 @@ const SongPlayerCard = React.memo(function SongPlayerCard({
               onDownload={handleDownloadClick}
             />
 
-            <div className="border-t border-gray-200" />
-            <button
-              onClick={onViewLyricalSong}
-              className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
-            >
-              <FileText className="w-5 h-5" />
-              <span>View Lyrical Song</span>
-            </button>
+            {songVariantSelected && isPermanentlySelected && (
+              <>
+                <div className="border-t border-gray-200" />
+                <button
+                  onClick={onViewLyricalSong}
+                  className="h-12 px-4 w-full bg-melodia-coral text-white font-body font-semibold rounded-full hover:bg-melodia-coral/90 transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span>View Lyrical Song</span>
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="mt-4 space-y-4">

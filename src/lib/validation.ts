@@ -40,49 +40,49 @@ export const validateName = (name: string): string => {
 
 export const validateDateOfBirth = (dob: string): string => {
   if (!dob.trim()) return "Date of birth is required";
-  
+
   // Check format DD/MM/YYYY
   const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
   if (!dateRegex.test(dob)) return "Please enter date in DD/MM/YYYY format";
-  
+
   const [, day, month, year] = dob.match(dateRegex)!;
   const dayNum = parseInt(day);
   const monthNum = parseInt(month);
   const yearNum = parseInt(year);
-  
+
   // Check if date is valid
   if (monthNum < 1 || monthNum > 12) return "Invalid month";
   if (dayNum < 1 || dayNum > 31) return "Invalid day";
   if (yearNum < 1900 || yearNum > new Date().getFullYear()) return "Invalid year";
-  
+
   // Check if date actually exists
   const date = new Date(yearNum, monthNum - 1, dayNum);
   if (date.getDate() !== dayNum || date.getMonth() !== monthNum - 1 || date.getFullYear() !== yearNum) {
     return "Invalid date";
   }
-  
+
   // Check if user is at least 13 years old
   const today = new Date();
   const age = today.getFullYear() - yearNum;
   if (age < 13) return "You must be at least 13 years old";
-  
+
   return "";
 };
 
 export const validatePhoneNumber = (phone: string): string => {
   if (!phone.trim()) return ""; // Phone is optional
-  
+
   // Remove all non-digit characters
   const cleanPhone = phone.replace(/\D/g, '');
-  
+
   // Check if it contains only digits
   if (!/^\d+$/.test(cleanPhone)) return "Phone number can only contain digits";
-  
+
   // Check length (should be 10 digits for most countries)
-  if (cleanPhone.length < 10 || cleanPhone.length > 15) {
-    return "Phone number should be 10-15 digits";
+  if (cleanPhone.length !== 10) {
+    return "Phone number should be 10 digits";
   }
-  
+
   return "";
 };
 
@@ -159,7 +159,7 @@ export const formatPhoneNumber = (value: string): string => {
 // Date conversion utility
 export const convertDateFormat = (dateString: string, fromFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD', toFormat: 'DD/MM/YYYY' | 'YYYY-MM-DD'): string => {
   if (!dateString.trim()) return dateString;
-  
+
   if (fromFormat === 'DD/MM/YYYY' && toFormat === 'YYYY-MM-DD') {
     // Convert DD/MM/YYYY to YYYY-MM-DD
     const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -177,6 +177,6 @@ export const convertDateFormat = (dateString: string, fromFormat: 'DD/MM/YYYY' |
       return `${day}/${month}/${year}`;
     }
   }
-  
+
   return dateString; // Return original if no conversion needed or format doesn't match
 };

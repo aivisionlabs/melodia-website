@@ -11,11 +11,11 @@ import { PasswordField } from "@/components/forms/PasswordField";
 // Single Responsibility: Component handles signup page UI (no auth check needed)
 export default function SignupPage() {
   const router = useRouter();
-  
+
   // State for independent password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Dependency Inversion: Use custom hook for form management
   const form = useProfileInfoForm();
 
@@ -34,7 +34,13 @@ export default function SignupPage() {
           className="text-melodia-teal hover:text-melodia-coral transition-colors"
           aria-label="Close"
         >
-          <svg fill="currentColor" height="28" viewBox="0 0 256 256" width="28" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            fill="currentColor"
+            height="28"
+            viewBox="0 0 256 256"
+            width="28"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
           </svg>
         </button>
@@ -61,7 +67,7 @@ export default function SignupPage() {
               error={form.validation.errors.name}
               required
             />
-            
+
             <FormField
               id="dateOfBirth"
               placeholder="Date of birth (DD/MM/YYYY)"
@@ -71,7 +77,7 @@ export default function SignupPage() {
               maxLength={10}
               required
             />
-            
+
             <FormField
               id="email"
               type="email"
@@ -81,16 +87,7 @@ export default function SignupPage() {
               error={form.validation.errors.email}
               required
             />
-            
-            <FormField
-              id="phoneNumber"
-              type="tel"
-              placeholder="Phone number (optional)"
-              value={form.phoneNumber}
-              onChange={form.handlePhoneNumberChange}
-              error={form.validation.errors.phoneNumber}
-            />
-            
+
             <PasswordField
               id="password"
               placeholder="Password (minimum 6 characters)"
@@ -101,7 +98,7 @@ export default function SignupPage() {
               showPassword={showPassword}
               onToggleVisibility={() => setShowPassword(!showPassword)}
             />
-            
+
             <PasswordField
               id="confirmPassword"
               placeholder="Confirm password"
@@ -110,7 +107,18 @@ export default function SignupPage() {
               error={form.validation.errors.confirmPassword}
               required
               showPassword={showConfirmPassword}
-              onToggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
+              onToggleVisibility={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            />
+
+            <FormField
+              id="phoneNumber"
+              type="tel"
+              placeholder="Phone number (optional)"
+              value={form.phoneNumber}
+              onChange={form.handlePhoneNumberChange}
+              error={form.validation.errors.phoneNumber}
             />
 
             <Button
@@ -134,12 +142,18 @@ export default function SignupPage() {
       {/* Footer with Legal Text - Fixed at bottom */}
       <footer className="p-6 text-center">
         <p className="text-xs text-melodia-teal/60">
-            By continuing, you agree to Melodia&apos;s{" "}
-          <Link href="/terms" className="underline text-melodia-coral hover:text-melodia-coral/80">
+          By continuing, you agree to Melodia&apos;s{" "}
+          <Link
+            href="/terms"
+            className="underline text-melodia-coral hover:text-melodia-coral/80"
+          >
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="underline text-melodia-coral hover:text-melodia-coral/80">
+          <Link
+            href="/privacy"
+            className="underline text-melodia-coral hover:text-melodia-coral/80"
+          >
             Privacy Policy
           </Link>
           .

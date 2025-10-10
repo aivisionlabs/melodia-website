@@ -92,25 +92,20 @@ function extractUserContext(request: NextRequest): UserContext {
     }
   }
 
-  // Try to get anonymous user ID from request headers (sent by frontend)
-  const anonymousUserIdHeader = request.headers.get('x-anonymous-user-id')
-  if (anonymousUserIdHeader) {
-    anonymousUserId = anonymousUserIdHeader
-  }
-
-  // If no authenticated user, try to get anonymous user ID from localStorage via custom header
-  // This is set by the frontend when making API calls
-  if (!isAuthenticated && !anonymousUserId) {
+  // Only process anonymous user ID if no authenticated user
+  // This prevents confusion when both JWT and anonymous ID exist (during transition)
+  if (!isAuthenticated) {
+    // Try to get anonymous user ID from localStorage header (sent by frontend)
     const localStorageAnonymousId = request.headers.get('x-local-anonymous-user-id')
     if (localStorageAnonymousId) {
       anonymousUserId = localStorageAnonymousId
     }
-  }
 
-  // Validate anonymous user ID format if present
-  if (anonymousUserId && !isValidAnonymousUserId(anonymousUserId)) {
-    console.warn('Invalid anonymous user ID format:', anonymousUserId)
-    anonymousUserId = undefined
+    // Validate anonymous user ID format if present
+    if (anonymousUserId && !isValidAnonymousUserId(anonymousUserId)) {
+      console.warn('Invalid anonymous user ID format:', anonymousUserId)
+      anonymousUserId = undefined
+    }
   }
 
   return {

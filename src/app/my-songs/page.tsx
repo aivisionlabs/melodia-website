@@ -213,9 +213,7 @@ export default function MySongsPage() {
 
         {songs.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold font-heading mb-4">
-              Completed songs
-            </h2>
+            <h2 className="text-l font-semibold mb-4">Completed songs</h2>
             <div className="space-y-4">
               {allSongs.map(({ song, songStatus }) => (
                 <SongOptionsDisplay

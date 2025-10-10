@@ -196,6 +196,9 @@ export default function SongOptionsDisplay({
             >
               <SongPlayerCard
                 variant={variant}
+                songVariantSelected={
+                  !(songStatus.selectedVariantIndex === null)
+                }
                 variantIndex={index}
                 variantLabel={`Song Option ${index + 1}`}
                 showSharing={false}
@@ -238,9 +241,9 @@ export default function SongOptionsDisplay({
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="h-full bg-white pb-20">
       {/* Header */}
-      <div className="px-4 pt-24 pb-4">
+      <div className="px-4 pt-2 pb-4">
         {isFinalSelectionMade ? (
           <div className="text-center mb-8">
             <h1 className="font-heading text-melodia-teal">Your Songs</h1>

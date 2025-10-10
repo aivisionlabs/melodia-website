@@ -398,7 +398,7 @@ export default function CreateSongPage() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto bg-melodia-yellow">
-            <div className="min-h-full flex items-center justify-center p-6">
+            <div className="min-h-full flex justify-center p-6">
               <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
                 {/* Sparkle Icon */}
                 <div className="flex justify-center mb-6">

@@ -47,15 +47,13 @@ export class AuthenticatedApiClient {
       ? localStorage.getItem('anonymous_user_id')
       : null
 
-    const headers: HeadersInit = {
-      ...options.headers,
-      // Always include credentials for session cookies
-      credentials: 'include'
+    const headers: Record<string, string> = {
+      ...options.headers as Record<string, string>,
     }
 
-    // Add anonymous user ID header if available
+    // Add anonymous user ID header if available (for anonymous users or pre-merge scenarios)
     if (anonymousUserId) {
-      (headers as Record<string, string>)['x-anonymous-user-id'] = anonymousUserId
+      headers['x-local-anonymous-user-id'] = anonymousUserId
     }
 
     return fetch(`${this.baseUrl}${endpoint}`, {

@@ -45,6 +45,14 @@ export async function GET(request: NextRequest) {
     // Get user context from middleware - this is the ONLY source of truth
     const userContext = getUserContextFromRequest(request)
 
+    console.log("[fetch-user-song] User context:", {
+      userId: userContext.userId,
+      anonymousUserId: userContext.anonymousUserId,
+      isAuthenticated: userContext.isAuthenticated,
+      hasUserId: !!userContext.userId,
+      hasAnonymousUserId: !!userContext.anonymousUserId
+    });
+
     // Validate that we have proper user context
     if (!userContext.userId && !userContext.anonymousUserId) {
       return NextResponse.json(
@@ -80,6 +88,11 @@ export async function GET(request: NextRequest) {
       ? eq(songRequestsTable.user_id, userId)
       : eq(songRequestsTable.anonymous_user_id, anonymousUserId!)
 
+    console.log("[fetch-user-song] Querying with filter:", {
+      type: userId ? 'user_id' : 'anonymous_user_id',
+      value: userId || anonymousUserId
+    });
+
     // Fetch all song requests for owner
     const allRequests = await db
       .select({
@@ -91,6 +104,11 @@ export async function GET(request: NextRequest) {
       .from(songRequestsTable)
       .where(ownershipFilter)
       .orderBy(desc(songRequestsTable.created_at))
+
+    console.log("[fetch-user-song] Found requests:", {
+      count: allRequests.length,
+      requestIds: allRequests.slice(0, 5).map(r => r.id) // Log first 5 IDs for debugging
+    });
 
     // Fetch songs for all owner requests
     const requestIds = new Set(allRequests.map((r) => r.id))

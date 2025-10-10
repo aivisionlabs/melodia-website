@@ -55,10 +55,13 @@ function extractUserContextDirect(request: NextRequest): UserContext {
     }
   }
 
-  // Try to get anonymous user ID from request headers (sent by frontend)
-  const localStorageAnonymousId = request.headers.get('x-local-anonymous-user-id')
-  if (localStorageAnonymousId) {
-    anonymousUserId = localStorageAnonymousId
+  // Only process anonymous user ID if no authenticated user
+  if (!isAuthenticated) {
+    // Try to get anonymous user ID from request headers (sent by frontend)
+    const localStorageAnonymousId = request.headers.get('x-local-anonymous-user-id')
+    if (localStorageAnonymousId) {
+      anonymousUserId = localStorageAnonymousId
+    }
   }
 
   return {

@@ -46,57 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: false,
   });
 
-  // Cache key for localStorage
-  const CACHE_KEY = "melodia_auth_cache";
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-  // Check if we have cached auth data
-  const getCachedAuth = useCallback((): {
-    user: User;
-    timestamp: number;
-  } | null => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        const now = Date.now();
-        // Check if cache is still valid (within 5 minutes)
-        if (parsed.timestamp && now - parsed.timestamp < CACHE_DURATION) {
-          return parsed;
-        }
-        // Clear expired cache
-        localStorage.removeItem(CACHE_KEY);
-      }
-    } catch (error) {
-      console.error("Error reading auth cache:", error);
-      localStorage.removeItem(CACHE_KEY);
-    }
-    return null;
-  }, [CACHE_DURATION]);
-
-  // Cache auth data
-  const setCachedAuth = useCallback(
-    (user: User | null) => {
-      try {
-        if (user) {
-          localStorage.setItem(
-            CACHE_KEY,
-            JSON.stringify({
-              user,
-              timestamp: Date.now(),
-            })
-          );
-        } else {
-          localStorage.removeItem(CACHE_KEY);
-        }
-      } catch (_error) {
-        console.error("Error caching auth data:", _error);
-      }
-    },
-    [CACHE_KEY]
-  );
-
-  // Fetch user data from API
+  // Fetch user data from API - JWT cookie is the source of truth
   const fetchUserData = useCallback(async (): Promise<User | null> => {
     try {
       const response = await fetch("/api/auth/me", {
@@ -113,66 +63,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return null;
     } catch (error) {
       console.error("Error fetching user data:", error);
-      throw error;
+      return null;
     }
   }, []);
 
-  // Initialize auth state
+  // Initialize auth state - simplified without localStorage cache
   const initializeAuth = useCallback(async () => {
     try {
-      // First, check if we have valid cached data
-      const cached = getCachedAuth();
-      if (cached) {
-        setAuthState({
-          user: cached.user,
-          loading: false,
-          error: null,
-          isAuthenticated: true,
-        });
-
-        // Optionally refresh in background (silent refresh)
-        fetchUserData()
-          .then((user) => {
-            if (user) {
-              setCachedAuth(user);
-              setAuthState((prev) => ({ ...prev, user }));
-            } else {
-              // User session expired, clear cache and state
-              setCachedAuth(null);
-              setAuthState({
-                user: null,
-                loading: false,
-                error: null,
-                isAuthenticated: false,
-              });
-            }
-          })
-          .catch(() => {
-            // Silent fail for background refresh
-          });
-
-        return;
-      }
-
-      // No cache, fetch fresh data
       const user = await fetchUserData();
 
-      if (user) {
-        setCachedAuth(user);
-        setAuthState({
-          user,
-          loading: false,
-          error: null,
-          isAuthenticated: true,
-        });
-      } else {
-        setAuthState({
-          user: null,
-          loading: false,
-          error: null,
-          isAuthenticated: false,
-        });
-      }
+      setAuthState({
+        user,
+        loading: false,
+        error: null,
+        isAuthenticated: !!user,
+      });
     } catch (error) {
       console.error("Auth initialization error:", error);
       setAuthState({
@@ -182,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
       });
     }
-  }, [getCachedAuth, fetchUserData, setCachedAuth]);
+  }, [fetchUserData]);
 
   // Initialize on mount
   useEffect(() => {
@@ -190,59 +95,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [initializeAuth]);
 
   // Login function
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+  const login = useCallback(async (email: string, password: string) => {
+    setAuthState((prev) => ({ ...prev, loading: true, error: null }));
 
-      try {
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            email,
-            password,
-            anonymous_user_id:
-              localStorage.getItem("anonymous_user_id") || undefined,
-          }),
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          password,
+          anonymous_user_id:
+            localStorage.getItem("anonymous_user_id") || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data.user) {
+        const user = data.data.user;
+        // Clear anonymous user ID after successful login
+        localStorage.removeItem("anonymous_user_id");
+        setAuthState({
+          user,
+          loading: false,
+          error: null,
+          isAuthenticated: true,
         });
-
-        const data = await response.json();
-
-        if (data.success && data.data.user) {
-          const user = data.data.user;
-          setCachedAuth(user);
-          setAuthState({
-            user,
-            loading: false,
-            error: null,
-            isAuthenticated: true,
-          });
-          return { success: true };
-        } else {
-          setAuthState((prev) => ({
-            ...prev,
-            loading: false,
-            error: data.error?.message || "Login failed",
-          }));
-          return {
-            success: false,
-            error: data.error?.message || "Login failed",
-          };
-        }
-      } catch (_error) {
-        const errorMessage = "Error during login, please try again";
-        console.error(_error);
+        return { success: true };
+      } else {
         setAuthState((prev) => ({
           ...prev,
           loading: false,
-          error: errorMessage,
+          error: data.error?.message || "Login failed",
         }));
-        return { success: false, error: errorMessage };
+        return {
+          success: false,
+          error: data.error?.message || "Login failed",
+        };
       }
-    },
-    [setCachedAuth]
-  );
+    } catch (_error) {
+      const errorMessage = "Error during login, please try again";
+      console.error(_error);
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+      }));
+      return { success: false, error: errorMessage };
+    }
+  }, []);
 
   // Register function
   const register = useCallback(
@@ -269,7 +172,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Registration successful, but user might need email verification
           if (data.user) {
             const user = data.user;
-            setCachedAuth(user);
             setAuthState({
               user,
               loading: false,
@@ -307,7 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: errorMessage };
       }
     },
-    [setCachedAuth]
+    []
   );
 
   // Logout function
@@ -320,8 +222,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const data = await response.json();
 
-      // Clear cache and state regardless of API response
-      setCachedAuth(null);
+      // Clear state regardless of API response
       // Clear anonymous user ID from localStorage on logout
       localStorage.removeItem("anonymous_user_id");
       setAuthState({
@@ -341,7 +242,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       // Even if logout API fails, clear local state
-      setCachedAuth(null);
       // Clear anonymous user ID from localStorage even if logout API fails
       localStorage.removeItem("anonymous_user_id");
       console.error("Logout api failed", error);
@@ -353,32 +253,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       return { success: false, error: "Network error during logout" };
     }
-  }, [setCachedAuth]);
+  }, []);
 
   // Refresh user data
   const refreshUser = useCallback(async () => {
     try {
       const user = await fetchUserData();
-      if (user) {
-        setCachedAuth(user);
-        setAuthState((prev) => ({
-          ...prev,
-          user,
-          isAuthenticated: true,
-        }));
-      } else {
-        setCachedAuth(null);
-        setAuthState({
-          user: null,
-          loading: false,
-          error: null,
-          isAuthenticated: false,
-        });
-      }
+      setAuthState((prev) => ({
+        ...prev,
+        user,
+        loading: false,
+        isAuthenticated: !!user,
+      }));
     } catch (error) {
       console.error("Error refreshing user data:", error);
     }
-  }, [fetchUserData, setCachedAuth]);
+  }, [fetchUserData]);
 
   // Clear error
   const clearError = useCallback(() => {

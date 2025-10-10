@@ -15,6 +15,8 @@ export default function ConditionalHeader() {
     "/profile/login",
     "/profile/signup/verify",
     "/profile/signup",
+    "/payment",
+    "/song-options",
   ];
   const shouldHide =
     hideOnPaths.some((path) => pathname.startsWith(path)) ||

@@ -9,27 +9,27 @@ import type { User } from '@/types';
 // Helper functions for safe date formatting
 const formatDateForResponse = (date: any): string => {
   if (!date) return '';
-  
+
   try {
     // If it's already a Date object
     if (date instanceof Date && !isNaN(date.getTime())) {
       return date.toISOString().split('T')[0];
     }
-    
+
     // If it's a string, try to parse it
     if (typeof date === 'string') {
       // If it's already in YYYY-MM-DD format, return as is
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return date;
       }
-      
+
       // Try to parse as date
       const parsedDate = new Date(date);
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toISOString().split('T')[0];
       }
     }
-    
+
     // Fallback: return empty string for invalid dates
     console.warn('Invalid date value:', date, 'Type:', typeof date);
     return '';
@@ -41,13 +41,13 @@ const formatDateForResponse = (date: any): string => {
 
 const formatDateTimeForResponse = (dateTime: any): string => {
   if (!dateTime) return new Date().toISOString();
-  
+
   try {
     // If it's already a Date object
     if (dateTime instanceof Date && !isNaN(dateTime.getTime())) {
       return dateTime.toISOString();
     }
-    
+
     // If it's a string, try to parse it
     if (typeof dateTime === 'string') {
       const parsedDate = new Date(dateTime);
@@ -55,7 +55,7 @@ const formatDateTimeForResponse = (dateTime: any): string => {
         return parsedDate.toISOString();
       }
     }
-    
+
     // Fallback: return current timestamp for invalid dates
     console.warn('Invalid datetime value:', dateTime, 'Type:', typeof dateTime);
     return new Date().toISOString();
@@ -70,7 +70,7 @@ const handler = withOptionalAuth(
   async (request: NextRequest) => {
     const requestId = (request as any).requestId || generateRequestId();
     const user = (request as any).user;
-    
+
     try {
       // If no user in JWT, return unauthenticated
       if (!user) {
@@ -145,7 +145,7 @@ const handler = withOptionalAuth(
 
     } catch (error) {
       console.error('Get user error:', error);
-      
+
       return NextResponse.json(
         {
           success: false,
