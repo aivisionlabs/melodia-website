@@ -12,7 +12,13 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password || !name) {
       return NextResponse.json(
-        { success: false, error: 'Email, password, and name are required' },
+        { 
+          success: false, 
+          error: { 
+            message: 'Email, password, and name are required',
+            code: 'VALIDATION_ERROR'
+          }
+        },
         { status: 400 }
       )
     }
@@ -20,7 +26,13 @@ export async function POST(request: NextRequest) {
     // Validate anonymous_user_id format if provided
     if (anonymous_user_id && typeof anonymous_user_id !== 'string') {
       return NextResponse.json(
-        { success: false, error: 'Invalid anonymous user ID format' },
+        { 
+          success: false, 
+          error: { 
+            message: 'Invalid anonymous user ID format',
+            code: 'VALIDATION_ERROR'
+          }
+        },
         { status: 400 }
       )
     }
@@ -93,14 +105,26 @@ export async function POST(request: NextRequest) {
       return response
     } else {
       return NextResponse.json(
-        { success: false, error: result.error },
+        { 
+          success: false, 
+          error: { 
+            message: result.error || 'Registration failed',
+            code: 'REGISTRATION_FAILED'
+          }
+        },
         { status: 400 }
       )
     }
   } catch (error) {
     console.error('Error in register API:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: { 
+          message: 'Internal server error',
+          code: 'SERVER_ERROR'
+        }
+      },
       { status: 500 }
     )
   }

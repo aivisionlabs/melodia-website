@@ -136,6 +136,19 @@ export default function SignupPage() {
               </div>
             )}
           </form>
+
+          {/* Sign In Link */}
+          <div className="text-center mt-6">
+            <span className="text-melodia-teal font-body text-sm">
+              Already have an account?{" "}
+            </span>
+            <Link
+              href="/profile"
+              className="text-melodia-coral font-medium hover:underline font-body text-sm"
+            >
+              Sign in here
+            </Link>
+          </div>
         </div>
       </main>
 
