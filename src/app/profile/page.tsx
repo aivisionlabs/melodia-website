@@ -256,7 +256,7 @@ export default function ProfilePage() {
             {/* Sign Up Link */}
             <p className="text-center text-text/80 text-sm font-body">
               Don't have an account?{" "}
-              <Link href="/auth/signup" className="font-bold text-accent hover:underline">
+              <Link href="/profile/signup" className="font-bold text-accent hover:underline">
                 Sign Up
               </Link>
             </p>

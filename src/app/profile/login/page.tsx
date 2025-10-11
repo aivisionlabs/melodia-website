@@ -39,7 +39,7 @@ function LoginPageContent() {
       // Clear the message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);
     }
-  }, [searchParams, clearError]);
+  }, [searchParams]);
 
   // Single Responsibility: Handle authentication redirect
   useEffect(() => {
