@@ -32,8 +32,12 @@ export const ShareButton = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title || "Listen to this song with synchronized lyrics",
-          text: "Check out this amazing song with synchronized lyrics on Melodia!",
+          title: `${
+            title && title + ","
+          } Check out this amazing song by Melodia!`,
+          text: `${
+            title && title + ","
+          } Check out this amazing song by Melodia!`,
           url: url,
         });
 

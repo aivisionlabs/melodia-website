@@ -606,7 +606,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
             <div className="flex items-center gap-3">
               <ShareButton
                 slug={song.slug}
-                title={`Listen to ${song.title} with synchronized lyrics`}
+                title={`Listen to ${song.title} by Melodia`}
                 onShare={() =>
                   trackEngagementEvent.share(
                     song.title,

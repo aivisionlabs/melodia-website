@@ -780,7 +780,9 @@ export const FullPageMediaPlayerNoLyrics = ({
                 </p>
                 <ShareButton
                   slug={song.slug}
-                  title={`Check out the lyrics for ${song.title}`}
+                  title={`${
+                    song.title && song.title + ","
+                  } Check out this amazing song by Melodia!`}
                   onShare={() =>
                     trackEngagementEvent.share(
                       song.title,
