@@ -27,23 +27,30 @@ export class GoogleAuthService {
   /**
    * Generate Google OAuth URL for authentication
    */
-  getAuthUrl(): string {
+  getAuthUrl(anonymousUserId?: string | null): string {
     const scopes = [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile'
     ];
 
-    return this.oauth2Client.generateAuthUrl({
+    const authUrlOptions: any = {
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent'
-    });
+    };
+
+    // Include anonymous_user_id in state if provided
+    if (anonymousUserId) {
+      authUrlOptions.state = JSON.stringify({ anonymous_user_id: anonymousUserId });
+    }
+
+    return this.oauth2Client.generateAuthUrl(authUrlOptions);
   }
 
   /**
    * Exchange authorization code for tokens and get user info
    */
-  async handleCallback(code: string): Promise<{
+  async handleCallback(code: string, anonymousUserId?: string | null): Promise<{
     success: boolean;
     user?: User;
     token?: string;
@@ -77,6 +84,53 @@ export class GoogleAuthService {
         return { success: false, error: 'Failed to create or update user in database' };
       }
       console.log('User successfully processed:', { id: user.id, email: user.email });
+
+      // Handle anonymous user data merge if anonymousUserId is provided
+      if (anonymousUserId) {
+        try {
+          console.log('Merging anonymous user data for user:', user.id, 'anonymous_user_id:', anonymousUserId);
+          
+          // Import required modules for database operations
+          const { db } = await import('@/lib/db');
+          const { songRequestsTable, paymentsTable, anonymousUsersTable } = await import('@/lib/db/schema');
+          const { eq } = await import('drizzle-orm');
+
+          // Update song requests
+          const updateResult = await db
+            .update(songRequestsTable)
+            .set({
+              user_id: user.id,
+              anonymous_user_id: null
+            })
+            .where(eq(songRequestsTable.anonymous_user_id, anonymousUserId))
+            .returning({ id: songRequestsTable.id });
+
+          console.log(`Merged ${updateResult.length} anonymous requests for user ${user.id}`);
+
+          // Update payments
+          const paymentUpdateResult = await db
+            .update(paymentsTable)
+            .set({
+              user_id: user.id,
+              anonymous_user_id: null
+            })
+            .where(eq(paymentsTable.anonymous_user_id, anonymousUserId))
+            .returning({ id: paymentsTable.id });
+
+          console.log(`Merged ${paymentUpdateResult.length} anonymous payments for user ${user.id}`);
+
+          // Delete anonymous user record after successful merge
+          try {
+            await db.delete(anonymousUsersTable).where(eq(anonymousUsersTable.id, anonymousUserId));
+            console.log(`Deleted anonymous user ${anonymousUserId} after merge (Google OAuth)`);
+          } catch (delErr) {
+            console.warn('Failed to delete anonymous user after merge (Google OAuth):', delErr);
+          }
+        } catch (mergeError) {
+          console.error('Failed to merge anonymous user data (Google OAuth):', mergeError);
+          // Don't fail authentication if merge fails, just log the error
+        }
+      }
 
       // Generate JWT token
       console.log('Generating JWT token...');

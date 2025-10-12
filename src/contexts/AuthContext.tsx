@@ -219,8 +219,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
+      // Get anonymous user ID from localStorage
+      const anonymousUserId = localStorage.getItem('anonymous_user_id');
+      
+      // Build OAuth URL with anonymous_user_id if available
+      let oauthUrl = '/api/auth/google';
+      if (anonymousUserId) {
+        oauthUrl += `?anonymous_user_id=${encodeURIComponent(anonymousUserId)}`;
+        console.log('Initiating Google OAuth with anonymous_user_id:', anonymousUserId);
+      }
+      
       // Redirect to Google OAuth
-      window.location.href = '/api/auth/google';
+      window.location.href = oauthUrl;
       return { success: true };
     } catch (error) {
       const errorMessage = 'Failed to initiate Google authentication';

@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
         sessionStorage.removeItem('password-reset-token');
         
         // Redirect to login page with success message
-        router.push('/profile/login?message=password-reset-success');
+        router.push('/profile?message=password-reset-success');
       } else {
         setErrors({
           general: data.error?.message || 'Failed to reset password. Please try again.'
@@ -201,7 +201,7 @@ export default function ResetPasswordPage() {
       <footer className="p-6 text-center">
         <p className="text-text/60 text-sm font-body">
           Remember your password?{' '}
-          <Link href="/profile/login" className="text-accent font-medium hover:underline">
+          <Link href="/profile" className="text-accent font-medium hover:underline">
             Back to Login
           </Link>
         </p>

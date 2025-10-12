@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const state = searchParams.get('state');
 
     // Handle OAuth error
     if (error) {
@@ -22,10 +23,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Extract anonymous_user_id from state if present
+    let anonymousUserId: string | null = null;
+    if (state) {
+      try {
+        const stateData = JSON.parse(state);
+        anonymousUserId = stateData.anonymous_user_id || null;
+        console.log('Extracted anonymous_user_id from state:', anonymousUserId);
+      } catch (e) {
+        console.warn('Failed to parse state parameter:', e);
+      }
+    }
+
     // Process the OAuth callback
     console.log('Processing Google OAuth callback with code:', code.substring(0, 20) + '...');
     const googleAuthService = new GoogleAuthService();
-    const result = await googleAuthService.handleCallback(code);
+    const result = await googleAuthService.handleCallback(code, anonymousUserId);
 
     console.log('Google auth result:', { 
       success: result.success, 

@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
       <header className="flex items-center justify-between p-4">
-        <Link href="/profile/login" className="p-2 -ml-2">
+        <Link href="/profile" className="p-2 -ml-2">
           <svg className="w-6 h-6 text-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -113,7 +113,7 @@ export default function ForgotPasswordPage() {
       <footer className="p-6 text-center">
         <p className="text-text/60 text-sm font-body">
           Remember your password?{' '}
-          <Link href="/profile/login" className="text-accent font-medium hover:underline">
+          <Link href="/profile" className="text-accent font-medium hover:underline">
             Back to Login
           </Link>
         </p>

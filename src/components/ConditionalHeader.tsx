@@ -12,7 +12,6 @@ export default function ConditionalHeader() {
     "/error",
     "/profile/forgot-password",
     "/profile/register",
-    "/profile/login",
     "/profile/signup/verify",
     "/profile/signup",
     "/payment",

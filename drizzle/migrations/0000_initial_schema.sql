@@ -27,11 +27,15 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 -- Create users table for regular user accounts
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  name TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  date_of_birth DATE NOT NULL,
+  phone_number TEXT,
+  profile_picture TEXT,
+  email_verified BOOLEAN NOT NULL DEFAULT false,
+  password_hash TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Create anonymous users table to track anonymous sessions
@@ -62,12 +66,12 @@ CREATE TABLE lyrics_drafts (
   song_request_id INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
   lyrics_edit_prompt TEXT,
+  generated_text TEXT NOT NULL,
   song_title TEXT,
   music_style TEXT,
+  language TEXT NOT NULL DEFAULT 'English',
   llm_model_name TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
-  created_by_user_id INTEGER, -- Reference to users table
-  created_by_anonymous_user_id UUID, -- Reference to anonymous_users table
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -177,13 +181,6 @@ ALTER TABLE lyrics_drafts
 ADD CONSTRAINT fk_lyrics_drafts_song_request_id
 FOREIGN KEY (song_request_id) REFERENCES song_requests(id) ON DELETE CASCADE;
 
-ALTER TABLE lyrics_drafts
-ADD CONSTRAINT fk_lyrics_drafts_created_by_user_id
-FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL;
-
-ALTER TABLE lyrics_drafts
-ADD CONSTRAINT fk_lyrics_drafts_created_by_anonymous_user_id
-FOREIGN KEY (created_by_anonymous_user_id) REFERENCES anonymous_users(id) ON DELETE SET NULL;
 
 -- Payments table foreign keys
 ALTER TABLE payments
@@ -230,8 +227,6 @@ CREATE INDEX idx_song_requests_created_at ON song_requests(created_at);
 CREATE INDEX idx_lyrics_drafts_song_request_id ON lyrics_drafts(song_request_id);
 CREATE INDEX idx_lyrics_drafts_status ON lyrics_drafts(status);
 CREATE INDEX idx_lyrics_drafts_created_at ON lyrics_drafts(created_at);
-CREATE INDEX idx_lyrics_drafts_created_by_user_id ON lyrics_drafts(created_by_user_id);
-CREATE INDEX idx_lyrics_drafts_created_by_anonymous_user_id ON lyrics_drafts(created_by_anonymous_user_id);
 
 -- Users table indexes
 CREATE INDEX idx_users_email ON users(email);
@@ -325,7 +320,6 @@ COMMENT ON TABLE anonymous_users IS 'Anonymous users table to track anonymous se
 
 -- Song requests table comments
 COMMENT ON TABLE song_requests IS 'Song creation requests from users';
-COMMENT ON COLUMN song_requests.generated_song_id IS 'Reference to the generated song (if any)';
 
 -- Lyrics drafts table comments
 COMMENT ON TABLE lyrics_drafts IS 'Stores lyrics drafts for song requests in lyrics workflow';
@@ -336,8 +330,6 @@ COMMENT ON COLUMN lyrics_drafts.generated_text IS 'The original AI-generated lyr
 COMMENT ON COLUMN lyrics_drafts.song_title IS 'Song title determined by LLM during lyrics generation';
 COMMENT ON COLUMN lyrics_drafts.music_style IS 'Music style determined by LLM during lyrics generation';
 COMMENT ON COLUMN lyrics_drafts.status IS 'Current status: draft, needs_review, approved, archived';
-COMMENT ON COLUMN lyrics_drafts.created_by_user_id IS 'Reference to the registered user who created this draft (nullable)';
-COMMENT ON COLUMN lyrics_drafts.created_by_anonymous_user_id IS 'Reference to the anonymous user who created this draft (nullable)';
 
 -- Payments table comments
 COMMENT ON TABLE payments IS 'Payments table - supports both registered and anonymous users';
