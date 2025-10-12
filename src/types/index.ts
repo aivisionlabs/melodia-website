@@ -39,6 +39,7 @@ export interface Song {
   selected_variant?: number
   metadata?: any
   sequence?: number // Field to control display order
+  show_lyrics?: boolean // Field to control whether to show lyrics
 }
 
 // Public song interface (without sensitive fields)

@@ -10,10 +10,10 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-secondary-cream flex items-center justify-between px-2 sm:px-4 md:px-8 py-2 sm:py-3 relative shadow-elegant">
+    <header className="w-full bg-secondary-cream flex items-center justify-between px-2 sm:px-4 md:px-8 py-1 sm:py-2 relative shadow-elegant">
       <Link
         href="/"
-        className="flex items-center gap-2 sm:gap-3"
+        className="flex items-center gap-1 sm:gap-2"
         aria-label="Go to homepage"
       >
         <HeaderLogo alt="Melodia Logo" />

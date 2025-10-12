@@ -146,6 +146,26 @@ const config: Config = {
 				'glow-pulse': {
 					'0%, 100%': { boxShadow: '0 0 5px hsl(263 70% 50% / 0.3)' },
 					'50%': { boxShadow: '0 0 20px hsl(263 70% 50% / 0.6)' }
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0px) rotate(0deg)', opacity: '0.1' },
+					'25%': { transform: 'translateY(-10px) rotate(5deg)', opacity: '0.3' },
+					'50%': { transform: 'translateY(-20px) rotate(0deg)', opacity: '0.2' },
+					'75%': { transform: 'translateY(-10px) rotate(-5deg)', opacity: '0.3' }
+				},
+				'wave': {
+					'0%, 100%': { transform: 'translateX(0) scaleY(1)' },
+					'25%': { transform: 'translateX(-5px) scaleY(1.1)' },
+					'50%': { transform: 'translateX(0) scaleY(1)' },
+					'75%': { transform: 'translateX(5px) scaleY(0.9)' }
+				},
+				'shimmer': {
+					'0%': { backgroundPosition: '-200% 0' },
+					'100%': { backgroundPosition: '200% 0' }
+				},
+				'bounce-gentle': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-5px)' }
 				}
 			},
 			animation: {
@@ -153,7 +173,11 @@ const config: Config = {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'spin-reel': 'spin-reel 3s ease-in-out infinite',
 				'fade-in': 'fade-in 0.6s ease-out',
-				'glow-pulse': 'glow-pulse 2s ease-in-out infinite'
+				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+				'float': 'float 6s ease-in-out infinite',
+				'wave': 'wave 8s ease-in-out infinite',
+				'shimmer': 'shimmer 3s ease-in-out infinite',
+				'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite'
 			}
 		}
 	},

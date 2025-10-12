@@ -11,14 +11,18 @@ import {
   AlertCircle,
   Music,
   ArrowRight,
+  FileText,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
+import { HeaderLogo } from "@/components/OptimizedLogo";
 import {
   trackPlayerEvent,
   trackEngagementEvent,
   trackNavigationEvent,
+  trackCTAEvent,
 } from "@/lib/analytics";
 
 // iOS Audio Context type declaration
@@ -28,13 +32,6 @@ declare global {
   }
 }
 
-interface LyricLine {
-  index: number;
-  text: string;
-  start: number;
-  end: number;
-}
-
 interface Song {
   id: string;
   title: string;
@@ -42,11 +39,9 @@ interface Song {
   audioUrl?: string;
   song_url?: string;
   duration: number;
-  timestamp_lyrics?: LyricLine[];
-  timestamped_lyrics_variants?: { [variantIndex: number]: LyricLine[] } | null;
-  selected_variant?: number;
-  lyrics?: string | null;
   slug?: string;
+  lyrics?: string | null;
+  show_lyrics?: boolean;
   suno_variants?: Array<{
     id: string;
     audioUrl: string;
@@ -59,25 +54,27 @@ interface Song {
     createTime: string;
     duration: number;
   }>;
+  selected_variant?: number;
 }
 
-interface FullPageMediaPlayerProps {
+interface FullPageMediaPlayerNoLyricsProps {
   song: Song;
 }
 
-export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
+export const FullPageMediaPlayerNoLyrics = ({
+  song,
+}: FullPageMediaPlayerNoLyricsProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
+  const [showLyricsViewer, setShowLyricsViewer] = useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const lyricRefs = useRef<(HTMLDivElement | null)[]>([]);
   const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -85,9 +82,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
   const isIOS =
     typeof navigator !== "undefined" &&
     /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-  // Convert current time to milliseconds for timestamp comparison
-  const currentTimeMs = currentTime * 1000;
 
   // Helper function to get the correct audio URL
   const getAudioUrl = useCallback(() => {
@@ -102,6 +96,26 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
     }
     return null;
   }, [song.suno_variants]);
+
+  // Helper function to get lyrics data - simplified based on show_lyrics field
+  const getLyricsData = useCallback(() => {
+    // If show_lyrics is false, only use the plain lyrics field
+    if (song.show_lyrics === false) {
+      return song.lyrics;
+    }
+    // If show_lyrics is true or undefined, use the plain lyrics field as well
+    return song.lyrics;
+  }, [song.lyrics, song.show_lyrics]);
+
+  // Check if lyrics are available
+  const hasLyrics = useCallback(() => {
+    const lyricsData = getLyricsData();
+    return (
+      lyricsData !== null &&
+      typeof lyricsData === "string" &&
+      lyricsData.trim().length > 0
+    );
+  }, [getLyricsData]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -176,36 +190,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       audio.removeEventListener("loadeddata", handleLoadedData);
     };
   }, [getAudioUrl, isLoading, isIOS]);
-
-  const getLyricsAtTime = (timeMs: number) => {
-    // Priority 1: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line) => ({
-        ...line,
-        isActive: timeMs >= line.start && timeMs < line.end,
-        isPast: timeMs >= line.end,
-      }));
-    }
-
-    // Priority 2: Use timestamped lyrics variants if available
-    if (
-      song.timestamped_lyrics_variants &&
-      song.selected_variant !== undefined
-    ) {
-      const selectedVariantLyrics =
-        song.timestamped_lyrics_variants[song.selected_variant];
-      if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
-        return selectedVariantLyrics.map((line) => ({
-          ...line,
-          isActive: timeMs >= line.start && timeMs < line.end,
-          isPast: timeMs >= line.end,
-        }));
-      }
-    }
-
-    // Priority 3: Return empty array if no lyrics available
-    return [];
-  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -406,55 +390,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
     }
   }, [isIOS, iosAudioUnlocked]);
 
-  // Calculate lyrics
-  const lyrics = getLyricsAtTime(currentTimeMs);
-
-  // Auto-scroll to active lyric (Spotify-style) - Always active for better UX
-  useEffect(() => {
-    if (!lyricsContainerRef.current) return;
-
-    const activeIndex = lyrics.findIndex((line) => line.isActive);
-    if (activeIndex === -1) return;
-
-    const activeElement = lyricRefs.current[activeIndex];
-    if (!activeElement) return;
-
-    const container = lyricsContainerRef.current;
-
-    // Use requestAnimationFrame for better performance and timing
-    requestAnimationFrame(() => {
-      // Get the element's position within the scrollable container
-      const containerHeight = container.clientHeight;
-      const elementOffsetTop = activeElement.offsetTop;
-      const elementHeight = activeElement.clientHeight;
-
-      // Calculate the position to center the element in the container
-      const elementCenter = elementOffsetTop + elementHeight / 2;
-      const containerCenter = containerHeight / 2;
-      const targetScrollTop = elementCenter - containerCenter;
-
-      // Smooth scroll to the calculated position
-      container.scrollTo({
-        top: Math.max(0, targetScrollTop),
-        behavior: "smooth",
-      });
-    });
-  }, [currentTime, lyrics]);
-
-  // Reset lyrics position only when audio actually ends (not paused or error)
-  useEffect(() => {
-    // Only reset when audio naturally ends (currentTime is 0 and not playing)
-    if (!isPlaying && currentTime === 0) {
-      // Reset scroll position to top when song completely ends
-      if (lyricsContainerRef.current) {
-        lyricsContainerRef.current.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-    }
-  }, [isPlaying, currentTime]); // Removed audioError to allow scrolling in demo mode
-
   // Cleanup demo interval on unmount
   useEffect(() => {
     return () => {
@@ -524,7 +459,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           >
             <Image
               src="/images/melodia-logo.jpeg"
-              alt="Melodia"
+              alt="melodia"
               width={80}
               height={80}
               className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain`}
@@ -536,7 +471,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           <div className="flex items-center">
             <ShareButton
               slug={song.slug}
-              title={`Listen to ${song.title} with synchronized lyrics`}
+              title={`Listen to ${song.title}`}
               onShare={() =>
                 trackEngagementEvent.share(song.title, song.id, "native_share")
               }
@@ -553,8 +488,8 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             <AlertCircle className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
             <span>
               {isIOS
-                ? "iOS Demo mode: Use controls below to experience synchronized lyrics"
-                : "Demo mode: Use controls below to experience synchronized lyrics"}
+                ? "iOS Demo mode: Use controls below to experience the music"
+                : "Demo mode: Use controls below to experience the music"}
             </span>
           </div>
         )}
@@ -566,71 +501,69 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
         )}
       </div>
 
-      {/* Main Lyrics Section - Fixed height for proper scrolling */}
-      <div className="flex-1 bg-gradient-to-b from-gray-50 to-white">
-        <div
-          ref={lyricsContainerRef}
-          className="h-[calc(100vh-200px)] overflow-y-auto px-6 md:px-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
-        >
-          {/* Top padding to allow first lyric to be centered */}
-          <div className="h-[calc(40vh-80px)]"></div>
+      {/* Main Content Section - Centered Music Experience */}
+      <div className="flex-1 bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center max-w-2xl mx-auto px-6">
+          {/* Large Music Icon */}
+          <div className="mb-8">
+            <div className="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <Music className="h-16 w-16 md:h-20 md:w-20 text-white" />
+            </div>
+          </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="space-y-8 md:space-y-10">
-              {lyrics.map((line, index) => (
+          {/* Song Title */}
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+            {song.title}
+          </h1>
+
+          {/* Artist */}
+          <p className="text-lg md:text-xl text-gray-600 mb-8">{song.artist}</p>
+
+          {/* Lyrics CTA Button - Only show if lyrics are available */}
+          {hasLyrics() && (
+            <div className="mb-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowLyricsViewer(true);
+                  trackCTAEvent.ctaClick(
+                    "view_lyrics",
+                    "song_player",
+                    "button"
+                  );
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 border-gray-300 hover:border-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 transition-all duration-200 shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="text-sm font-medium">View Lyrics</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Visualizer Placeholder */}
+          <div className="mb-8">
+            <div className="flex items-center justify-center space-x-1 h-16">
+              {[...Array(20)].map((_, i) => (
                 <div
-                  key={index}
-                  ref={(el) => {
-                    lyricRefs.current[index] = el;
-                  }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
-                    line.isActive
-                      ? "text-xl md:text-2xl lg:text-3xl font-bold text-yellow-600 transform scale-110"
-                      : line.isPast
-                      ? "text-base md:text-lg text-gray-400 opacity-60"
-                      : "text-base md:text-lg text-gray-500 opacity-80"
+                  key={i}
+                  className={`w-1 bg-gradient-to-t from-yellow-400 to-yellow-600 rounded-full transition-all duration-300 ${
+                    isPlaying ? "animate-pulse" : ""
                   }`}
                   style={{
-                    transform: line.isActive ? "scale(1.1)" : "scale(1)",
-                    transition:
-                      "all 0.7s cubic-bezier(0.4, 0, 0.2, 1), font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1), line-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                    height: isPlaying ? `${Math.random() * 40 + 20}px` : "20px",
+                    animationDelay: `${i * 0.1}s`,
                   }}
-                >
-                  {/* Active lyric indicator */}
-                  {line.isActive && (
-                    <div className="absolute -left-5 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
-                  )}
-
-                  {/* Progress indicator for active lyric */}
-                  {line.isActive && (
-                    <div className="absolute -left-6 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
-                  )}
-
-                  <span
-                    className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed max-w-full break-words transition-all duration-500 ease-out"
-                    style={{
-                      transition:
-                        "all 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease-out",
-                    }}
-                  >
-                    {line.text || "\u00A0"}
-                  </span>
-
-                  {/* Subtle glow effect for active lyric */}
-                  {line.isActive && (
-                    <div className="absolute inset-0 bg-yellow-100 rounded-lg opacity-20 blur-sm"></div>
-                  )}
-                </div>
+                />
               ))}
             </div>
           </div>
 
-          {/* Bottom padding to allow last lyric to be centered */}
-          <div className="h-[calc(40vh-80px)]"></div>
+          {/* Description */}
+          <p className="text-gray-500 text-sm md:text-base max-w-md mx-auto">
+            Enjoy this beautiful melody created just for you. Close your eyes
+            and let the music take you away.
+          </p>
         </div>
       </div>
 
@@ -687,9 +620,12 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-xl md:text-base font-semibold text-gray-900 truncate">
+              <h3 className="text-sm md:text-base font-semibold text-gray-900 truncate">
                 {song.title}
               </h3>
+              <p className="text-xs md:text-sm text-gray-600 truncate">
+                {song.artist}
+              </p>
             </div>
           </div>
 
@@ -783,7 +719,6 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
                 audioRef.current.currentTime = newTime;
               }
               // In demo mode or error state, just update the time state
-              // The lyrics will automatically update based on currentTime
             }}
           />
           <div className="flex justify-between text-xs md:text-sm text-gray-600">
@@ -792,6 +727,76 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           </div>
         </div>
       </div>
+
+      {/* Lyrics Viewer Modal */}
+      {showLyricsViewer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {song.title}
+                </h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLyricsViewer(false)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Lyrics Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {(() => {
+                const lyricsData = getLyricsData();
+
+                if (!lyricsData) {
+                  return (
+                    <div className="text-center text-gray-500 py-8">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No lyrics available for this song.</p>
+                    </div>
+                  );
+                }
+
+                // Display plain text lyrics
+                return (
+                  <div className="whitespace-pre-wrap text-base md:text-lg leading-relaxed text-gray-800">
+                    {lyricsData}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  Enjoying the lyrics? Share this song with others!
+                </p>
+                <ShareButton
+                  slug={song.slug}
+                  title={`Check out the lyrics for ${song.title}`}
+                  onShare={() =>
+                    trackEngagementEvent.share(
+                      song.title,
+                      song.id,
+                      "native_share"
+                    )
+                  }
+                  onCopyLink={() =>
+                    trackEngagementEvent.copyLink(song.title, song.id)
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

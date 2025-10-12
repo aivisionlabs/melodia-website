@@ -7,7 +7,7 @@ export const HeaderLogo: React.FC<{ className?: string; alt?: string }> = ({
 }) => {
   return (
     <Image
-      src="/images/melodia-logo.jpeg"
+      src="/images/melodia-logo-transparent.png"
       alt={alt}
       width={80}
       height={80}
@@ -24,7 +24,7 @@ export const CenterLogo: React.FC<{ className?: string; alt?: string }> = ({
 }) => {
   return (
     <Image
-      src="/images/melodia-logo.jpeg"
+      src="/images/melodia-logo-transparent.png"
       alt={alt}
       width={300}
       height={300}

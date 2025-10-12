@@ -30,6 +30,7 @@ export async function getAllSongs(): Promise<Song[]> {
       tags: song.tags ?? undefined,
       suno_task_id: song.suno_task_id ?? undefined,
       metadata: song.metadata ?? undefined,
+      show_lyrics: song.show_lyrics ?? undefined,
     }));
   } catch (error) {
     console.error('Error fetching songs:', error);
@@ -67,6 +68,7 @@ export async function getSongBySlug(slug: string): Promise<Song | null> {
       suno_variants: song.suno_variants ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
+      show_lyrics: song.show_lyrics ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song:', error);
@@ -104,6 +106,7 @@ export async function getSongByTaskId(taskId: string): Promise<Song | null> {
       suno_variants: song.suno_variants ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
+      show_lyrics: song.show_lyrics ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song by task ID:', error);
@@ -142,6 +145,7 @@ export async function getSongById(id: number): Promise<Song | null> {
       suno_variants: song.suno_variants ?? undefined,
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
+      show_lyrics: song.show_lyrics ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching song by ID:', error);

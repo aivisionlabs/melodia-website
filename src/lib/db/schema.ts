@@ -36,6 +36,7 @@ export const songsTable = pgTable('songs', {
   selected_variant: integer('selected_variant'),
   metadata: jsonb('metadata'),
   sequence: integer('sequence'), // Field to control display order
+  show_lyrics: boolean('show_lyrics').default(true), // Field to control whether to show lyrics
 });
 
 // Admin users table

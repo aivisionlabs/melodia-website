@@ -6,17 +6,27 @@ import { MediaPlayer } from "@/components/MediaPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { SongArtwork } from "@/components/SongArtwork";
+import { getActiveSongsAction } from "@/lib/actions";
 import { formatDuration } from "@/lib/utils";
 import { Song } from "@/types";
-import { Music, Play } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Play } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { getActiveSongsAction } from "@/lib/actions";
+import { useEffect, useState } from "react";
 
 export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Helper function to get variant image URL with fallback to Melodia logo
+  const getVariantImageUrl = (song: Song) => {
+    if (song.suno_variants && song.suno_variants.length > 0) {
+      return song.suno_variants[0]?.sourceImageUrl;
+    }
+    return null;
+  };
 
   useEffect(() => {
     async function loadSongs() {
@@ -67,135 +77,91 @@ export default function SongLibraryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-secondary-cream via-primary-yellow/5 to-accent-coral/5 flex flex-col overflow-hidden">
       <Header />
 
-      <main className="flex flex-1 overflow-hidden flex-col bg-slate-50">
+      <main className="flex flex-1 flex-col">
         {/* Page Title */}
-        <div className="text-center py-8 md:py-12 bg-slate-50">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-4">
-            Library
+        <div className="text-center py-10 md:py-16 bg-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold text-text-teal font-heading mb-3">
+            Our Song Library
           </h1>
-          <p className="text-xl px-2 md:text-2xl text-gray-600">
-            Experience music with synchronized lyrics
+          <p className="text-lg md:text-xl text-text-teal/80 font-body max-w-2xl mx-auto px-4">
+            Explore a collection of heartfelt songs crafted for moments that
+            matter.
           </p>
         </div>
 
         {/* Songs Grid */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-12">
           {loading ? (
             <div className="flex items-center justify-center min-h-64">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-                <span className="text-lg text-gray-600">Loading songs...</span>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-yellow mx-auto mb-4"></div>
+                <span className="text-lg text-text-teal/80">
+                  Loading songs...
+                </span>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {songs.map((song) => {
-                // Generate gradient colors based on song categories or style
-                const getGradientColor = (
-                  categories: string[] | null,
-                  style: string | null
-                ) => {
-                  if (!categories || categories.length === 0) {
-                    if (!style) return "from-blue-400 to-purple-500";
-
-                    const styleLower = style.toLowerCase();
-                    if (styleLower.includes("birthday"))
-                      return "from-pink-400 to-red-500";
-                    if (
-                      styleLower.includes("wedding") ||
-                      styleLower.includes("love")
-                    )
-                      return "from-green-400 to-teal-500";
-                    if (styleLower.includes("lullaby"))
-                      return "from-indigo-400 to-blue-500";
-                    if (styleLower.includes("motivational"))
-                      return "from-orange-400 to-red-500";
-                    if (styleLower.includes("musical"))
-                      return "from-purple-400 to-pink-500";
-                    return "from-blue-400 to-purple-500";
-                  }
-
-                  // Use categories for color generation
-                  const categoryText = categories.join(" ").toLowerCase();
-                  if (categoryText.includes("birthday"))
-                    return "from-pink-400 to-red-500";
-                  if (
-                    categoryText.includes("wedding") ||
-                    categoryText.includes("love") ||
-                    categoryText.includes("romantic")
-                  )
-                    return "from-green-400 to-teal-500";
-                  if (
-                    categoryText.includes("lullaby") ||
-                    categoryText.includes("sleep")
-                  )
-                    return "from-indigo-400 to-blue-500";
-                  if (
-                    categoryText.includes("motivational") ||
-                    categoryText.includes("inspirational")
-                  )
-                    return "from-orange-400 to-red-500";
-                  if (
-                    categoryText.includes("musical") ||
-                    categoryText.includes("party")
-                  )
-                    return "from-purple-400 to-pink-500";
-                  if (
-                    categoryText.includes("acoustic") ||
-                    categoryText.includes("ballad")
-                  )
-                    return "from-yellow-400 to-orange-500";
-                  return "from-blue-400 to-purple-500";
-                };
-
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 md:gap-8 max-w-screen-2xl mx-auto">
+              {songs.map((song, index) => {
                 return (
                   <Card
                     key={song.id}
-                    className="bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer"
+                    className="bg-white/80 backdrop-blur-sm border border-primary-yellow/20 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden animate-fade-in opacity-0"
+                    style={{
+                      animationDelay: `${index * 100}ms`,
+                      animationFillMode: "forwards",
+                    }}
                   >
-                    <Link href={`/library/${song.slug}`}>
-                      <CardHeader className="text-center">
-                        {/* Album Art Placeholder */}
-                        <div
-                          className={`w-32 h-32 mx-auto mb-4 rounded-xl bg-gradient-to-br ${getGradientColor(
-                            song.categories || null,
-                            song.music_style
-                          )} flex items-center justify-center shadow-lg`}
-                        >
-                          <Music className="h-12 w-12 text-white" />
+                    <Link
+                      href={`/library/${song.slug}`}
+                      className="block p-2 sm:p-5 text-center"
+                    >
+                      <CardHeader className="p-0 mb-2 sm:mb-4">
+                        {/* Album Art */}
+                        <div className="aspect-square w-full mx-auto rounded-lg overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                          {getVariantImageUrl(song) ? (
+                            <Image
+                              src={getVariantImageUrl(song)!}
+                              alt={song.title}
+                              width={256}
+                              height={256}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <SongArtwork />
+                          )}
                         </div>
-                        <CardTitle className="text-gray-800 text-xl font-bold">
+                        <CardTitle className="text-text-teal text-sm sm:text-xl font-bold font-heading mt-2 sm:mt-5 line-clamp-2">
                           {song.title}
                         </CardTitle>
-                        <p className="text-gray-600 text-lg">
+                        <p className="text-text-teal/70 text-xs sm:text-base font-body line-clamp-1">
                           {song.service_provider}
                         </p>
                       </CardHeader>
-                      <CardContent className="text-center space-y-4">
-                        <p className="text-gray-700 text-sm">
+                      <CardContent className="p-0">
+                        <p className="text-text-teal/80 text-xs sm:text-sm font-body mb-2 sm:mb-3 line-clamp-1">
                           {song.categories && song.categories.length > 0
                             ? song.categories.join(", ")
                             : song.music_style || "Custom Creation"}
                         </p>
-                        <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-                          <span>Duration: {formatDuration(song.duration)}</span>
+                        <div className="flex items-center justify-center gap-2 text-text-teal/60 text-xs sm:text-sm font-body">
+                          <span>{formatDuration(song.duration)}</span>
                         </div>
                       </CardContent>
                     </Link>
-                    <div className="p-4 pt-0">
+                    <div className="p-2 sm:p-5 pt-0">
                       <Button
-                        className="w-full bg-yellow-400 text-gray-900 hover:bg-yellow-500"
+                        className="w-full bg-gradient-to-r from-primary-yellow to-accent-coral text-white font-bold py-1.5 px-3 sm:py-3 sm:px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 text-xs sm:text-base"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handlePlaySong(song);
                         }}
                       >
-                        <Play className="h-4 w-4 mr-2" />
+                        <Play className="h-5 w-5 mr-2" />
                         Listen Now
                       </Button>
                     </div>
