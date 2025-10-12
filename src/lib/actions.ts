@@ -92,7 +92,7 @@ export async function createSongAction(formData: FormData) {
       title: title,
       customMode: true,
       instrumental: false,
-      model: "V4_5PLUS",
+      model: "V5",
       negativeTags: negativeTags || undefined,
       callBackUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/suno-webhook`
     };
