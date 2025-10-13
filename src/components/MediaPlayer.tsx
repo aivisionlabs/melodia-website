@@ -1,7 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, X, Rewind, FastForward, AlertCircle } from "lucide-react";
+import {
+  Play,
+  Pause,
+  X,
+  Rewind,
+  FastForward,
+  AlertCircle,
+  Music,
+  FileText,
+} from "lucide-react";
 import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
 import {
@@ -38,6 +47,8 @@ interface MediaPlayerProps {
     } | null;
     selected_variant?: number;
     slug?: string;
+    show_lyrics?: boolean; // Field to control whether to show lyrics
+    plain_lyrics?: string | null; // Plain text lyrics for static display
   };
   onClose: () => void;
 }
@@ -49,6 +60,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   const [audioError, setAudioError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
+  const [showLyricsViewer, setShowLyricsViewer] = useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
 
@@ -69,6 +81,19 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
     // Priority: song_url (new field) > audioUrl (legacy field)
     return song.song_url || song.audioUrl;
   }, [song.song_url, song.audioUrl]);
+
+  // Helper function to check if lyrics should be shown
+  const shouldShowLyrics = song.show_lyrics !== false; // Default to true if undefined
+
+  // Helper function to check if lyrics are available
+  const hasLyrics = useCallback(() => {
+    const plainLyrics = song.plain_lyrics;
+    return (
+      plainLyrics !== null &&
+      typeof plainLyrics === "string" &&
+      plainLyrics.trim().length > 0
+    );
+  }, [song.plain_lyrics]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -606,7 +631,7 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
             <div className="flex items-center gap-3">
               <ShareButton
                 slug={song.slug}
-                title={`${song.title} by Melodia`}
+                title={`${song.title}`}
                 onShare={() =>
                   trackEngagementEvent.share(
                     song.title,
@@ -771,77 +796,219 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
           </div>
         </div>
 
-        {/* Lyrics Section - Spotify Style */}
+        {/* Lyrics Section - Conditional Rendering */}
         <div className="flex-1 overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-          {/* Status indicator */}
-          {(!isPlaying || audioError) && (
-            <div className="px-4 md:px-6 py-3 md:py-4 bg-gray-100 border-b border-gray-200">
-              <div className="flex items-center gap-3 text-sm md:text-base text-gray-600">
-                <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
-                <span className="leading-relaxed">
-                  {audioError
-                    ? "Demo mode - click play to experience synchronized lyrics"
-                    : "Click play to start synchronized lyrics"}
-                </span>
+          {shouldShowLyrics ? (
+            // Synchronized Lyrics Section - Spotify Style
+            <>
+              {/* Status indicator */}
+              {(!isPlaying || audioError) && (
+                <div className="px-4 md:px-6 py-3 md:py-4 bg-gray-100 border-b border-gray-200">
+                  <div className="flex items-center gap-3 text-sm md:text-base text-gray-600">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+                    <span className="leading-relaxed">
+                      {audioError
+                        ? "Demo mode - click play to experience synchronized lyrics"
+                        : "Click play to start synchronized lyrics"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Lyrics Container with Spotify-style design */}
+              <div
+                ref={lyricsContainerRef}
+                className="h-64 md:h-80 overflow-y-auto px-6 md:px-12 py-8 md:py-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
+                style={{
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                <div className="space-y-8 md:space-y-10">
+                  {lyrics.map((line, index) => (
+                    <div
+                      key={index}
+                      ref={(el) => {
+                        lyricRefs.current[index] = el;
+                      }}
+                      className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
+                        line.isActive
+                          ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
+                          : line.isPast
+                          ? "text-base md:text-lg text-gray-400 opacity-60"
+                          : "text-base md:text-lg text-gray-500 opacity-80"
+                      }`}
+                      style={{
+                        transform: line.isActive ? "scale(1.1)" : "scale(1)",
+                        transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+                      }}
+                    >
+                      {/* Active lyric indicator */}
+                      {line.isActive && (
+                        <div className="absolute -left-0 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
+                      )}
+
+                      {/* Progress indicator for active lyric */}
+                      {line.isActive && (
+                        <div className="absolute -left-1 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+                      )}
+
+                      <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
+                        {line.text || "\u00A0"}
+                      </span>
+
+                      {/* Subtle glow effect for active lyric */}
+                      {line.isActive && (
+                        <div className="absolute inset-0 bg-yellow-100 rounded-lg opacity-20 blur-sm"></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom padding for better scroll experience */}
+                <div className="h-20 md:h-24"></div>
+              </div>
+            </>
+          ) : (
+            // No Lyrics Section - Music Experience with CTA
+            <div className="flex-1 flex items-center justify-center p-6 md:p-12">
+              <div className="text-center max-w-2xl mx-auto">
+                {/* Large Music Icon */}
+                <div className="mb-8">
+                  <div className="w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <Music className="h-16 w-16 md:h-20 md:w-20 text-white" />
+                  </div>
+                </div>
+
+                {/* Song Title */}
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                  {song.title}
+                </h2>
+
+                {/* Artist */}
+                <p className="text-lg md:text-xl text-gray-600 mb-8">
+                  {song.artist}
+                </p>
+
+                {/* Lyrics CTA Button - Only show if lyrics are available */}
+                {hasLyrics() && (
+                  <div className="mb-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowLyricsViewer(true);
+                        trackEngagementEvent.share(
+                          song.title,
+                          song.slug || "unknown",
+                          "view_lyrics_cta"
+                        );
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-600 border-gray-300 hover:border-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 transition-all duration-200 shadow-sm"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="text-sm font-medium">View Lyrics</span>
+                    </Button>
+                  </div>
+                )}
+
+                {/* Visualizer Placeholder */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-center space-x-1 h-16">
+                    {[...Array(20)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-1 bg-gradient-to-t from-yellow-400 to-yellow-600 rounded-full transition-all duration-300 ${
+                          isPlaying ? "animate-pulse" : ""
+                        }`}
+                        style={{
+                          height: isPlaying
+                            ? `${Math.random() * 40 + 20}px`
+                            : "20px",
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
-
-          {/* Lyrics Container with Spotify-style design */}
-          <div
-            ref={lyricsContainerRef}
-            className="h-64 md:h-80 overflow-y-auto px-6 md:px-12 py-8 md:py-12 scroll-smooth [&::-webkit-scrollbar]:hidden"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            <div className="space-y-8 md:space-y-10">
-              {lyrics.map((line, index) => (
-                <div
-                  key={index}
-                  ref={(el) => {
-                    lyricRefs.current[index] = el;
-                  }}
-                  className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
-                    line.isActive
-                      ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
-                      : line.isPast
-                      ? "text-base md:text-lg text-gray-400 opacity-60"
-                      : "text-base md:text-lg text-gray-500 opacity-80"
-                  }`}
-                  style={{
-                    transform: line.isActive ? "scale(1.1)" : "scale(1)",
-                    transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-                  }}
-                >
-                  {/* Active lyric indicator */}
-                  {line.isActive && (
-                    <div className="absolute -left-5 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
-                  )}
-
-                  {/* Progress indicator for active lyric */}
-                  {line.isActive && (
-                    <div className="absolute -left-6 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
-                  )}
-
-                  <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
-                    {line.text || "\u00A0"}
-                  </span>
-
-                  {/* Subtle glow effect for active lyric */}
-                  {line.isActive && (
-                    <div className="absolute inset-0 bg-yellow-100 rounded-lg opacity-20 blur-sm"></div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom padding for better scroll experience */}
-            <div className="h-20 md:h-24"></div>
-          </div>
         </div>
       </div>
+
+      {/* Lyrics Viewer Modal */}
+      {showLyricsViewer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {song.title}
+                </h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLyricsViewer(false)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Lyrics Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {(() => {
+                const lyricsData = song.plain_lyrics;
+
+                if (!lyricsData) {
+                  return (
+                    <div className="text-center text-gray-500 py-8">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No lyrics available for this song.</p>
+                    </div>
+                  );
+                }
+
+                // Display plain text lyrics
+                return (
+                  <div className="whitespace-pre-wrap text-base md:text-lg leading-relaxed text-gray-800">
+                    {lyricsData}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  Enjoying the lyrics? Share this song with others!
+                </p>
+                <ShareButton
+                  slug={song.slug}
+                  title={song.title}
+                  onShare={() =>
+                    trackEngagementEvent.share(
+                      song.title,
+                      song.slug || "unknown",
+                      "native_share"
+                    )
+                  }
+                  onCopyLink={() =>
+                    trackEngagementEvent.copyLink(
+                      song.title,
+                      song.slug || "unknown"
+                    )
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

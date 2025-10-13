@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
-import { FullPageMediaPlayerNoLyrics } from "@/components/FullPageMediaPlayerNoLyrics";
 import { StructuredData } from "@/components/StructuredData";
 
 import { getSongBySlug } from "@/lib/db/services";
@@ -18,22 +17,10 @@ async function SongPageContent({ song }: { song: any }) {
     timestamp_lyrics: song.timestamp_lyrics || undefined,
     timestamped_lyrics_variants: song.timestamped_lyrics_variants || undefined,
     selected_variant: song.selected_variant || undefined,
-    slug: song.slug,
-    suno_variants: song.suno_variants || undefined,
-  };
-
-  // Map the song data for the no-lyrics version
-  const mappedSongNoLyrics = {
-    id: song.id.toString(),
-    title: song.title,
-    artist: song.service_provider || "Melodia",
-    song_url: song.song_url || undefined,
-    duration: song.duration || 0,
-    slug: song.slug,
     lyrics: song.lyrics || null,
     show_lyrics: song.show_lyrics,
+    slug: song.slug,
     suno_variants: song.suno_variants || undefined,
-    selected_variant: song.selected_variant || undefined,
   };
 
   return (
@@ -53,11 +40,7 @@ async function SongPageContent({ song }: { song: any }) {
           slug: song.slug,
         }}
       />
-      {song.show_lyrics !== false ? (
-        <FullPageMediaPlayer song={mappedSong} />
-      ) : (
-        <FullPageMediaPlayerNoLyrics song={mappedSongNoLyrics} />
-      )}
+      <FullPageMediaPlayer song={mappedSong} />
     </>
   );
 }

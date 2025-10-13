@@ -185,6 +185,8 @@ export default function SongLibraryPage() {
               selectedSong.timestamped_lyrics_variants || undefined,
             selected_variant: selectedSong.selected_variant || undefined,
             slug: selectedSong.slug,
+            show_lyrics: selectedSong.show_lyrics,
+            plain_lyrics: selectedSong.lyrics,
           }}
           onClose={handleClosePlayer}
         />

@@ -230,6 +230,7 @@ export async function getActiveSongsAction(): Promise<
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata as any,
       sequence: song.sequence ?? undefined,
+      show_lyrics: song.show_lyrics ?? true,
     }));
 
     return { success: true, songs };
