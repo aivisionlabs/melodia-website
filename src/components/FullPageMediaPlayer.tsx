@@ -536,7 +536,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           <div className="flex items-center">
             <ShareButton
               slug={song.slug}
-              title={`Listen to ${song.title} with synchronized lyrics`}
+              title={`${song.title}`}
               onShare={() =>
                 trackEngagementEvent.share(song.title, song.id, "native_share")
               }

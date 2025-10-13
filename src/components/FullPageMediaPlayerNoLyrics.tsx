@@ -471,7 +471,7 @@ export const FullPageMediaPlayerNoLyrics = ({
           <div className="flex items-center">
             <ShareButton
               slug={song.slug}
-              title={`Listen to ${song.title}`}
+              title={song.title}
               onShare={() =>
                 trackEngagementEvent.share(song.title, song.id, "native_share")
               }
@@ -558,12 +558,6 @@ export const FullPageMediaPlayerNoLyrics = ({
               ))}
             </div>
           </div>
-
-          {/* Description */}
-          <p className="text-gray-500 text-sm md:text-base max-w-md mx-auto">
-            Enjoy this beautiful melody created just for you. Close your eyes
-            and let the music take you away.
-          </p>
         </div>
       </div>
 
@@ -780,9 +774,7 @@ export const FullPageMediaPlayerNoLyrics = ({
                 </p>
                 <ShareButton
                   slug={song.slug}
-                  title={`${
-                    song.title && song.title + ","
-                  } Check out this amazing song by Melodia!`}
+                  title={song.title}
                   onShare={() =>
                     trackEngagementEvent.share(
                       song.title,
