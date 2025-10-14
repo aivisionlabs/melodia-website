@@ -28,8 +28,8 @@ export default function AboutPage() {
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
               We believe that every special moment deserves a unique soundtrack.
-              Melodia is an AI-powered platform that creates personalized songs
-              to celebrate the people and moments that matter most in your life.
+              Melodia is a platform that creates personalized songs to celebrate
+              the people and moments that matter most in your life.
             </p>
             <div className="flex justify-center">
               <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white px-8 py-3 rounded-full font-semibold text-lg">
@@ -57,10 +57,10 @@ export default function AboutPage() {
                   <p className="text-gray-300 mb-6 text-lg">
                     We set out to democratize music creation, making it
                     accessible to everyone regardless of their musical
-                    background. Using cutting-edge AI technology, we&apos;ve
-                    created a platform that understands the nuances of human
-                    emotion and translates them into beautiful, personalized
-                    musical experiences.
+                    background. Through innovative technology and creative
+                    expertise, we&apos;ve created a platform that understands
+                    the nuances of human emotion and translates them into
+                    beautiful, personalized musical experiences.
                   </p>
                   <div className="flex items-center space-x-2">
                     <Sparkles className="h-5 w-5 text-yellow-400" />
@@ -146,11 +146,11 @@ export default function AboutPage() {
                   <span className="text-2xl font-bold text-white">2</span>
                 </div>
                 <h4 className="text-lg font-semibold text-white mb-2">
-                  AI Creates Your Song
+                  We Create Your Song
                 </h4>
                 <p className="text-gray-300">
-                  Our advanced AI generates personalized lyrics and music
-                  tailored to your story.
+                  Our team generates personalized lyrics and music tailored to
+                  your story.
                 </p>
               </div>
               <div className="text-center">
@@ -168,25 +168,23 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* Technology */}
+          {/* Our Process */}
           <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 mb-16">
             <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              Powered by Advanced AI
+              Our Creative Process
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4 className="text-lg font-semibold text-white mb-3">
-                  Lyrics Generation
+                  Lyrics Creation
                 </h4>
                 <p className="text-gray-300 mb-4">
-                  Our AI analyzes your input to create meaningful, personalized
-                  lyrics that capture the essence of your story.
+                  Our creative team analyzes your input to craft meaningful,
+                  personalized lyrics that capture the essence of your story.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Award className="h-5 w-5 text-yellow-400" />
-                  <span className="text-gray-300">
-                    Natural language processing
-                  </span>
+                  <span className="text-gray-300">Creative storytelling</span>
                 </div>
               </div>
               <div>
@@ -194,12 +192,14 @@ export default function AboutPage() {
                   Music Composition
                 </h4>
                 <p className="text-gray-300 mb-4">
-                  Advanced algorithms compose original melodies and harmonies
+                  Our talented musicians compose original melodies and harmonies
                   that perfectly complement your lyrics.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Music className="h-5 w-5 text-yellow-400" />
-                  <span className="text-gray-300">AI music generation</span>
+                  <span className="text-gray-300">
+                    Professional music production
+                  </span>
                 </div>
               </div>
             </div>
@@ -212,11 +212,11 @@ export default function AboutPage() {
                 Our Team
               </h3>
               <p className="text-gray-300 mb-6">
-                We&apos;re a passionate team of musicians, engineers, and
-                designers who believe in the power of music to bring people
-                together. Our diverse backgrounds in technology and the arts
-                drive us to create innovative solutions that make music creation
-                accessible to everyone.
+                We&apos;re a passionate team of musicians, songwriters, and
+                creative professionals who believe in the power of music to
+                bring people together. Our diverse backgrounds in music and
+                creative arts drive us to create meaningful solutions that make
+                music creation accessible to everyone.
               </p>
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-yellow-400" />
