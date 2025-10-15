@@ -370,8 +370,8 @@ export default function TermsPage() {
             </p>
 
             <div className="space-y-2">
-              <p className="text-gray-300">Email: aivisionlabs555@gmail.com</p>
-              <p className="text-gray-300">Phone: +1 (555) 123-4567</p>
+              <p className="text-gray-300">Email: info@melodia-songs.com</p>
+              <p className="text-gray-300">Phone: +918880522285</p>
               <p className="text-gray-300">Website: melodia-songs.com</p>
             </div>
           </div>

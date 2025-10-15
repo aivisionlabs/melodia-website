@@ -316,7 +316,7 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-yellow-400" />
-                <span className="text-gray-300">aivisionlabs555@gmail.com</span>
+                <span className="text-gray-300">info@melodia-songs.com</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Globe className="h-5 w-5 text-yellow-400" />

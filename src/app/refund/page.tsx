@@ -313,11 +313,11 @@ export default function RefundPolicyPage() {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-yellow-400" />
-                <span className="text-gray-300">aivisionlabs555@gmail.com</span>
+                <span className="text-gray-300">info@melodia-songs.com</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-yellow-400" />
-                <span className="text-gray-300">+1 (555) 123-4567</span>
+                <span className="text-gray-300">+918880522285</span>
               </div>
               <div className="text-gray-300">
                 <p>Please include:</p>

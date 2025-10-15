@@ -40,7 +40,7 @@ export default function HomePage() {
         <section className="w-full bg-gradient-to-br from-primary-yellow/20 via-transparent to-accent-coral/10 text-center pt-12 sm:pt-16 md:pt-20 pb-20 sm:pb-24 md:pb-32 px-4 relative overflow-hidden">
           <CenterLogo
             alt="Melodia"
-            className="mx-auto mb-4 sm:mb-6 w-24 h-24 sm:w-32 sm:h-32 drop-shadow-lg animate-fade-in"
+            className="mx-auto sm:mb-6 lg:mb-8 w-24 h-24 sm:w-32 sm:h-32 drop-shadow-lg animate-fade-in"
           />
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-teal font-heading max-w-2xl mx-auto leading-tight">
             <span className="bg-gradient-to-r from-text-teal via-accent-coral to-text-teal bg-clip-text text-transparent animate-fade-in">
