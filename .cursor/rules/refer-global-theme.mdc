@@ -1,0 +1,4 @@
+---
+alwaysApply: false
+---
+When making any UI changes for any component refer to global.css file to get the required variables

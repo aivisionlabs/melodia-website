@@ -14,6 +14,7 @@ import Link from "next/link";
 import { CenterLogo } from "@/components/OptimizedLogo";
 import { trackNavigationEvent, trackPlayerEvent } from "@/lib/analytics";
 import LyricalWavesBackground from "@/components/LyricalWavesBackground";
+import BulkOrderCTA from "@/components/BulkOrderCTA";
 
 // Component for animated images (GIFs, animated PNGs) that preserves animation
 const AnimatedImage = ({
@@ -208,6 +209,9 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* Bulk Order CTA Section */}
+        <BulkOrderCTA />
 
         {/* Testimonials Section */}
         <section
