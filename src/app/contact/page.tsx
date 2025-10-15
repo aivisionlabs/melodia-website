@@ -426,7 +426,7 @@ export default function ContactPage() {
                 </p>
               </div>
 
-              <div className="bg-secondary rounded-lg shadow-elegant p-6 border border-primary">
+              {/* <div className="bg-secondary rounded-lg shadow-elegant p-6 border border-primary">
                 <h3 className="text-lg font-semibold text-teal mb-3">
                   Can I edit the lyrics after generation?
                 </h3>
@@ -435,7 +435,7 @@ export default function ContactPage() {
                   final song. We provide a user-friendly editor for making
                   changes.
                 </p>
-              </div>
+              </div> */}
 
               <div className="bg-secondary rounded-lg shadow-elegant p-6 border border-primary">
                 <h3 className="text-lg font-semibold text-teal mb-3">
