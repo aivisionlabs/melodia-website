@@ -99,7 +99,7 @@ export const ShareButton = ({
       variant="outline"
       size="sm"
       onClick={handleShare}
-      className={`bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
+      className={`bg-white/90 backdrop-blur-sm border-white/30 text-gray-800 hover:bg-white hover:text-gray-900 shadow-md ${
         className || ""
       }`}
     >
