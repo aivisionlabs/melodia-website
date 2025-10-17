@@ -17,21 +17,6 @@ const nextConfig = {
       },
     ],
   },
-  // Turbopack configuration
-  turbopack: {
-    resolveAlias: {
-      // Handle fs fallback for browser compatibility - use empty string for Turbopack
-      fs: "",
-    },
-  },
-  // Keep webpack config as fallback for non-Turbopack builds
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-    };
-    return config;
-  },
 };
 
 export default nextConfig;

@@ -23,6 +23,7 @@ import {
   trackNavigationEvent,
   trackCTAEvent,
 } from "@/lib/analytics";
+import { HeaderLogo } from "./OptimizedLogo";
 
 // iOS Audio Context type declaration
 declare global {
@@ -543,19 +544,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-2 pb-1 text-white">
         <div className="flex items-center justify-between mb-1">
           {/* Melodia Branding */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <Image
-              src="/images/melodia-logo.jpeg"
-              alt="Melodia"
-              width={80}
-              height={80}
-              className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain`}
-              priority={true}
-            />
-          </Link>
+          <HeaderLogo className="py-2" />
 
           {/* Share Button */}
           <div className="flex items-center">
@@ -582,8 +571,8 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
                   ? "iOS Demo mode: Use controls below to experience synchronized lyrics"
                   : "iOS Demo mode: Use controls below to experience the music"
                 : song.show_lyrics !== false
-                ? "Demo mode: Use controls below to experience synchronized lyrics"
-                : "Demo mode: Use controls below to experience the music"}
+                  ? "Demo mode: Use controls below to experience synchronized lyrics"
+                  : "Demo mode: Use controls below to experience the music"}
             </span>
           </div>
         )}
@@ -622,8 +611,8 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
                       line.isActive
                         ? "text-xl md:text-2xl lg:text-3xl font-bold text-yellow-600 transform scale-110"
                         : line.isPast
-                        ? "text-base md:text-lg text-gray-400 opacity-60"
-                        : "text-base md:text-lg text-gray-500 opacity-80"
+                          ? "text-base md:text-lg text-gray-400 opacity-60"
+                          : "text-base md:text-lg text-gray-500 opacity-80"
                     }`}
                     style={{
                       transform: line.isActive ? "scale(1.1)" : "scale(1)",

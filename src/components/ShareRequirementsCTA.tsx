@@ -16,7 +16,7 @@ const ShareRequirementsCTA = ({
   const sizeClasses = {
     sm: "px-2 py-1.5 text-xs sm:text-sm",
     md: "px-3 py-2 text-sm sm:text-base",
-    lg: "w-full sm:w-54 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg",
+    lg: "w-full sm:w-auto sm:px-8 h-12 sm:h-14 md:h-16 text-sm sm:text-base md:text-lg",
   };
 
   return (
