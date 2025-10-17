@@ -1,9 +1,104 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 import { StructuredData } from "@/components/StructuredData";
 
 import { getSongBySlug } from "@/lib/db/services";
+
+// Generate dynamic metadata for each song page
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ songId: string }>;
+}): Promise<Metadata> {
+  const { songId } = await params;
+
+  try {
+    const song = await getSongBySlug(songId);
+
+    if (!song) {
+      return {
+        title: "Song Not Found | Melodia",
+        description: "The song you're looking for could not be found.",
+      };
+    }
+
+    // Get image URL from suno variants or use default
+    const imageUrl =
+      song.suno_variants?.[0]?.sourceImageUrl || "/images/melodia-logo-og.jpeg";
+
+    // Create description from song_description or generate one
+    const description =
+      song.song_description ||
+      `Listen to ${song.title}, a personalized ${song.music_style || "custom"} song created by Melodia. Perfect for special occasions and creating lasting memories.`;
+
+    // Build keywords array
+    const keywords = [
+      song.title,
+      ...(song.categories || []),
+      song.music_style,
+      "personalized song",
+      "custom music",
+      "AI generated song",
+      "gift song",
+      "musical gift",
+    ].filter(Boolean);
+
+    return {
+      title: `${song.title} - Personalized Song | Melodia`,
+      description: description.substring(0, 160), // Keep under 160 chars for SEO
+      keywords: keywords.join(", "),
+      authors: [{ name: "Melodia" }],
+      creator: "Melodia",
+      publisher: "Melodia",
+      openGraph: {
+        title: song.title,
+        description: description.substring(0, 200),
+        url: `https://melodia-songs.com/library/${song.slug}`,
+        siteName: "Melodia",
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: `${song.title} - Album Artwork`,
+          },
+        ],
+        locale: "en_US",
+        type: "music.song",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: song.title,
+        description: description.substring(0, 200),
+        images: [imageUrl],
+        creator: "@melodia_songs",
+        site: "@melodia_songs",
+      },
+      alternates: {
+        canonical: `/library/${song.slug}`,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Error generating metadata for song:", error);
+    return {
+      title: "Song | Melodia",
+      description: "Listen to personalized songs created by Melodia.",
+    };
+  }
+}
 
 // Server Component for song data loading
 async function SongPageContent({ song }: { song: any }) {
@@ -20,6 +115,7 @@ async function SongPageContent({ song }: { song: any }) {
     lyrics: song.lyrics || null,
     show_lyrics: song.show_lyrics,
     slug: song.slug,
+    likes_count: song.likes_count || 0,
     suno_variants: song.suno_variants || undefined,
   };
 

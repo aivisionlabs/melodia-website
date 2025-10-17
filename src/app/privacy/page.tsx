@@ -1,8 +1,34 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Eye, Lock, Database, Users, Mail, Globe } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy - Melodia",
+  description:
+    "Read Melodia's Privacy Policy to understand how we collect, use, and protect your personal information. We are committed to protecting your privacy and keeping your data secure.",
+  keywords:
+    "privacy policy, melodia privacy, data protection, personal information, data security, user privacy, GDPR compliance",
+  openGraph: {
+    title: "Privacy Policy - Melodia",
+    description:
+      "Learn about how Melodia protects your privacy and handles your personal information.",
+    url: "https://melodia-songs.com/privacy",
+    siteName: "Melodia",
+    images: ["/images/melodia-logo-og.jpeg"],
+    locale: "en_US",
+    type: "website",
+  },
+  alternates: {
+    canonical: "/privacy",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function PrivacyPolicyPage() {
   return (

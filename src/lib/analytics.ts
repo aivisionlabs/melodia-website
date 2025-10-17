@@ -37,10 +37,13 @@ export const EVENT_ACTIONS = {
   SHARE: 'share',
   COPY_LINK: 'copy_link',
   DOWNLOAD: 'download',
+  LIKE: 'like',
 
   // Search actions
   SEARCH: 'search',
   SEARCH_RESULT: 'search_result',
+  SEARCH_SUGGESTION: 'search_suggestion',
+  SEARCH_NO_RESULTS: 'search_no_results',
 
   // CTA actions
   CTA_CLICK: 'cta_click',
@@ -203,14 +206,26 @@ export const trackEngagementEvent = {
       timestamp: Date.now(),
     });
   },
+
+  like: (songTitle: string, songId: string, pageContext: string, likeCount: number) => {
+    trackEvent(EVENT_CATEGORIES.ENGAGEMENT, EVENT_ACTIONS.LIKE, songTitle, likeCount, {
+      song_id: songId,
+      page_context: pageContext,
+      like_count: likeCount,
+      timestamp: Date.now(),
+    });
+  },
 };
 
 // Search tracking functions
 export const trackSearchEvent = {
-  search: (query: string, resultsCount: number) => {
+  search: (query: string, resultsCount: number, searchType: 'text' | 'voice' = 'text', searchMethod: 'fuzzy' | 'exact' = 'fuzzy') => {
     trackEvent(EVENT_CATEGORIES.SEARCH, EVENT_ACTIONS.SEARCH, query, resultsCount, {
       query_length: query.length,
       results_count: resultsCount,
+      search_type: searchType,
+      search_method: searchMethod,
+      query_words: query.split(' ').length,
       timestamp: Date.now(),
     });
   },
@@ -219,6 +234,23 @@ export const trackSearchEvent = {
     trackEvent(EVENT_CATEGORIES.SEARCH, EVENT_ACTIONS.SEARCH_RESULT, resultTitle, resultPosition, {
       search_query: query,
       result_position: resultPosition,
+      timestamp: Date.now(),
+    });
+  },
+
+  searchSuggestion: (query: string, suggestion: string, suggestionType: 'title' | 'category' | 'style' | 'description') => {
+    trackEvent(EVENT_CATEGORIES.SEARCH, EVENT_ACTIONS.SEARCH_SUGGESTION, suggestion, undefined, {
+      search_query: query,
+      suggestion_type: suggestionType,
+      timestamp: Date.now(),
+    });
+  },
+
+  searchNoResults: (query: string, searchType: 'text' | 'voice' = 'text') => {
+    trackEvent(EVENT_CATEGORIES.SEARCH, EVENT_ACTIONS.SEARCH_NO_RESULTS, query, 0, {
+      query_length: query.length,
+      search_type: searchType,
+      query_words: query.split(' ').length,
       timestamp: Date.now(),
     });
   },

@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   RefreshCw,
   Clock,
@@ -12,6 +13,31 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Refund & Cancellation Policy - Melodia",
+  description:
+    "Read Melodia's Refund and Cancellation Policy. Learn about our fair refund practices, eligible circumstances, and the refund request process for personalized song creation services.",
+  keywords:
+    "refund policy, cancellation policy, melodia refund, return policy, money back guarantee, service refund, AI music refund",
+  openGraph: {
+    title: "Refund & Cancellation Policy - Melodia",
+    description:
+      "Learn about Melodia's fair and transparent refund and cancellation practices.",
+    url: "https://melodia-songs.com/refund",
+    siteName: "Melodia",
+    images: ["/images/melodia-logo-og.jpeg"],
+    locale: "en_US",
+    type: "website",
+  },
+  alternates: {
+    canonical: "/refund",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function RefundPolicyPage() {
   return (

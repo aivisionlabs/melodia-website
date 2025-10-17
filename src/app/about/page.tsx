@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   Music,
   Heart,
@@ -14,6 +15,41 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "About Melodia - Creating Personalized Songs Since 2024",
+  description:
+    "Learn about Melodia's mission to democratize music creation. We create personalized songs for your loved ones using innovative AI technology. Discover our story, values, and commitment to quality.",
+  keywords:
+    "about melodia, personalized music service, AI song creation, custom music platform, music technology, song creation team, melodia story",
+  openGraph: {
+    title: "About Melodia - Our Story",
+    description:
+      "Discover how Melodia is making personalized music accessible to everyone through innovative AI technology.",
+    url: "https://melodia-songs.com/about",
+    siteName: "Melodia",
+    images: [
+      {
+        url: "/images/melodia-logo-og.jpeg",
+        width: 792,
+        height: 446,
+        alt: "About Melodia",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Melodia - Our Story",
+    description:
+      "Learn how we're making personalized music accessible to everyone.",
+    images: ["/images/melodia-logo-og.jpeg"],
+  },
+  alternates: {
+    canonical: "/about",
+  },
+};
 
 export default function AboutPage() {
   return (

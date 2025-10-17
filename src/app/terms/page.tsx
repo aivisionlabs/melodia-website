@@ -1,7 +1,33 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import type { Metadata } from "next";
 import { CheckCircle, Shield, XCircle } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms and Conditions - Melodia",
+  description:
+    "Read Melodia's Terms and Conditions for our personalized song creation platform. Learn about user responsibilities, intellectual property rights, payment terms, and service usage policies.",
+  keywords:
+    "terms and conditions, melodia terms, service agreement, user agreement, terms of service, legal terms, AI music terms",
+  openGraph: {
+    title: "Terms and Conditions - Melodia",
+    description:
+      "Read our Terms and Conditions for using Melodia's personalized song creation service.",
+    url: "https://melodia-songs.com/terms",
+    siteName: "Melodia",
+    images: ["/images/melodia-logo-og.jpeg"],
+    locale: "en_US",
+    type: "website",
+  },
+  alternates: {
+    canonical: "/terms",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function TermsPage() {
   return (

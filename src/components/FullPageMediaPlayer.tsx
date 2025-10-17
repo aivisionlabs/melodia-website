@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
+import { SongLikeButton } from "@/components/SongLikeButton";
 import {
   trackPlayerEvent,
   trackEngagementEvent,
@@ -52,6 +53,7 @@ interface Song {
   lyrics?: string | null;
   slug?: string;
   show_lyrics?: boolean;
+  likes_count?: number;
   suno_variants?: Array<{
     id: string;
     audioUrl: string;
@@ -544,7 +546,9 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 p-2 pb-1 text-white">
         <div className="flex items-center justify-between mb-1">
           {/* Melodia Branding */}
-          <HeaderLogo className="py-2" />
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <HeaderLogo className="py-2" />
+          </Link>
 
           {/* Share Button */}
           <div className="flex items-center">
@@ -778,8 +782,16 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             </div>
           </div>
 
-          {/* All Library CTA */}
-          <div className="flex items-center">
+          {/* Like Button and All Library CTA */}
+          <div className="flex items-center gap-2">
+            <SongLikeButton
+              slug={song.slug || ""}
+              initialCount={song.likes_count || 0}
+              size="sm"
+              songTitle={song.title}
+              songId={song.id}
+              pageContext="song_player"
+            />
             <Link href="/library">
               <Button
                 variant="ghost"

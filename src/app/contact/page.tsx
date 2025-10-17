@@ -6,6 +6,9 @@ import { Mail, Phone } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+// Note: Metadata should be in layout.tsx for client components
+// We'll create a layout file for this
+
 // WhatsApp Icon Component
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">

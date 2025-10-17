@@ -1,5 +1,5 @@
 import { AlignedWord } from '@/types';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../index';
 import { songsTable } from '../schema';
 
@@ -123,6 +123,18 @@ export async function updateTimestampedLyricsForVariant(
     console.log(`Updated timestamped lyrics for variant ${variantIndex} of song ${songId}`);
   } catch (error) {
     console.error('Error updating timestamped lyrics for variant:', error);
+    throw error;
+  }
+}
+
+export async function incrementSongLikeBySlug(slug: string) {
+  try {
+    await db
+      .update(songsTable)
+      .set({ likes_count: sql`${songsTable.likes_count} + 1` })
+      .where(eq(songsTable.slug, slug));
+  } catch (error) {
+    console.error('Error incrementing like count:', error);
     throw error;
   }
 }

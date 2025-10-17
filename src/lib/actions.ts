@@ -3,6 +3,7 @@
 import { Song, PublicSong, AlignedWord } from '@/types';
 import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 import { createServerSupabaseClient } from './supabase';
+import { unstable_cache } from 'next/cache';
 
 
 // Rate limiting map (in production, use Redis or similar)
@@ -195,116 +196,318 @@ export async function getSongByTaskIdAction(taskId: string) {
   }
 }
 
-export async function getActiveSongsAction(): Promise<
-  | { success: true; songs: Song[] }
-  | { success: false; error: string; songs: Song[] }
+export async function getActiveSongsAction(limit: number = 20, offset: number = 0): Promise<
+  | { success: true; songs: Song[]; total: number; hasMore: boolean }
+  | { success: false; error: string; songs: Song[]; total: number; hasMore: boolean }
 > {
   try {
-    const { getAllSongs } = await import('@/lib/db/queries/select');
-    const dbSongs = await getAllSongs();
+    const cachedResult = await unstable_cache(
+      async () => {
+        const { getAllSongsPaginated } = await import('@/lib/db/queries/select');
+        const { songs: dbSongs, total } = await getAllSongsPaginated(limit, offset);
 
-    // Transform database songs to match Song type
-    const songs: Song[] = dbSongs.map(song => ({
-      id: song.id,
-      created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics ?? null,
-      song_description: (song as any).song_description ?? null,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style ?? null,
-      service_provider: song.service_provider ?? null,
-      song_requester: song.song_requester ?? null,
-      prompt: song.prompt ?? null,
-      song_url: song.song_url ?? null,
-      duration: song.duration ?? null,
-      slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
-      status: song.status ?? undefined,
-      categories: song.categories ?? undefined,
-      tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants as any,
-      selected_variant: song.selected_variant ?? undefined,
-      metadata: song.metadata as any,
-      sequence: song.sequence ?? undefined,
-      show_lyrics: song.show_lyrics ?? true,
-    }));
+        // Transform database songs to match Song type (optimized - no heavy fields)
+        const songs: Song[] = dbSongs.map(song => ({
+          id: song.id,
+          created_at: song.created_at.toISOString(),
+          title: song.title,
+          lyrics: null, // Not loaded for library view
+          song_description: song.song_description ?? null,
+          timestamp_lyrics: null, // Not loaded for library view
+          timestamped_lyrics_variants: null, // Not loaded for library view
+          timestamped_lyrics_api_responses: null, // Not loaded for library view
+          music_style: song.music_style ?? null,
+          service_provider: song.service_provider ?? null,
+          song_requester: null, // Not needed for library view
+          prompt: null, // Not needed for library view
+          song_url: song.song_url ?? null,
+          duration: song.duration ?? null,
+          slug: song.slug,
+          add_to_library: song.add_to_library ?? undefined,
+          is_deleted: song.is_deleted ?? undefined,
+          status: song.status ?? undefined,
+          categories: song.categories ?? undefined,
+          tags: song.tags ?? undefined,
+          suno_task_id: undefined, // Not exposed in library
+          negative_tags: undefined, // Not needed for library view
+          suno_variants: song.suno_variants as any,
+          selected_variant: song.selected_variant ?? undefined,
+          metadata: undefined, // Not needed for library view
+          sequence: song.sequence ?? undefined,
+          show_lyrics: song.show_lyrics ?? true,
+          likes_count: (song as any).likes_count ?? 0,
+        }));
 
-    return { success: true, songs };
+        const hasMore = offset + songs.length < total;
+        return { songs, total, hasMore };
+      },
+      [`songs-all-${limit}-${offset}`],
+      {
+        tags: ['songs', 'library'],
+        revalidate: 60, // 1 minute
+      }
+    )();
+
+    return { success: true, ...cachedResult };
   } catch (error) {
     console.error('Error in getActiveSongsAction:', error);
-    return { success: false, error: 'Failed to get active songs', songs: [] };
+    return { success: false, error: 'Failed to get active songs', songs: [], total: 0, hasMore: false };
   }
 }
 
-// Server-side: get songs by category slug
-export async function getSongsByCategoryAction(categorySlug: string | null): Promise<
-  | { success: true; songs: Song[] }
-  | { success: false; error: string; songs: Song[] }
+// Server-side: get songs by category slug with pagination and caching
+export async function getSongsByCategoryAction(categorySlug: string | null, limit: number = 20, offset: number = 0): Promise<
+  | { success: true; songs: Song[]; total: number; hasMore: boolean }
+  | { success: false; error: string; songs: Song[]; total: number; hasMore: boolean }
 > {
   try {
-    const { getSongsByCategorySlug } = await import('@/lib/db/queries/select');
-    const dbSongs = await getSongsByCategorySlug(categorySlug || 'all');
+    const cachedResult = await unstable_cache(
+      async () => {
+        const { getSongsByCategorySlugPaginated } = await import('@/lib/db/queries/select');
+        const { songs: dbSongs, total } = await getSongsByCategorySlugPaginated(categorySlug, limit, offset);
 
-    const songs: Song[] = dbSongs.map(song => ({
-      id: song.id,
-      created_at: song.created_at.toISOString(),
-      title: song.title,
-      lyrics: song.lyrics ?? null,
-      song_description: (song as any).song_description ?? null,
-      timestamp_lyrics: song.timestamp_lyrics as any,
-      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
-      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
-      music_style: song.music_style ?? null,
-      service_provider: song.service_provider ?? null,
-      song_requester: song.song_requester ?? null,
-      prompt: song.prompt ?? null,
-      song_url: song.song_url ?? null,
-      duration: song.duration ?? null,
-      slug: song.slug,
-      add_to_library: song.add_to_library ?? undefined,
-      is_deleted: song.is_deleted ?? undefined,
-      status: song.status ?? undefined,
-      categories: song.categories ?? undefined,
-      tags: song.tags ?? undefined,
-      suno_task_id: song.suno_task_id ?? undefined,
-      negative_tags: song.negative_tags ?? undefined,
-      suno_variants: song.suno_variants as any,
-      selected_variant: song.selected_variant ?? undefined,
-      metadata: song.metadata as any,
-      sequence: song.sequence ?? undefined,
-      show_lyrics: song.show_lyrics ?? true,
-    }));
+        // Transform database songs to match Song type (optimized - no heavy fields)
+        const songs: Song[] = dbSongs.map(song => ({
+          id: song.id,
+          created_at: song.created_at.toISOString(),
+          title: song.title,
+          lyrics: null, // Not loaded for library view
+          song_description: song.song_description ?? null,
+          timestamp_lyrics: null, // Not loaded for library view
+          timestamped_lyrics_variants: null, // Not loaded for library view
+          timestamped_lyrics_api_responses: null, // Not loaded for library view
+          music_style: song.music_style ?? null,
+          service_provider: song.service_provider ?? null,
+          song_requester: null, // Not needed for library view
+          prompt: null, // Not needed for library view
+          song_url: song.song_url ?? null,
+          duration: song.duration ?? null,
+          slug: song.slug,
+          add_to_library: song.add_to_library ?? undefined,
+          is_deleted: song.is_deleted ?? undefined,
+          status: song.status ?? undefined,
+          categories: song.categories ?? undefined,
+          tags: song.tags ?? undefined,
+          suno_task_id: undefined, // Not exposed in library
+          negative_tags: undefined, // Not needed for library view
+          suno_variants: song.suno_variants as any,
+          selected_variant: song.selected_variant ?? undefined,
+          metadata: undefined, // Not needed for library view
+          sequence: song.sequence ?? undefined,
+          show_lyrics: song.show_lyrics ?? true,
+          likes_count: (song as any).likes_count ?? 0,
+        }));
 
-    return { success: true, songs };
+        const hasMore = offset + songs.length < total;
+        return { songs, total, hasMore };
+      },
+      [`songs-category-${categorySlug}-${limit}-${offset}`],
+      {
+        tags: ['songs', 'library'],
+        revalidate: 60, // 1 minute
+      }
+    )();
+
+    return { success: true, ...cachedResult };
   } catch (error) {
     console.error('Error in getSongsByCategoryAction:', error);
-    return { success: false, error: 'Failed to get songs for category', songs: [] };
+    return { success: false, error: 'Failed to get songs for category', songs: [], total: 0, hasMore: false };
   }
 }
 
-// Server-side: list categories with counts
+// Server-side: list categories with counts and caching
 export async function getCategoriesWithCountsAction(): Promise<
   | { success: true; categories: Array<{ id: number; name: string; slug: string; sequence: number; count: number }>; total: number }
   | { success: false; error: string; categories: Array<any>; total: number }
 > {
   try {
-    const { getCategoriesWithCounts, getAllSongs } = await import('@/lib/db/queries/select');
-    const [categories, allSongs] = await Promise.all([
+    const { libraryCache, getCacheTTL } = await import('@/lib/cache');
+    const cacheKey = libraryCache.getCategoriesKey();
+
+    // Check cache first
+    const cached = libraryCache.get<{ categories: Array<{ id: number; name: string; slug: string; sequence: number; count: number }>; total: number }>(cacheKey);
+    if (cached) {
+      return { success: true, ...cached };
+    }
+
+    const { getCategoriesWithCounts, getAllSongsPaginated } = await import('@/lib/db/queries/select');
+    const [categories, { total }] = await Promise.all([
       getCategoriesWithCounts(),
-      getAllSongs(),
+      getAllSongsPaginated(1, 0), // Just get count, not actual songs
     ]);
 
-    const total = allSongs.length;
+    const result = {
+      categories: categories.map(c => ({ ...c, sequence: c.sequence ?? 0 })),
+      total
+    };
 
-    return { success: true, categories: categories.map(c => ({ ...c, sequence: c.sequence ?? 0 })), total };
+    // Cache the result
+    libraryCache.set(cacheKey, result, getCacheTTL('categories'));
+
+    return { success: true, ...result };
   } catch (error) {
     console.error('Error in getCategoriesWithCountsAction:', error);
     return { success: false, error: 'Failed to get categories', categories: [], total: 0 };
+  }
+}
+
+// Search songs action with pagination and caching
+export async function searchSongsAction(query: string, limit: number = 20, offset: number = 0): Promise<
+  | { success: true; songs: Song[]; total: number; hasMore: boolean }
+  | { success: false; error: string; songs: Song[]; total: number; hasMore: boolean }
+> {
+  try {
+    const { libraryCache, getCacheTTL } = await import('@/lib/cache');
+    const cacheKey = libraryCache.getSearchKey(query, limit, offset);
+
+    // Check cache first
+    const cached = libraryCache.get<{ songs: Song[]; total: number; hasMore: boolean }>(cacheKey);
+    if (cached) {
+      return { success: true, ...cached };
+    }
+
+    const { searchSongsPaginated } = await import('@/lib/db/queries/select');
+    const { songs: dbSongs, total } = await searchSongsPaginated(query, limit, offset);
+
+    // Transform database songs to match Song type (optimized - no heavy fields)
+    const songs: Song[] = dbSongs.map(song => ({
+      id: song.id,
+      created_at: song.created_at.toISOString(),
+      title: song.title,
+      lyrics: null, // Not loaded for library view
+      song_description: song.song_description ?? null,
+      timestamp_lyrics: null, // Not loaded for library view
+      timestamped_lyrics_variants: null, // Not loaded for library view
+      timestamped_lyrics_api_responses: null, // Not loaded for library view
+      music_style: song.music_style ?? null,
+      service_provider: song.service_provider ?? null,
+      song_requester: null, // Not needed for library view
+      prompt: null, // Not needed for library view
+      song_url: song.song_url ?? null,
+      duration: song.duration ?? null,
+      slug: song.slug,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
+      status: song.status ?? undefined,
+      categories: song.categories ?? undefined,
+      tags: song.tags ?? undefined,
+      suno_task_id: undefined, // Not exposed in library
+      negative_tags: undefined, // Not needed for library view
+      suno_variants: song.suno_variants as any,
+      selected_variant: song.selected_variant ?? undefined,
+      metadata: undefined, // Not needed for library view
+      sequence: song.sequence ?? undefined,
+      show_lyrics: song.show_lyrics ?? true,
+      likes_count: (song as any).likes_count ?? 0,
+    }));
+
+    const hasMore = offset + songs.length < total;
+    const result = { songs, total, hasMore };
+
+    // Cache the result
+    libraryCache.set(cacheKey, result, getCacheTTL('search'));
+
+    return { success: true, ...result };
+  } catch (error) {
+    console.error('Error in searchSongsAction:', error);
+    return { success: false, error: 'Failed to search songs', songs: [], total: 0, hasMore: false };
+  }
+}
+
+// Fuzzy search songs action with intelligent matching
+export async function fuzzySearchSongsAction(query: string, limit: number = 50): Promise<
+  | { success: true; songs: Song[]; total: number; suggestions?: string[] }
+  | { success: false; error: string; songs: Song[]; total: number; suggestions?: string[] }
+> {
+  try {
+    if (!query || query.trim().length < 2) {
+      return { success: true, songs: [], total: 0, suggestions: [] };
+    }
+
+    const { FuzzySongSearch, songToSearchable, searchableToSong } = await import('@/lib/fuzzy-search');
+    const { getAllSongsWithCategoriesForFuzzySearch } = await import('@/lib/db/queries/select');
+
+    // Get all songs with category names for enhanced fuzzy search
+    const dbSongs = await getAllSongsWithCategoriesForFuzzySearch();
+
+    // Transform to searchable format
+    const searchableSongs = dbSongs.map(song => ({
+      id: song.id,
+      title: song.title,
+      song_description: song.song_description ?? null,
+      music_style: song.music_style ?? null,
+      service_provider: song.service_provider ?? null,
+      categories: song.categories ?? null,
+      categoryNames: song.categoryNames ?? null, // NEW: Include category names
+      tags: song.tags ?? null,
+      slug: song.slug,
+    }));
+
+    // Create fuzzy search instance
+    const fuzzySearch = new FuzzySongSearch(searchableSongs);
+
+    // Perform fuzzy search
+    const searchResults = fuzzySearch.search(query, limit);
+
+    // Get suggestions for autocomplete
+    const suggestions = fuzzySearch.getSuggestions(query, 5);
+
+    // Transform results back to Song format
+    const songs: Song[] = searchResults.map(result => {
+      const dbSong = dbSongs.find(s => s.id === result.item.id);
+      if (!dbSong) return null;
+
+      return {
+        id: dbSong.id,
+        created_at: dbSong.created_at.toISOString(),
+        title: dbSong.title,
+        lyrics: null, // Not loaded for library view
+        song_description: dbSong.song_description ?? null,
+        timestamp_lyrics: null, // Not loaded for library view
+        timestamped_lyrics_variants: null, // Not loaded for library view
+        timestamped_lyrics_api_responses: null, // Not loaded for library view
+        music_style: dbSong.music_style ?? null,
+        service_provider: dbSong.service_provider ?? null,
+        song_requester: null, // Not needed for library view
+        prompt: null, // Not needed for library view
+        song_url: dbSong.song_url ?? null,
+        duration: dbSong.duration ?? null,
+        slug: dbSong.slug,
+        add_to_library: dbSong.add_to_library ?? undefined,
+        is_deleted: dbSong.is_deleted ?? undefined,
+        status: dbSong.status ?? undefined,
+        categories: dbSong.categories ?? undefined,
+        tags: dbSong.tags ?? undefined,
+        suno_task_id: undefined, // Not exposed in library
+        negative_tags: undefined, // Not needed for library view
+        suno_variants: dbSong.suno_variants as any,
+        selected_variant: dbSong.selected_variant ?? undefined,
+        metadata: undefined, // Not needed for library view
+        sequence: dbSong.sequence ?? undefined,
+        show_lyrics: dbSong.show_lyrics ?? true,
+        likes_count: (dbSong as any).likes_count ?? 0,
+      };
+    }).filter(Boolean) as Song[];
+
+    // Track search analytics
+    const { trackSearchEvent } = await import('@/lib/analytics');
+    trackSearchEvent.search(query, songs.length, 'text', 'fuzzy');
+
+    return {
+      success: true,
+      songs,
+      total: songs.length,
+      suggestions
+    };
+  } catch (error) {
+    console.error('Error in fuzzySearchSongsAction:', error);
+    return {
+      success: false,
+      error: 'Failed to perform fuzzy search',
+      songs: [],
+      total: 0,
+      suggestions: []
+    };
   }
 }
 

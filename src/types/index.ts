@@ -41,6 +41,7 @@ export interface Song {
   metadata?: any
   sequence?: number // Field to control display order
   show_lyrics?: boolean // Field to control whether to show lyrics
+  likes_count?: number
 }
 
 // Public song interface (without sensitive fields)

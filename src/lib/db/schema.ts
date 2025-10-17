@@ -39,6 +39,7 @@ export const songsTable = pgTable('songs', {
   metadata: jsonb('metadata'),
   sequence: integer('sequence'), // Field to control display order
   show_lyrics: boolean('show_lyrics').default(true), // Field to control whether to show lyrics
+  likes_count: integer('likes_count').default(0),
 });
 
 // Categories table (canonical list with fixed order via sequence)
@@ -53,6 +54,7 @@ export const categoriesTable = pgTable('categories', {
 
 // Song to Category mapping (many-to-many)
 export const songCategoriesTable = pgTable('song_categories', {
+  id: serial('id').primaryKey(),
   song_id: integer('song_id').notNull(),
   category_id: integer('category_id').notNull(),
 }, (table) => ({

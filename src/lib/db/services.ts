@@ -36,6 +36,7 @@ export async function getAllSongs(): Promise<Song[]> {
       suno_task_id: song.suno_task_id ?? undefined,
       metadata: song.metadata ?? undefined,
       show_lyrics: song.show_lyrics ?? undefined,
+      likes_count: (song as any).likes_count ?? 0,
     }));
   } catch (error) {
     console.error('Error fetching songs:', error);
@@ -75,6 +76,7 @@ export async function getSongBySlug(slug: string): Promise<Song | null> {
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
       show_lyrics: song.show_lyrics ?? undefined,
+      likes_count: (song as any).likes_count ?? 0,
     };
   } catch (error) {
     console.error('Error fetching song:', error);
@@ -114,6 +116,7 @@ export async function getSongByTaskId(taskId: string): Promise<Song | null> {
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
       show_lyrics: song.show_lyrics ?? undefined,
+      likes_count: (song as any).likes_count ?? 0,
     };
   } catch (error) {
     console.error('Error fetching song by task ID:', error);
@@ -154,11 +157,17 @@ export async function getSongById(id: number): Promise<Song | null> {
       selected_variant: song.selected_variant ?? undefined,
       metadata: song.metadata ?? undefined,
       show_lyrics: song.show_lyrics ?? undefined,
+      likes_count: (song as any).likes_count ?? 0,
     };
   } catch (error) {
     console.error('Error fetching song by ID:', error);
     return null;
   }
+}
+
+export async function incrementSongLike(slug: string) {
+  const { incrementSongLikeBySlug } = await import('./queries/update');
+  await incrementSongLikeBySlug(slug);
 }
 
 
