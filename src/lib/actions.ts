@@ -209,6 +209,7 @@ export async function getActiveSongsAction(): Promise<
       created_at: song.created_at.toISOString(),
       title: song.title,
       lyrics: song.lyrics ?? null,
+      song_description: (song as any).song_description ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
       timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
@@ -237,6 +238,73 @@ export async function getActiveSongsAction(): Promise<
   } catch (error) {
     console.error('Error in getActiveSongsAction:', error);
     return { success: false, error: 'Failed to get active songs', songs: [] };
+  }
+}
+
+// Server-side: get songs by category slug
+export async function getSongsByCategoryAction(categorySlug: string | null): Promise<
+  | { success: true; songs: Song[] }
+  | { success: false; error: string; songs: Song[] }
+> {
+  try {
+    const { getSongsByCategorySlug } = await import('@/lib/db/queries/select');
+    const dbSongs = await getSongsByCategorySlug(categorySlug || 'all');
+
+    const songs: Song[] = dbSongs.map(song => ({
+      id: song.id,
+      created_at: song.created_at.toISOString(),
+      title: song.title,
+      lyrics: song.lyrics ?? null,
+      song_description: (song as any).song_description ?? null,
+      timestamp_lyrics: song.timestamp_lyrics as any,
+      timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
+      timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
+      music_style: song.music_style ?? null,
+      service_provider: song.service_provider ?? null,
+      song_requester: song.song_requester ?? null,
+      prompt: song.prompt ?? null,
+      song_url: song.song_url ?? null,
+      duration: song.duration ?? null,
+      slug: song.slug,
+      add_to_library: song.add_to_library ?? undefined,
+      is_deleted: song.is_deleted ?? undefined,
+      status: song.status ?? undefined,
+      categories: song.categories ?? undefined,
+      tags: song.tags ?? undefined,
+      suno_task_id: song.suno_task_id ?? undefined,
+      negative_tags: song.negative_tags ?? undefined,
+      suno_variants: song.suno_variants as any,
+      selected_variant: song.selected_variant ?? undefined,
+      metadata: song.metadata as any,
+      sequence: song.sequence ?? undefined,
+      show_lyrics: song.show_lyrics ?? true,
+    }));
+
+    return { success: true, songs };
+  } catch (error) {
+    console.error('Error in getSongsByCategoryAction:', error);
+    return { success: false, error: 'Failed to get songs for category', songs: [] };
+  }
+}
+
+// Server-side: list categories with counts
+export async function getCategoriesWithCountsAction(): Promise<
+  | { success: true; categories: Array<{ id: number; name: string; slug: string; sequence: number; count: number }>; total: number }
+  | { success: false; error: string; categories: Array<any>; total: number }
+> {
+  try {
+    const { getCategoriesWithCounts, getAllSongs } = await import('@/lib/db/queries/select');
+    const [categories, allSongs] = await Promise.all([
+      getCategoriesWithCounts(),
+      getAllSongs(),
+    ]);
+
+    const total = allSongs.length;
+
+    return { success: true, categories: categories.map(c => ({ ...c, sequence: c.sequence ?? 0 })), total };
+  } catch (error) {
+    console.error('Error in getCategoriesWithCountsAction:', error);
+    return { success: false, error: 'Failed to get categories', categories: [], total: 0 };
   }
 }
 

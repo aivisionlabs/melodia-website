@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { SongArtwork } from "@/components/SongArtwork";
-import { getActiveSongsAction } from "@/lib/actions";
+import {
+  getActiveSongsAction,
+  getCategoriesWithCountsAction,
+  getSongsByCategoryAction,
+} from "@/lib/actions";
 import { formatDuration } from "@/lib/utils";
 import { Song } from "@/types";
 import { Play } from "lucide-react";
@@ -19,6 +23,10 @@ export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<
+    Array<{ name: string; slug: string; count: number; sequence: number }>
+  >([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Helper function to get variant image URL with fallback to Melodia logo
   const getVariantImageUrl = (song: Song) => {
@@ -29,24 +37,42 @@ export default function SongLibraryPage() {
   };
 
   useEffect(() => {
-    async function loadSongs() {
+    async function loadInitial() {
       try {
-        const result = await getActiveSongsAction();
-        if (result.success) {
-          // Sort songs by sequence field, with fallback to created_at for backward compatibility
-          const sortedSongs = (result.songs || []).sort((a, b) => {
-            // If both songs have sequence values, sort by sequence
-            if (a.sequence !== undefined && b.sequence !== undefined) {
+        const [catsRes, songsRes] = await Promise.all([
+          getCategoriesWithCountsAction(),
+          getActiveSongsAction(),
+        ]);
+
+        if (catsRes.success) {
+          // Build fixed list: All + canonical order
+          const pillCats = [
+            { name: "All", slug: "all", count: catsRes.total, sequence: -1 },
+            ...catsRes.categories.map((c) => ({
+              name: c.name,
+              slug: c.slug,
+              count: c.count,
+              sequence: c.sequence,
+            })),
+          ];
+          setCategories(pillCats);
+        } else {
+          setCategories([
+            {
+              name: "All",
+              slug: "all",
+              count: songsRes.success ? songsRes.songs.length : 0,
+              sequence: -1,
+            },
+          ]);
+        }
+
+        if (songsRes.success) {
+          const sortedSongs = (songsRes.songs || []).sort((a, b) => {
+            if (a.sequence !== undefined && b.sequence !== undefined)
               return a.sequence - b.sequence;
-            }
-            // If only one has sequence, prioritize the one with sequence
-            if (a.sequence !== undefined && b.sequence === undefined) {
-              return -1;
-            }
-            if (a.sequence === undefined && b.sequence !== undefined) {
-              return 1;
-            }
-            // Fallback to created_at for songs without sequence
+            if (a.sequence !== undefined && b.sequence === undefined) return -1;
+            if (a.sequence === undefined && b.sequence !== undefined) return 1;
             return (
               new Date(b.created_at).getTime() -
               new Date(a.created_at).getTime()
@@ -54,19 +80,45 @@ export default function SongLibraryPage() {
           });
           setSongs(sortedSongs);
         } else {
-          console.error("Failed to load songs:", result.error);
           setSongs([]);
         }
       } catch (error) {
-        console.error("Error loading songs:", error);
+        console.error("Error loading initial data:", error);
         setSongs([]);
       } finally {
         setLoading(false);
       }
     }
 
-    loadSongs();
+    loadInitial();
   }, []);
+
+  const handleSelectCategory = async (slug: string) => {
+    try {
+      setSelectedCategory(slug);
+      setLoading(true);
+      const res = await getSongsByCategoryAction(slug === "all" ? null : slug);
+      if (res.success) {
+        const sortedSongs = (res.songs || []).sort((a, b) => {
+          if (a.sequence !== undefined && b.sequence !== undefined)
+            return a.sequence - b.sequence;
+          if (a.sequence !== undefined && b.sequence === undefined) return -1;
+          if (a.sequence === undefined && b.sequence !== undefined) return 1;
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        });
+        setSongs(sortedSongs);
+      } else {
+        setSongs([]);
+      }
+    } catch (e) {
+      console.error("Failed to filter songs:", e);
+      setSongs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePlaySong = (song: Song) => {
     setSelectedSong(song);
@@ -90,6 +142,27 @@ export default function SongLibraryPage() {
             Explore a collection of heartfelt songs crafted for moments that
             matter.
           </p>
+        </div>
+
+        {/* Category Pills */}
+        <div className="px-4 md:px-8 pb-4">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat.slug}
+                onClick={() => handleSelectCategory(cat.slug)}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full border transition-all duration-300 shadow-elegant ${selectedCategory === cat.slug ? "bg-[var(--primary-yellow)] text-[var(--text-teal)] border-[var(--primary-yellow)]" : "bg-white/90 text-[var(--text-teal)] border-[var(--border)] hover:bg-[var(--secondary-cream)]"}`}
+                aria-pressed={selectedCategory === cat.slug}
+              >
+                <span className="font-body text-sm font-medium">
+                  {cat.name}
+                </span>
+                <span className="ml-2 text-xs text-[color:rgba(7,59,76,0.7)] opacity-80">
+                  {cat.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Songs Grid */}
@@ -137,17 +210,14 @@ export default function SongLibraryPage() {
                         <CardTitle className="text-text-teal text-sm sm:text-xl font-bold font-heading mt-2 sm:mt-5 line-clamp-2">
                           {song.title}
                         </CardTitle>
-                        <p className="text-text-teal/70 text-xs sm:text-base font-body line-clamp-1">
-                          {song.service_provider}
-                        </p>
                       </CardHeader>
                       <CardContent className="p-0">
-                        <p className="text-text-teal/80 text-xs sm:text-sm font-body mb-2 sm:mb-3 line-clamp-1">
-                          {song.categories && song.categories.length > 0
-                            ? song.categories.join(", ")
-                            : song.music_style || "Custom Creation"}
-                        </p>
-                        <div className="flex items-center justify-center gap-2 text-text-teal/60 text-xs sm:text-sm font-body">
+                        {song.song_description && (
+                          <p className="text-text-teal/80 text-xs sm:text-sm font-body line-clamp-2">
+                            {song.song_description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-center gap-2 text-text-teal/60 text-xs sm:text-sm font-body mt-2">
                           <span>{formatDuration(song.duration)}</span>
                         </div>
                       </CardContent>

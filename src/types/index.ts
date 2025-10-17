@@ -18,6 +18,7 @@ export interface Song {
   created_at: string
   title: string
   lyrics: string | null
+  song_description?: string | null
   timestamp_lyrics: LyricLine[] | null
   timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
   timestamped_lyrics_api_responses: { [variantIndex: number]: any } | null
@@ -47,6 +48,7 @@ export interface PublicSong {
   id: number
   title: string
   lyrics: string | null
+  song_description?: string | null
   timestamp_lyrics: LyricLine[] | null
   timestamped_lyrics_variants: { [variantIndex: number]: LyricLine[] } | null
   selected_variant?: number
@@ -55,4 +57,12 @@ export interface PublicSong {
   song_url: string | null
   duration: string | null // Changed from number to string to match numeric database field
   slug: string
+}
+
+export interface CategoryWithCount {
+  id: number
+  name: string
+  slug: string
+  sequence: number
+  count: number
 }

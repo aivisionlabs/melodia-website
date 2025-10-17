@@ -8,6 +8,7 @@ export async function updateSong(
   updateData: Partial<{
     title: string;
     lyrics: string;
+    song_description: string;
     timestamp_lyrics: any;
     music_style: string;
     service_provider: string;

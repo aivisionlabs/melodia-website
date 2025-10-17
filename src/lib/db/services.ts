@@ -3,6 +3,10 @@ import { createSong as createSongQuery } from './queries/insert';
 import { updateSongStatus as updateSongStatusQuery, updateSongWithVariants as updateSongWithVariantsQuery } from './queries/update';
 import { Song } from '@/types';
 import { generateBaseSlug } from '@/lib/utils/slug';
+import bcrypt from 'bcrypt';
+import { db } from './index';
+import { adminUsersTable } from './schema';
+import { eq } from 'drizzle-orm';
 
 // Song Services
 export async function getAllSongs(): Promise<Song[]> {
@@ -13,6 +17,7 @@ export async function getAllSongs(): Promise<Song[]> {
       created_at: song.created_at.toISOString(),
       title: song.title,
       lyrics: song.lyrics,
+      song_description: (song as any).song_description ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
       timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
@@ -48,6 +53,7 @@ export async function getSongBySlug(slug: string): Promise<Song | null> {
       created_at: song.created_at.toISOString(),
       title: song.title,
       lyrics: song.lyrics,
+      song_description: (song as any).song_description ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
       timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
@@ -86,6 +92,7 @@ export async function getSongByTaskId(taskId: string): Promise<Song | null> {
       created_at: song.created_at.toISOString(),
       title: song.title,
       lyrics: song.lyrics,
+      song_description: (song as any).song_description ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
       timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
@@ -125,6 +132,7 @@ export async function getSongById(id: number): Promise<Song | null> {
       created_at: song.created_at.toISOString(),
       title: song.title,
       lyrics: song.lyrics,
+      song_description: (song as any).song_description ?? null,
       timestamp_lyrics: song.timestamp_lyrics as any,
       timestamped_lyrics_variants: song.timestamped_lyrics_variants as any,
       timestamped_lyrics_api_responses: song.timestamped_lyrics_api_responses as any,
@@ -293,18 +301,42 @@ export async function validateAdminCredentials(
   username: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Hardcoded admin credentials for now
-  const validCredentials = [
-    { username: 'admin1', password: 'melodia2024!' },
-    { username: 'admin2', password: 'melodia2024!' },
-    { username: 'admin3', password: 'melodia2024!' },
-  ];
+  try {
+    console.log(`🔍 [DEBUG] Validating credentials for user: ${username}`);
 
-  const isValid = validCredentials.some(
-    cred => cred.username === username && cred.password === password
-  );
+    // Query the database for the admin user
+    const adminUser = await db
+      .select()
+      .from(adminUsersTable)
+      .where(eq(adminUsersTable.username, username))
+      .limit(1);
 
-  return { success: isValid };
+    console.log(`📋 [DEBUG] Query result: ${adminUser.length} users found`);
+
+    if (adminUser.length === 0) {
+      console.log('❌ [DEBUG] No user found');
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    const user = adminUser[0];
+    console.log(`👤 [DEBUG] Found user: ${user.username}`);
+    console.log(`🔐 [DEBUG] Password hash: ${user.password_hash}`);
+
+    // Compare the provided password with the stored hash
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    console.log(`✅ [DEBUG] Password comparison result: ${isValidPassword}`);
+
+    if (!isValidPassword) {
+      console.log('❌ [DEBUG] Password does not match');
+      return { success: false, error: 'Invalid credentials' };
+    }
+
+    console.log('🎉 [DEBUG] Authentication successful!');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ [DEBUG] Error validating admin credentials:', error);
+    return { success: false, error: 'Internal server error' };
+  }
 }
 
 export async function softDeleteSong(songId: number): Promise<{ success: boolean; error?: string }> {
@@ -315,6 +347,40 @@ export async function softDeleteSong(songId: number): Promise<{ success: boolean
   } catch (error) {
     console.error('Error soft deleting song:', error);
     return { success: false, error: 'Failed to delete song' };
+  }
+}
+
+// Admin user management
+export async function createAdminUser(
+  username: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check if user already exists
+    const existingUser = await db
+      .select()
+      .from(adminUsersTable)
+      .where(eq(adminUsersTable.username, username))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return { success: false, error: 'Username already exists' };
+    }
+
+    // Hash the password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Insert the new admin user
+    await db.insert(adminUsersTable).values({
+      username,
+      password_hash: hashedPassword,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error creating admin user:', error);
+    return { success: false, error: 'Failed to create admin user' };
   }
 }
 

@@ -6,7 +6,8 @@ import {
   boolean,
   integer,
   jsonb,
-  numeric
+  numeric,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 // Songs table
@@ -15,6 +16,7 @@ export const songsTable = pgTable('songs', {
   created_at: timestamp('created_at').notNull().defaultNow(),
   title: text('title').notNull(),
   lyrics: text('lyrics'),
+  song_description: text('song_description'),
   timestamp_lyrics: jsonb('timestamp_lyrics'),
   timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants'), // Store lyrics for both variants
   timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses'), // Store only alignedWords data from API responses
@@ -39,6 +41,24 @@ export const songsTable = pgTable('songs', {
   show_lyrics: boolean('show_lyrics').default(true), // Field to control whether to show lyrics
 });
 
+// Categories table (canonical list with fixed order via sequence)
+export const categoriesTable = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  slug: text('slug').notNull().unique(),
+  sequence: integer('sequence').default(0),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Song to Category mapping (many-to-many)
+export const songCategoriesTable = pgTable('song_categories', {
+  song_id: integer('song_id').notNull(),
+  category_id: integer('category_id').notNull(),
+}, (table) => ({
+  songCategoryUnique: uniqueIndex('song_categories_song_id_category_id_unique').on(table.song_id, table.category_id),
+}));
+
 // Admin users table
 export const adminUsersTable = pgTable('admin_users', {
   id: serial('id').primaryKey(),
@@ -50,6 +70,9 @@ export const adminUsersTable = pgTable('admin_users', {
 // Types
 export type InsertSong = typeof songsTable.$inferInsert;
 export type SelectSong = typeof songsTable.$inferSelect;
+
+export type InsertCategory = typeof categoriesTable.$inferInsert;
+export type SelectCategory = typeof categoriesTable.$inferSelect;
 
 export type InsertAdminUser = typeof adminUsersTable.$inferInsert;
 export type SelectAdminUser = typeof adminUsersTable.$inferSelect;

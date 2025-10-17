@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Melodia - Melodia - Create Personalized Songs for Loved Ones",
+    title: "Melodia - Create Personalized Songs for Loved Ones",
     description:
       "Create joyful, personalized songs that celebrate your connections! Transform your stories into beautiful music that brings people together.",
     url: "https://melodia-songs.com",

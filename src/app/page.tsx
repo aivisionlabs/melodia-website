@@ -43,7 +43,7 @@ export default function HomePage() {
             alt="Melodia"
             className="mx-auto sm:mb-6 lg:mb-8 w-24 h-24 sm:w-32 sm:h-32 drop-shadow-lg animate-fade-in"
           />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-teal font-heading max-w-2xl mx-auto leading-tight">
+          <h1 className="text-3xl mt-4 sm:text-4xl md:text-5xl font-bold text-text-teal font-heading max-w-2xl mx-auto leading-tight">
             <span className="bg-gradient-to-r from-text-teal via-accent-coral to-text-teal bg-clip-text text-transparent animate-fade-in">
               Gift a Personalized Song,
             </span>
