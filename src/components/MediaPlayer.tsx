@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
+import { SongLikeButton } from "@/components/SongLikeButton";
 import {
   trackPlayerEvent,
   trackEngagementEvent,
@@ -49,6 +50,7 @@ interface MediaPlayerProps {
     slug?: string;
     show_lyrics?: boolean; // Field to control whether to show lyrics
     plain_lyrics?: string | null; // Plain text lyrics for static display
+    likes_count?: number; // Like count for the song
   };
   onClose: () => void;
 }
@@ -629,6 +631,14 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <SongLikeButton
+                slug={song.slug || ""}
+                initialCount={song.likes_count || 0}
+                size="sm"
+                songTitle={song.title}
+                songId={song.slug || ""}
+                pageContext="media_player"
+              />
               <ShareButton
                 slug={song.slug}
                 title={`${song.title}`}
@@ -835,8 +845,8 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                         line.isActive
                           ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
                           : line.isPast
-                          ? "text-base md:text-lg text-gray-400 opacity-60"
-                          : "text-base md:text-lg text-gray-500 opacity-80"
+                            ? "text-base md:text-lg text-gray-400 opacity-60"
+                            : "text-base md:text-lg text-gray-500 opacity-80"
                       }`}
                       style={{
                         transform: line.isActive ? "scale(1.1)" : "scale(1)",
