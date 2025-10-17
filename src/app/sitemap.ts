@@ -58,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       songsResult.success && songsResult.songs
         ? songsResult.songs.map((song) => ({
           url: `${baseUrl}/library/${song.slug}`,
-          lastModified: new Date(song.updated_at || song.created_at),
+          lastModified: new Date(song.created_at),
           changeFrequency: 'weekly' as const,
           priority: 0.7,
         }))
