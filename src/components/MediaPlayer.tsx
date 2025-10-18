@@ -63,8 +63,17 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPlayLoading, setIsPlayLoading] = useState(false);
   const [showLyricsViewer, setShowLyricsViewer] = useState(false);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
 
   const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
+
+  // State for fetched lyrics data
+  const [fetchedLyrics, setFetchedLyrics] = useState<{
+    timestamp_lyrics?: LyricLine[];
+    timestamped_lyrics_variants?: { [variantIndex: number]: LyricLine[] };
+    selected_variant?: number;
+    plain_lyrics?: string;
+  } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
@@ -89,13 +98,49 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
 
   // Helper function to check if lyrics are available
   const hasLyrics = useCallback(() => {
-    const plainLyrics = song.plain_lyrics;
+    const plainLyrics = song.plain_lyrics || fetchedLyrics?.plain_lyrics;
     return (
       plainLyrics !== null &&
       typeof plainLyrics === "string" &&
       plainLyrics.trim().length > 0
     );
-  }, [song.plain_lyrics]);
+  }, [song.plain_lyrics, fetchedLyrics?.plain_lyrics]);
+
+  // Function to fetch lyrics for library songs
+  const fetchSongLyrics = useCallback(async () => {
+    // Only fetch if we don't have timestamp lyrics and we have a slug
+    if (
+      song.timestamp_lyrics ||
+      song.timestamped_lyrics_variants ||
+      !song.slug
+    ) {
+      return;
+    }
+
+    try {
+      setIsLoadingLyrics(true);
+      const response = await fetch(`/api/song-lyrics/${song.slug}`);
+      const data = await response.json();
+
+      if (data.success && data.song) {
+        setFetchedLyrics({
+          timestamp_lyrics: data.song.timestamp_lyrics,
+          timestamped_lyrics_variants: data.song.timestamped_lyrics_variants,
+          selected_variant: data.song.selected_variant,
+          plain_lyrics: data.song.lyrics,
+        });
+      }
+    } catch (error) {
+      console.warn("Failed to fetch song lyrics:", error);
+    } finally {
+      setIsLoadingLyrics(false);
+    }
+  }, [song.slug, song.timestamp_lyrics, song.timestamped_lyrics_variants]);
+
+  // Fetch lyrics when component mounts
+  useEffect(() => {
+    fetchSongLyrics();
+  }, [fetchSongLyrics]);
 
   // Handle audio loading and errors
   useEffect(() => {
@@ -172,9 +217,25 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
   }, [getAudioUrl, isLoading, isIOS]);
 
   const getLyricsAtTime = (timeMs: number) => {
+    // If we're loading lyrics, return loading state
+    if (isLoadingLyrics) {
+      return [
+        {
+          index: 0,
+          text: "Loading lyrics...",
+          start: 0,
+          end: 1000,
+          isActive: true,
+          isPast: false,
+        },
+      ];
+    }
+
     // Priority 1: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line: any) => ({
+    const timestampLyrics =
+      song.timestamp_lyrics || fetchedLyrics?.timestamp_lyrics;
+    if (timestampLyrics && timestampLyrics.length > 0) {
+      return timestampLyrics.map((line: any) => ({
         ...line,
         isActive: timeMs >= line.start && timeMs < line.end,
         isPast: timeMs >= line.end,
@@ -182,20 +243,25 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
     }
 
     // Priority 2: Use timestamped lyrics variants if available (fallback)
-    if (song.timestamped_lyrics_variants) {
+    const timestampedVariants =
+      song.timestamped_lyrics_variants ||
+      fetchedLyrics?.timestamped_lyrics_variants;
+    if (timestampedVariants) {
       // If no selected_variant is set, default to variant 0
-      const variantToUse =
-        song.selected_variant !== undefined ? song.selected_variant : 0;
-      let selectedVariantLyrics =
-        song.timestamped_lyrics_variants[variantToUse];
+      const selectedVariant =
+        song.selected_variant !== undefined
+          ? song.selected_variant
+          : fetchedLyrics?.selected_variant !== undefined
+            ? fetchedLyrics.selected_variant
+            : 0;
+      let selectedVariantLyrics = timestampedVariants[selectedVariant];
 
       // If the default variant doesn't exist, try to find any available variant
       if (!selectedVariantLyrics || selectedVariantLyrics.length === 0) {
-        const availableVariants = Object.keys(song.timestamped_lyrics_variants);
+        const availableVariants = Object.keys(timestampedVariants);
         if (availableVariants.length > 0) {
           const firstVariant = parseInt(availableVariants[0]);
-          selectedVariantLyrics =
-            song.timestamped_lyrics_variants[firstVariant];
+          selectedVariantLyrics = timestampedVariants[firstVariant];
         }
       }
 
@@ -817,9 +883,11 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                   <div className="flex items-center gap-3 text-sm md:text-base text-gray-600">
                     <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
                     <span className="leading-relaxed">
-                      {audioError
-                        ? "Demo mode - click play to experience synchronized lyrics"
-                        : "Click play to start synchronized lyrics"}
+                      {isLoadingLyrics
+                        ? "Loading lyrics..."
+                        : audioError
+                          ? "Demo mode - click play to experience synchronized lyrics"
+                          : "Click play to start synchronized lyrics"}
                     </span>
                   </div>
                 </div>
@@ -834,46 +902,55 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
                   msOverflowStyle: "none",
                 }}
               >
-                <div className="space-y-8 md:space-y-10">
-                  {lyrics.map((line, index) => (
-                    <div
-                      key={index}
-                      ref={(el) => {
-                        lyricRefs.current[index] = el;
-                      }}
-                      className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
-                        line.isActive
-                          ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
-                          : line.isPast
-                            ? "text-base md:text-lg text-gray-400 opacity-60"
-                            : "text-base md:text-lg text-gray-500 opacity-80"
-                      }`}
-                      style={{
-                        transform: line.isActive ? "scale(1.1)" : "scale(1)",
-                        transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    >
-                      {/* Active lyric indicator */}
-                      {line.isActive && (
-                        <div className="absolute -left-0 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
-                      )}
-
-                      {/* Progress indicator for active lyric */}
-                      {line.isActive && (
-                        <div className="absolute -left-1 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
-                      )}
-
-                      <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
-                        {line.text || "\u00A0"}
-                      </span>
-
-                      {/* Subtle glow effect for active lyric */}
-                      {line.isActive && (
-                        <div className="absolute inset-0 bg-yellow-100 rounded-lg opacity-20 blur-sm"></div>
-                      )}
+                {isLoadingLyrics ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                      <p className="text-lg text-gray-600">Loading lyrics...</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-8 md:space-y-10">
+                    {lyrics.map((line, index) => (
+                      <div
+                        key={index}
+                        ref={(el) => {
+                          lyricRefs.current[index] = el;
+                        }}
+                        className={`text-center transition-all duration-700 ease-out min-h-[4rem] md:min-h-[4.5rem] flex items-center justify-center relative ${
+                          line.isActive
+                            ? "text-2xl md:text-3xl font-bold text-yellow-600 transform scale-110"
+                            : line.isPast
+                              ? "text-base md:text-lg text-gray-400 opacity-60"
+                              : "text-base md:text-lg text-gray-500 opacity-80"
+                        }`}
+                        style={{
+                          transform: line.isActive ? "scale(1.1)" : "scale(1)",
+                          transition: "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
+                      >
+                        {/* Active lyric indicator */}
+                        {line.isActive && (
+                          <div className="absolute -left-0 md:-left-6 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 bg-yellow-500 rounded-full animate-pulse shadow-lg"></div>
+                        )}
+
+                        {/* Progress indicator for active lyric */}
+                        {line.isActive && (
+                          <div className="absolute -left-1 md:-left-8 top-1/2 transform -translate-y-1/2 w-1 h-8 md:h-10 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
+                        )}
+
+                        <span className="px-6 md:px-8 py-3 md:py-4 rounded-lg leading-relaxed">
+                          {line.text || "\u00A0"}
+                        </span>
+
+                        {/* Subtle glow effect for active lyric */}
+                        {line.isActive && (
+                          <div className="absolute inset-0 bg-yellow-100 rounded-lg opacity-20 blur-sm"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Bottom padding for better scroll experience */}
                 <div className="h-20 md:h-24"></div>
@@ -971,7 +1048,8 @@ export const MediaPlayer = ({ song, onClose }: MediaPlayerProps) => {
             {/* Lyrics Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {(() => {
-                const lyricsData = song.plain_lyrics;
+                const lyricsData =
+                  song.plain_lyrics || fetchedLyrics?.plain_lyrics;
 
                 if (!lyricsData) {
                   return (
