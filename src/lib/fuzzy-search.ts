@@ -18,42 +18,43 @@ const fuseOptions: IFuseOptions<SearchableSong> = {
   keys: [
     {
       name: 'title',
-      weight: 0.35 // Reduced from 0.4 to make room for category names
+      weight: 0.5
     },
     {
       name: 'song_description',
-      weight: 0.25 // Reduced from 0.3 to make room for category names
-    },
-    {
-      name: 'music_style',
-      weight: 0.15
+      weight: 0.2
     },
     {
       name: 'categoryNames',
-      weight: 0.15 // NEW: High weight for category names
+      weight: 0.2
+    },
+    {
+      name: 'music_style',
+      weight: 0.06
     },
     {
       name: 'service_provider',
-      weight: 0.05
+      weight: 0.02
     },
     {
       name: 'categories',
-      weight: 0.03 // Reduced from 0.05 since we have categoryNames
+      weight: 0.015
     },
     {
       name: 'tags',
-      weight: 0.02
+      weight: 0.015
     }
   ],
-  threshold: 0.4, // Lower threshold = more strict matching (0.0 = exact match, 1.0 = match anything)
-  distance: 100, // Maximum distance for fuzzy matching
-  includeScore: true, // Include match scores in results
-  includeMatches: true, // Include which fields matched
-  minMatchCharLength: 2, // Minimum characters required for a match
-  shouldSort: true, // Sort results by relevance
-  findAllMatches: true, // Find all matches, not just the first one
-  ignoreLocation: true, // Ignore location of match within the string
-  useExtendedSearch: true, // Enable extended search syntax
+  threshold: 0.35,
+  distance: 200,
+  includeScore: true,
+  includeMatches: true,
+  minMatchCharLength: 2,
+  shouldSort: true,
+  findAllMatches: true,
+  ignoreLocation: true,
+  ignoreFieldNorm: true,
+  useExtendedSearch: false,
 };
 
 export class FuzzySongSearch {
@@ -78,10 +79,8 @@ export class FuzzySongSearch {
 
     const trimmedQuery = query.trim();
 
-    // Use extended search for better results
-    const extendedQuery = this.buildExtendedQuery(trimmedQuery);
-
-    const results = this.fuse.search(extendedQuery);
+    // Use plain fuzzy search; extended mode can mis-rank simple queries
+    const results = this.fuse.search(trimmedQuery);
 
     // Apply additional filtering and scoring
     const filteredResults = this.applyAdditionalScoring(results, trimmedQuery);
@@ -111,49 +110,85 @@ export class FuzzySongSearch {
     results: FuseResult<SearchableSong>[],
     originalQuery: string
   ): FuseResult<SearchableSong>[] {
+    const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const words = originalQuery
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(w => w.length > 0);
+
     return results.map(result => {
       let additionalScore = 0;
       const item = result.item;
       const query = originalQuery.toLowerCase();
 
-      // Boost score for exact title matches
-      if (item.title.toLowerCase().includes(query)) {
-        additionalScore += 0.1;
+      const titleLc = item.title.toLowerCase();
+      const descLc = item.song_description?.toLowerCase() || '';
+
+      // Strong boosts for title relevance
+      if (titleLc === query) {
+        additionalScore += 0.5; // exact title match
+      } else if (titleLc.startsWith(query)) {
+        additionalScore += 0.25; // prefix in title
+      } else {
+        const wb = new RegExp(`\\b${escapeRegex(query)}\\b`, 'i');
+        if (wb.test(item.title)) {
+          additionalScore += 0.18; // whole word in title
+        } else if (titleLc.includes(query)) {
+          additionalScore += 0.12; // substring in title
+        }
       }
 
-      // Boost score for exact description matches
-      if (item.song_description?.toLowerCase().includes(query)) {
-        additionalScore += 0.05;
+      // Per-word coverage boosts (favor titles covering more query words)
+      if (words.length > 1) {
+        const titleWords = new Set(titleLc.split(/\s+/));
+        const covered = words.filter(w => titleWords.has(w)).length;
+        if (covered > 0) {
+          additionalScore += Math.min(0.12, covered * 0.04);
+        }
       }
 
-      // Boost score for exact style matches
+      // Description relevance
+      if (descLc) {
+        if (descLc.includes(query)) {
+          const wbDesc = new RegExp(`\\b${escapeRegex(query)}\\b`, 'i');
+          additionalScore += wbDesc.test(descLc) ? 0.06 : 0.04;
+        }
+      }
+
+      // Style match
       if (item.music_style?.toLowerCase().includes(query)) {
         additionalScore += 0.03;
       }
 
-      // Boost score for category matches
+      // Category array match
       if (item.categories?.some((cat: string) => cat.toLowerCase().includes(query))) {
         additionalScore += 0.02;
       }
 
-      // Boost score for category name matches (higher boost for category names)
-      if (item.categoryNames?.some((catName: string) => catName.toLowerCase().includes(query))) {
-        additionalScore += 0.08;
+      // Category names with stronger weighting for exact/prefix
+      if (item.categoryNames && item.categoryNames.length > 0) {
+        const catsLc = item.categoryNames.map(n => n.toLowerCase());
+        if (catsLc.some(n => n === query)) {
+          additionalScore += 0.15;
+        } else if (catsLc.some(n => n.startsWith(query))) {
+          additionalScore += 0.1;
+        } else if (catsLc.some(n => n.includes(query))) {
+          additionalScore += 0.06;
+        }
       }
 
-      // Boost score for tag matches
+      // Tags
       if (item.tags?.some((tag: string) => tag.toLowerCase().includes(query))) {
         additionalScore += 0.02;
       }
 
-      // Boost score for songs with more complete information
+      // Subtle bonus for richer metadata
       let completenessScore = 0;
-      if (item.song_description) completenessScore += 0.01;
-      if (item.music_style) completenessScore += 0.01;
-      if (item.categories && item.categories.length > 0) completenessScore += 0.01;
-      if (item.tags && item.tags.length > 0) completenessScore += 0.01;
+      if (item.song_description) completenessScore += 0.005;
+      if (item.music_style) completenessScore += 0.005;
+      if (item.categories && item.categories.length > 0) completenessScore += 0.005;
+      if (item.tags && item.tags.length > 0) completenessScore += 0.005;
 
-      // Adjust the final score (lower is better in Fuse.js)
       const adjustedScore = Math.max(0, (result.score || 1) - additionalScore - completenessScore);
 
       return {

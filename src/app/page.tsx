@@ -280,6 +280,7 @@ export default function HomePage() {
               selectedSong.timestamped_lyrics_variants ?? undefined,
             selected_variant: selectedSong.selected_variant ?? undefined,
             slug: selectedSong.slug,
+            likes_count: selectedSong.likes_count ?? 0,
           }}
           onClose={() => setSelectedSong(null)}
         />

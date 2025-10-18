@@ -457,6 +457,7 @@ export default function SongLibraryPage() {
             slug: selectedSong.slug,
             show_lyrics: selectedSong.show_lyrics,
             plain_lyrics: selectedSong.lyrics,
+            likes_count: selectedSong.likes_count || 0,
           }}
           onClose={handleClosePlayer}
         />
