@@ -80,6 +80,57 @@ export async function getSongBySlug(slug: string): Promise<SelectSong | undefine
   return result[0];
 }
 
+// Lightweight song data for faster navigation - excludes heavy JSON fields
+export async function getSongBySlugLightweight(slug: string): Promise<{
+  id: number;
+  title: string;
+  artist: string;
+  song_url: string | null;
+  duration: string | null;
+  slug: string;
+  show_lyrics: boolean | null;
+  likes_count: number | null;
+  suno_variants: unknown;
+  selected_variant: number | null;
+} | undefined> {
+  const result = await db
+    .select({
+      id: songsTable.id,
+      title: songsTable.title,
+      service_provider: songsTable.service_provider,
+      song_url: songsTable.song_url,
+      duration: songsTable.duration,
+      slug: songsTable.slug,
+      show_lyrics: songsTable.show_lyrics,
+      likes_count: songsTable.likes_count,
+      suno_variants: songsTable.suno_variants,
+      selected_variant: songsTable.selected_variant,
+    })
+    .from(songsTable)
+    .where(and(
+      eq(songsTable.slug, slug),
+      eq(songsTable.is_deleted, false),
+      eq(songsTable.add_to_library, true)
+    ))
+    .limit(1);
+
+  const song = result[0];
+  if (!song) return undefined;
+
+  return {
+    id: song.id,
+    title: song.title,
+    artist: song.service_provider || "Melodia",
+    song_url: song.song_url,
+    duration: song.duration,
+    slug: song.slug,
+    show_lyrics: song.show_lyrics,
+    likes_count: song.likes_count,
+    suno_variants: song.suno_variants,
+    selected_variant: song.selected_variant,
+  };
+}
+
 export async function getSongBySlugAll(slug: string): Promise<SelectSong | undefined> {
   const result = await db
     .select()

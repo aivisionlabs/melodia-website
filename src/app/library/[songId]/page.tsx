@@ -3,8 +3,12 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { FullPageMediaPlayer } from "@/components/FullPageMediaPlayer";
 import { StructuredData } from "@/components/StructuredData";
+import { SongLoadingSkeleton } from "../../../components/SongLoadingSkeleton";
 
-import { getSongBySlug } from "@/lib/db/services";
+import {
+  getSongBySlug,
+  getSongBySlugLightweight,
+} from "@/lib/db/queries/select";
 
 // Generate dynamic metadata for each song page
 export async function generateMetadata({
@@ -15,7 +19,8 @@ export async function generateMetadata({
   const { songId } = await params;
 
   try {
-    const song = await getSongBySlug(songId);
+    // Use lightweight query for metadata generation (faster)
+    const song = await getSongBySlugLightweight(songId);
 
     if (!song) {
       return {
@@ -26,24 +31,25 @@ export async function generateMetadata({
 
     // Get image URL from suno variants or use default
     const imageUrl =
-      song.suno_variants?.[0]?.sourceImageUrl || "/images/melodia-logo-og.jpeg";
+      song.suno_variants &&
+      Array.isArray(song.suno_variants) &&
+      song.suno_variants.length > 0
+        ? (song.suno_variants[0] as any)?.sourceImageUrl ||
+          "/images/melodia-logo-og.jpeg"
+        : "/images/melodia-logo-og.jpeg";
 
-    // Create description from song_description or generate one
-    const description =
-      song.song_description ||
-      `Listen to ${song.title}, a personalized ${song.music_style || "custom"} song created by Melodia. Perfect for special occasions and creating lasting memories.`;
+    // Create description
+    const description = `Listen to ${song.title}, a personalized song created by Melodia. Perfect for special occasions and creating lasting memories.`;
 
     // Build keywords array
     const keywords = [
       song.title,
-      ...(song.categories || []),
-      song.music_style,
       "personalized song",
       "custom music",
       "AI generated song",
       "gift song",
       "musical gift",
-    ].filter(Boolean);
+    ];
 
     return {
       title: `${song.title} - Personalized Song | Melodia`,
@@ -143,16 +149,7 @@ async function SongPageContent({ song }: { song: any }) {
 
 // Loading component
 function SongLoading() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-        <span className="text-lg text-gray-600">
-          Loading song experience...
-        </span>
-      </div>
-    </div>
-  );
+  return <SongLoadingSkeleton />;
 }
 
 // Main page component
@@ -163,7 +160,29 @@ export default async function SongLibraryPage({
 }) {
   const { songId } = await params;
 
-  // Get song from database (only active songs)
+  // First, check if song exists with lightweight query (faster)
+  let songExists = false;
+  try {
+    const lightweightSong = await getSongBySlugLightweight(songId);
+    songExists = !!lightweightSong;
+  } catch (error) {
+    console.error("Error checking song existence:", error);
+  }
+
+  if (!songExists) {
+    notFound();
+  }
+
+  return (
+    <Suspense fallback={<SongLoading />}>
+      <SongPageContentWrapper songId={songId} />
+    </Suspense>
+  );
+}
+
+// Wrapper component that handles the full song data loading
+async function SongPageContentWrapper({ songId }: { songId: string }) {
+  // Get full song data (this will be faster since we know the song exists)
   let song = null;
   try {
     song = await getSongBySlug(songId);
@@ -175,9 +194,5 @@ export default async function SongLibraryPage({
     notFound();
   }
 
-  return (
-    <Suspense fallback={<SongLoading />}>
-      <SongPageContent song={song} />
-    </Suspense>
-  );
+  return <SongPageContent song={song} />;
 }

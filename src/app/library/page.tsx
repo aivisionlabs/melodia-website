@@ -21,7 +21,7 @@ import { Song } from "@/types";
 import { Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function SongLibraryPage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
@@ -41,6 +41,30 @@ export default function SongLibraryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const SONGS_PER_PAGE = 20;
+
+  // Prefetch song data on hover for faster navigation
+  const prefetchSongData = useCallback(async (slug: string) => {
+    try {
+      // Prefetch the lightweight song data
+      await fetch(`/api/song-lightweight/${slug}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      // Silently fail - prefetching is optional
+      console.debug("Prefetch failed for song:", slug, error);
+    }
+  }, []);
+
+  // Preload images for better perceived performance
+  const preloadImage = useCallback((src: string) => {
+    if (src && typeof window !== "undefined") {
+      const img = new window.Image();
+      img.src = src;
+    }
+  }, []);
 
   // Helper function to get variant image URL with fallback to Melodia logo
   const getVariantImageUrl = (song: Song) => {
@@ -336,6 +360,14 @@ export default function SongLibraryPage() {
                     <Link
                       href={`/library/${song.slug}`}
                       className="block p-2 sm:p-5 text-center"
+                      prefetch={true}
+                      onMouseEnter={() => {
+                        prefetchSongData(song.slug);
+                        const imageUrl = getVariantImageUrl(song);
+                        if (imageUrl) {
+                          preloadImage(imageUrl);
+                        }
+                      }}
                     >
                       <CardHeader className="p-0 mb-2 sm:mb-4">
                         {/* Album Art */}
@@ -347,6 +379,7 @@ export default function SongLibraryPage() {
                               width={256}
                               height={256}
                               className="w-full h-full object-cover"
+                              priority={index < 8} // Prioritize first 8 images
                             />
                           ) : (
                             <SongArtwork />
