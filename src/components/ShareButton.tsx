@@ -43,13 +43,6 @@ export const ShareButton = ({
 
         // Call tracking callback
         onShare?.();
-
-        // Show success toast for native sharing
-        toast({
-          title: "Shared successfully!",
-          description: "The song link has been shared.",
-          duration: 3000,
-        });
       } catch (error) {
         console.log("Error sharing:", error);
         fallbackShare(url);
@@ -65,13 +58,6 @@ export const ShareButton = ({
       .then(() => {
         // Call tracking callback
         onCopyLink?.();
-
-        // Show success toast for clipboard copy
-        toast({
-          title: "Link copied!",
-          description: "Song link has been copied to your clipboard.",
-          duration: 3000,
-        });
       })
       .catch(() => {
         // Fallback for older browsers
@@ -84,13 +70,6 @@ export const ShareButton = ({
 
         // Call tracking callback
         onCopyLink?.();
-
-        // Show success toast for fallback copy
-        toast({
-          title: "Link copied!",
-          description: "Song link has been copied to your clipboard.",
-          duration: 3000,
-        });
       });
   };
 

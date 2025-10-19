@@ -170,6 +170,11 @@ export async function incrementSongLike(slug: string) {
   await incrementSongLikeBySlug(slug);
 }
 
+export async function decrementSongLike(slug: string) {
+  const { decrementSongLikeBySlug } = await import('./queries/update');
+  await decrementSongLikeBySlug(slug);
+}
+
 
 // Helper function to generate unique slug
 async function generateUniqueSlug(baseSlug: string): Promise<string> {

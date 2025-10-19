@@ -37,46 +37,67 @@ export function SongLikeButton({
   );
 
   const handleLike = useCallback(async () => {
-    if (pending || liked) return;
+    if (pending) return;
     setPending(true);
-    setLiked(true);
-    const newCount = count + 1;
+
+    const isCurrentlyLiked = liked;
+    const newLikedState = !isCurrentlyLiked;
+    const newCount = isCurrentlyLiked ? count - 1 : count + 1;
+
+    setLiked(newLikedState);
     setCount(newCount);
 
     try {
-      localStorage.setItem(getStorageKey(slug), "1");
+      if (newLikedState) {
+        localStorage.setItem(getStorageKey(slug), "1");
+      } else {
+        localStorage.removeItem(getStorageKey(slug));
+      }
     } catch {}
 
     try {
       const res = await fetch(`/api/song-likes/${encodeURIComponent(slug)}`, {
-        method: "POST",
+        method: newLikedState ? "POST" : "DELETE",
       });
       const data = await res.json();
 
       if (!data?.success) {
         // revert on server failure
-        setLiked(false);
+        setLiked(isCurrentlyLiked);
         setCount(count);
         try {
-          localStorage.removeItem(getStorageKey(slug));
+          if (isCurrentlyLiked) {
+            localStorage.setItem(getStorageKey(slug), "1");
+          } else {
+            localStorage.removeItem(getStorageKey(slug));
+          }
         } catch {}
-        console.error("Failed to like song:", data.error);
-      } else {
-        // Track successful like
-        trackEngagementEvent.like(
-          songTitle || slug,
-          songId || slug,
-          pageContext,
-          newCount
+        console.error(
+          `Failed to ${newLikedState ? "like" : "unlike"} song:`,
+          data.error
         );
+      } else {
+        // Track successful like/unlike
+        if (newLikedState) {
+          trackEngagementEvent.like(
+            songTitle || slug,
+            songId || slug,
+            pageContext,
+            newCount
+          );
+        }
       }
     } catch (e) {
-      setLiked(false);
+      setLiked(isCurrentlyLiked);
       setCount(count);
       try {
-        localStorage.removeItem(getStorageKey(slug));
+        if (isCurrentlyLiked) {
+          localStorage.setItem(getStorageKey(slug), "1");
+        } else {
+          localStorage.removeItem(getStorageKey(slug));
+        }
       } catch {}
-      console.error("Error liking song:", e);
+      console.error(`Error ${newLikedState ? "liking" : "unliking"} song:`, e);
     } finally {
       setPending(false);
     }
@@ -91,10 +112,10 @@ export function SongLikeButton({
     <Button
       type="button"
       onClick={handleLike}
-      disabled={pending || liked}
+      disabled={pending}
       className={`inline-flex items-center gap-2 bg-white/90 text-[var(--text-teal)] border border-[var(--border)] hover:bg-[var(--secondary-cream)] ${sizeClasses} ${className}`}
       aria-pressed={liked}
-      aria-label={liked ? "Liked" : "Like"}
+      aria-label={liked ? "Unlike" : "Like"}
     >
       <Heart
         className={`h-4 w-4 ${liked ? "fill-red-500 text-red-500" : ""}`}

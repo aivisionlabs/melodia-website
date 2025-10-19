@@ -264,7 +264,7 @@ export default function SongLibraryPage() {
         <div className="px-4 md:px-8 pb-6">
           <LibrarySearchBar
             onSearch={handleSearch}
-            placeholder="Search songs by title, description, or speak to search..."
+            placeholder="Search songs by title or description"
             className="max-w-lg"
           />
         </div>

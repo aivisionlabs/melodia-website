@@ -138,3 +138,15 @@ export async function incrementSongLikeBySlug(slug: string) {
     throw error;
   }
 }
+
+export async function decrementSongLikeBySlug(slug: string) {
+  try {
+    await db
+      .update(songsTable)
+      .set({ likes_count: sql`GREATEST(${songsTable.likes_count} - 1, 0)` })
+      .where(eq(songsTable.slug, slug));
+  } catch (error) {
+    console.error('Error decrementing like count:', error);
+    throw error;
+  }
+}
