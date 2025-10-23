@@ -23,7 +23,7 @@ const ShareRequirementsCTA = ({
     <Button
       onClick={() => {
         trackCTAEvent.ctaClick("create_song_cta", "main_page", "button");
-        window.open("https://forms.gle/XUsztM73btPfCr4M9", "_blank");
+        window.open("https://melodia-app.vercel.app", "_blank");
       }}
       className={`bg-primary-yellow hover:bg-yellow-600 text-teal font-semibold rounded-lg shadow-elegant hover:shadow-glow transition-all duration-200 ${sizeClasses[size]} ${className}`}
     >
