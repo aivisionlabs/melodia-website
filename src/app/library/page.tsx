@@ -68,7 +68,20 @@ export default function SongLibraryPage() {
 
   // Helper function to get variant image URL with fallback to Melodia logo
   const getVariantImageUrl = (song: Song) => {
-    if (song.suno_variants && song.suno_variants.length > 0) {
+    // Handle new lightweight variant structure with sourceImageUrl
+    if (
+      song.suno_variants &&
+      typeof song.suno_variants === "object" &&
+      "sourceImageUrl" in song.suno_variants
+    ) {
+      return song.suno_variants.sourceImageUrl;
+    }
+    // Handle old full variant structure (for backward compatibility)
+    if (
+      song.suno_variants &&
+      Array.isArray(song.suno_variants) &&
+      song.suno_variants.length > 0
+    ) {
       return song.suno_variants[0]?.sourceImageUrl;
     }
     return null;

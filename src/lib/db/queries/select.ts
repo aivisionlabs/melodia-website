@@ -1,4 +1,4 @@
-import { and, eq, sql, gte, ilike, or } from 'drizzle-orm';
+import { and, eq, sql, ilike, or } from 'drizzle-orm';
 import { db } from '../index';
 import { SelectSong, SelectCategory, categoriesTable, songsTable, songCategoriesTable } from '../schema';
 
@@ -26,6 +26,7 @@ type LibrarySongRow = {
 };
 
 export async function getAllSongsPaginated(limit: number = 20, offset: number = 0): Promise<{ songs: LibrarySongRow[]; total: number }> {
+  // Optimized query - exclude heavy JSONB columns for library view
   const songs = await db
     .select({
       id: songsTable.id,
@@ -42,7 +43,14 @@ export async function getAllSongsPaginated(limit: number = 20, offset: number = 
       status: songsTable.status,
       categories: songsTable.categories,
       tags: songsTable.tags,
-      suno_variants: songsTable.suno_variants,
+      // Extract only essential variant info for library performance
+      suno_variants: sql<any>`CASE
+        WHEN ${songsTable.suno_variants} IS NOT NULL AND jsonb_array_length(${songsTable.suno_variants}) > 0
+        THEN jsonb_build_object(
+          'sourceImageUrl', ${songsTable.suno_variants}->0->>'sourceImageUrl'
+        )
+        ELSE NULL
+      END`,
       selected_variant: songsTable.selected_variant,
       sequence: songsTable.sequence,
       show_lyrics: songsTable.show_lyrics,
@@ -193,7 +201,14 @@ export async function getSongsByCategorySlugPaginated(categorySlug: string | nul
       status: songsTable.status,
       categories: songsTable.categories,
       tags: songsTable.tags,
-      suno_variants: songsTable.suno_variants,
+      // Extract only essential variant info for library performance
+      suno_variants: sql<any>`CASE
+        WHEN ${songsTable.suno_variants} IS NOT NULL AND jsonb_array_length(${songsTable.suno_variants}) > 0
+        THEN jsonb_build_object(
+          'sourceImageUrl', ${songsTable.suno_variants}->0->>'sourceImageUrl'
+        )
+        ELSE NULL
+      END`,
       selected_variant: songsTable.selected_variant,
       sequence: songsTable.sequence,
       show_lyrics: songsTable.show_lyrics,
@@ -230,6 +245,7 @@ export async function getSongsByCategorySlugPaginated(categorySlug: string | nul
 }
 
 // Get categories with counts of active, non-deleted songs (only categories with 1+ songs)
+// Optimized version with better query performance
 export async function getCategoriesWithCounts(): Promise<Array<{ id: number; name: string; slug: string; sequence: number | null; count: number }>> {
   const rows = await db
     .select({
@@ -240,14 +256,13 @@ export async function getCategoriesWithCounts(): Promise<Array<{ id: number; nam
       count: sql<number>`count(${songsTable.id})`,
     })
     .from(categoriesTable)
-    .leftJoin(songCategoriesTable, eq(songCategoriesTable.category_id, categoriesTable.id))
-    .leftJoin(songsTable, and(
+    .innerJoin(songCategoriesTable, eq(songCategoriesTable.category_id, categoriesTable.id))
+    .innerJoin(songsTable, and(
       eq(songCategoriesTable.song_id, songsTable.id),
       eq(songsTable.add_to_library, true),
       eq(songsTable.is_deleted, false)
     ))
     .groupBy(categoriesTable.id, categoriesTable.name, categoriesTable.slug, categoriesTable.sequence)
-    .having(gte(sql`count(${songsTable.id})`, 1))
     .orderBy(categoriesTable.sequence, categoriesTable.name);
 
   return rows.map(r => ({
@@ -299,7 +314,14 @@ export async function searchSongsPaginated(query: string, limit: number = 20, of
       status: songsTable.status,
       categories: songsTable.categories,
       tags: songsTable.tags,
-      suno_variants: songsTable.suno_variants,
+      // Extract only essential variant info for library performance
+      suno_variants: sql<any>`CASE
+        WHEN ${songsTable.suno_variants} IS NOT NULL AND jsonb_array_length(${songsTable.suno_variants}) > 0
+        THEN jsonb_build_object(
+          'sourceImageUrl', ${songsTable.suno_variants}->0->>'sourceImageUrl'
+        )
+        ELSE NULL
+      END`,
       selected_variant: songsTable.selected_variant,
       sequence: songsTable.sequence,
       show_lyrics: songsTable.show_lyrics,
