@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -19,19 +18,13 @@ import Image from "next/image";
 import { ShareButton } from "@/components/ShareButton";
 import { SongLikeButton } from "@/components/SongLikeButton";
 import {
-  trackPlayerEvent,
   trackEngagementEvent,
   trackNavigationEvent,
   trackCTAEvent,
 } from "@/lib/analytics";
 import { HeaderLogo } from "./OptimizedLogo";
-
-// iOS Audio Context type declaration
-declare global {
-  interface Window {
-    webkitAudioContext: typeof AudioContext;
-  }
-}
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useLyrics } from "@/hooks/useLyrics";
 
 interface LyricLine {
   index: number;
@@ -73,472 +66,51 @@ interface FullPageMediaPlayerProps {
 }
 
 export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [audioError, setAudioError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlayLoading, setIsPlayLoading] = useState(false);
-  const [showLyricsViewer, setShowLyricsViewer] = useState(false);
-
-  const [iosAudioUnlocked, setIosAudioUnlocked] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const lyricRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  // Check if we're on iOS
-  const isIOS =
-    typeof navigator !== "undefined" &&
-    /iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Use audio player hook
+  const {
+    isPlaying,
+    currentTime,
+    duration,
+    audioError,
+    isLoading,
+    isPlayLoading,
+    togglePlay,
+    skipTime,
+    seekTo,
+    formatTime,
+    audioRef,
+  } = useAudioPlayer({
+    audioUrl: song.song_url || song.audioUrl,
+    songTitle: song.title,
+    songId: song.id,
+  });
 
   // Convert current time to milliseconds for timestamp comparison
   const currentTimeMs = currentTime * 1000;
 
-  // Helper function to get the correct audio URL
-  const getAudioUrl = useCallback(() => {
-    // Priority: song_url (new field) > audioUrl (legacy field)
-    return song.song_url || song.audioUrl;
-  }, [song.song_url, song.audioUrl]);
+  // Use lyrics hook
+  const {
+    lyrics,
+    showLyricsViewer,
+    setShowLyricsViewer,
+    hasLyrics,
+    getLyricsData,
+    lyricsContainerRef,
+    lyricRefs,
+  } = useLyrics({
+    song,
+    currentTimeMs,
+    isPlaying,
+    audioError,
+  });
 
   // Helper function to get the variant image URL
-  const getVariantImageUrl = useCallback(() => {
+  const getVariantImageUrl = () => {
     if (song.suno_variants && song.suno_variants.length > 0) {
       return song.suno_variants[0]?.sourceImageUrl;
     }
     return null;
-  }, [song.suno_variants]);
-
-  // Helper function to get lyrics data - simplified based on show_lyrics field
-  const getLyricsData = useCallback(() => {
-    // If show_lyrics is false, only use the plain lyrics field
-    if (song.show_lyrics === false) {
-      return song.lyrics;
-    }
-    // If show_lyrics is true or undefined, use the plain lyrics field as well
-    return song.lyrics;
-  }, [song.lyrics, song.show_lyrics]);
-
-  // Check if lyrics are available
-  const hasLyrics = useCallback(() => {
-    const lyricsData = getLyricsData();
-    return (
-      lyricsData !== null &&
-      typeof lyricsData === "string" &&
-      lyricsData.trim().length > 0
-    );
-  }, [getLyricsData]);
-
-  // Handle audio loading and errors
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    // Reset loading state when audio URL changes
-    setIsLoading(false);
-    setAudioError(false);
-
-    const handleCanPlay = () => {
-      setIsLoading(false);
-      setAudioError(false);
-    };
-
-    const handleError = () => {
-      console.warn(
-        "Audio file not available or failed to load. This is expected for demo purposes."
-      );
-      setIsLoading(false);
-      setAudioError(true);
-    };
-
-    const handleLoadStart = () => {
-      if (getAudioUrl()) {
-        setIsLoading(true);
-        setAudioError(false);
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      setIsLoading(false);
-      setAudioError(false);
-    };
-
-    const handleCanPlayThrough = () => {
-      setIsLoading(false);
-      setAudioError(false);
-    };
-
-    // iOS-specific: Handle when audio is ready
-    const handleLoadedData = () => {
-      setIsLoading(false);
-      setAudioError(false);
-    };
-
-    // Set a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(
-      () => {
-        if (isLoading) {
-          setIsLoading(false);
-          setAudioError(true);
-        }
-      },
-      isIOS ? 5000 : 10000
-    ); // 5 second timeout on iOS, 10 seconds on other platforms
-
-    audio.addEventListener("canplay", handleCanPlay);
-    audio.addEventListener("error", handleError);
-    audio.addEventListener("loadstart", handleLoadStart);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("canplaythrough", handleCanPlayThrough);
-    audio.addEventListener("loadeddata", handleLoadedData);
-
-    return () => {
-      clearTimeout(loadingTimeout);
-      audio.removeEventListener("canplay", handleCanPlay);
-      audio.removeEventListener("error", handleError);
-      audio.removeEventListener("loadstart", handleLoadStart);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
-      audio.removeEventListener("loadeddata", handleLoadedData);
-    };
-  }, [getAudioUrl, isLoading, isIOS]);
-
-  const getLyricsAtTime = (timeMs: number) => {
-    // Priority 1: Use timestamp_lyrics (final variation) if available
-    if (song.timestamp_lyrics && song.timestamp_lyrics.length > 0) {
-      return song.timestamp_lyrics.map((line) => ({
-        ...line,
-        isActive: timeMs >= line.start && timeMs < line.end,
-        isPast: timeMs >= line.end,
-      }));
-    }
-
-    // Priority 2: Use timestamped lyrics variants if available
-    if (
-      song.timestamped_lyrics_variants &&
-      song.selected_variant !== undefined
-    ) {
-      const selectedVariantLyrics =
-        song.timestamped_lyrics_variants[song.selected_variant];
-      if (selectedVariantLyrics && selectedVariantLyrics.length > 0) {
-        return selectedVariantLyrics.map((line) => ({
-          ...line,
-          isActive: timeMs >= line.start && timeMs < line.end,
-          isPast: timeMs >= line.end,
-        }));
-      }
-    }
-
-    // Priority 3: Return empty array if no lyrics available
-    return [];
   };
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", updateDuration);
-
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", updateDuration);
-    };
-  }, []);
-
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-
-    // iOS-specific: Unlock audio on first interaction
-    if (isIOS && !iosAudioUnlocked) {
-      await unlockIOSAudio();
-    }
-
-    if (isPlaying) {
-      if (audio) {
-        audio.pause();
-      }
-      // Clear demo interval if running
-      if (demoIntervalRef.current) {
-        clearInterval(demoIntervalRef.current);
-        demoIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-
-      // Track pause event
-      trackPlayerEvent.pause(song.title, song.id, currentTime);
-    } else {
-      // If no audio URL or audio error, simulate playing for demo
-      if (!getAudioUrl() || audioError) {
-        setIsPlaying(true);
-        // Track demo play event
-        trackPlayerEvent.play(song.title, song.id, true);
-
-        // Simulate time progression for demo
-        demoIntervalRef.current = setInterval(() => {
-          setCurrentTime((prev) => {
-            const newTime = prev + 0.1;
-            if (newTime >= 40) {
-              // Reset after 40 seconds
-              if (demoIntervalRef.current) {
-                clearInterval(demoIntervalRef.current);
-                demoIntervalRef.current = null;
-              }
-              setIsPlaying(false);
-              setCurrentTime(0);
-              // Track demo end event
-              trackPlayerEvent.audioEnd(song.title, song.id, 40);
-              return 0;
-            }
-            return newTime;
-          });
-        }, 100);
-      } else {
-        // Show loading state when trying to play actual audio
-        setIsPlayLoading(true);
-
-        // Try to play actual audio with simplified iOS handling
-        if (audio) {
-          try {
-            // Set volume before playing (iOS requirement)
-            audio.volume = 1; // Always play at full volume
-
-            // Simple play attempt
-            const playPromise = audio.play();
-
-            if (playPromise !== undefined) {
-              await playPromise;
-              setIsPlaying(true);
-              setAudioError(false);
-              setIsPlayLoading(false);
-              // Track play event
-              trackPlayerEvent.play(song.title, song.id, false);
-            }
-          } catch (error) {
-            console.warn("Error playing audio:", error);
-            setAudioError(true);
-            setIsPlayLoading(false);
-            // Track audio error
-            trackPlayerEvent.audioError(song.title, song.id, "play_error");
-          }
-        }
-      }
-    }
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
-
-  const skipTime = (seconds: number) => {
-    if (audioRef.current && !audioError) {
-      const newTime = Math.max(
-        0,
-        Math.min(audioRef.current.currentTime + seconds, duration || Infinity)
-      );
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-
-      // Track skip event
-      if (seconds > 0) {
-        trackPlayerEvent.skipForward(song.title, song.id, seconds);
-      } else {
-        trackPlayerEvent.skipBackward(song.title, song.id, Math.abs(seconds));
-      }
-    } else if (!getAudioUrl() || audioError) {
-      // Handle demo mode
-      const newTime = Math.max(0, Math.min(currentTime + seconds, 40));
-      setCurrentTime(newTime);
-
-      // Track skip event in demo mode
-      if (seconds > 0) {
-        trackPlayerEvent.skipForward(song.title, song.id, seconds);
-      } else {
-        trackPlayerEvent.skipBackward(song.title, song.id, Math.abs(seconds));
-      }
-    }
-  };
-
-  // iOS Audio unlock mechanism
-  const unlockIOSAudio = useCallback(async () => {
-    if (!isIOS || iosAudioUnlocked) return;
-
-    try {
-      // Method 1: Create a simple audio context and resume it
-      try {
-        const AudioContextClass =
-          window.AudioContext || window.webkitAudioContext;
-        const audioContext = new AudioContextClass();
-        audioContextRef.current = audioContext;
-
-        if (audioContext.state === "suspended") {
-          await audioContext.resume();
-        }
-      } catch (contextError) {
-        console.warn(`Audio context error: ${contextError}`);
-      }
-
-      // Method 2: Try to play the actual audio element with volume 0
-      if (audioRef.current) {
-        try {
-          const audio = audioRef.current;
-          audio.volume = 0;
-          audio.currentTime = 0;
-
-          const playPromise = audio.play();
-
-          if (playPromise !== undefined) {
-            await playPromise;
-
-            // Immediately pause it
-            audio.pause();
-            audio.volume = 1; // Always play at full volume
-
-            setIosAudioUnlocked(true);
-            return;
-          }
-        } catch (audioError) {
-          console.warn(`Volume 0 play error: ${audioError}`);
-        }
-      }
-
-      // Method 3: Create a minimal audio element
-      try {
-        const testAudio = document.createElement("audio");
-        testAudio.src =
-          "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT";
-        testAudio.volume = 0;
-        testAudio.preload = "none";
-
-        await testAudio.play();
-        testAudio.pause();
-
-        setIosAudioUnlocked(true);
-      } catch (minimalError) {
-        console.warn(`Minimal audio error: ${minimalError}`);
-
-        // Last resort: just mark as unlocked and hope for the best
-        setIosAudioUnlocked(true);
-      }
-    } catch (error) {
-      console.warn(`iOS audio unlock failed: ${error}`);
-      // Even if unlock fails, mark as unlocked to prevent repeated attempts
-      setIosAudioUnlocked(true);
-    }
-  }, [isIOS, iosAudioUnlocked]);
-
-  // Calculate lyrics
-  const lyrics = getLyricsAtTime(currentTimeMs);
-
-  // Auto-scroll to active lyric (Spotify-style) - Always active for better UX
-  useEffect(() => {
-    if (!lyricsContainerRef.current) return;
-
-    const activeIndex = lyrics.findIndex((line) => line.isActive);
-    if (activeIndex === -1) return;
-
-    const activeElement = lyricRefs.current[activeIndex];
-    if (!activeElement) return;
-
-    const container = lyricsContainerRef.current;
-
-    // Use requestAnimationFrame for better performance and timing
-    requestAnimationFrame(() => {
-      // Get the element's position within the scrollable container
-      const containerHeight = container.clientHeight;
-      const elementOffsetTop = activeElement.offsetTop;
-      const elementHeight = activeElement.clientHeight;
-
-      // Calculate the position to center the element in the container
-      const elementCenter = elementOffsetTop + elementHeight / 2;
-      const containerCenter = containerHeight / 2;
-      const targetScrollTop = elementCenter - containerCenter;
-
-      // Smooth scroll to the calculated position
-      container.scrollTo({
-        top: Math.max(0, targetScrollTop),
-        behavior: "smooth",
-      });
-    });
-  }, [currentTime, lyrics]);
-
-  // Reset lyrics position only when audio actually ends (not paused or error)
-  useEffect(() => {
-    // Only reset when audio naturally ends (currentTime is 0 and not playing)
-    if (!isPlaying && currentTime === 0) {
-      // Reset scroll position to top when song completely ends
-      if (lyricsContainerRef.current) {
-        lyricsContainerRef.current.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-    }
-  }, [isPlaying, currentTime]); // Removed audioError to allow scrolling in demo mode
-
-  // Cleanup demo interval on unmount
-  useEffect(() => {
-    return () => {
-      if (demoIntervalRef.current) {
-        clearInterval(demoIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // iOS Audio Context initialization
-  useEffect(() => {
-    const initializeAudioContext = async () => {
-      if (isIOS) {
-        try {
-          // Create a simple audio context
-          const AudioContextClass =
-            window.AudioContext || window.webkitAudioContext;
-          const audioContext = new AudioContextClass();
-          audioContextRef.current = audioContext;
-
-          // Resume audio context on user interaction
-          const resumeAudioContext = async () => {
-            if (audioContext.state === "suspended") {
-              await audioContext.resume();
-            }
-
-            // Try to unlock iOS audio on any interaction
-            if (!iosAudioUnlocked) {
-              await unlockIOSAudio();
-            }
-
-            // Remove event listeners after first interaction
-            document.removeEventListener("touchstart", resumeAudioContext);
-            document.removeEventListener("touchend", resumeAudioContext);
-            document.removeEventListener("click", resumeAudioContext);
-          };
-
-          document.addEventListener("touchstart", resumeAudioContext);
-          document.addEventListener("touchend", resumeAudioContext);
-          document.addEventListener("click", resumeAudioContext);
-        } catch (error) {
-          console.warn(`Failed to initialize iOS Audio Context: ${error}`);
-        }
-      }
-    };
-
-    initializeAudioContext();
-  }, [isIOS, iosAudioUnlocked, unlockIOSAudio]);
-
-  // iOS-specific: Immediately set error state if no audio URL on iOS
-  useEffect(() => {
-    if (isIOS && !getAudioUrl()) {
-      setAudioError(true);
-      setIsLoading(false);
-    }
-  }, [isIOS, getAudioUrl]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
@@ -570,13 +142,9 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
           <div className="flex items-center gap-2 text-yellow-100 text-xs md:text-sm justify-center">
             <AlertCircle className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
             <span>
-              {isIOS
-                ? song.show_lyrics !== false
-                  ? "iOS Demo mode: Use controls below to experience synchronized lyrics"
-                  : "iOS Demo mode: Use controls below to experience the music"
-                : song.show_lyrics !== false
-                  ? "Demo mode: Use controls below to experience synchronized lyrics"
-                  : "Demo mode: Use controls below to experience the music"}
+              {song.show_lyrics !== false
+                ? "Demo mode: Use controls below to experience synchronized lyrics"
+                : "Demo mode: Use controls below to experience the music"}
             </span>
           </div>
         )}
@@ -727,28 +295,10 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:p-6 shadow-lg z-50">
         <audio
           ref={audioRef}
-          src={getAudioUrl() || undefined}
+          src={song.song_url || song.audioUrl || undefined}
           preload="none"
           playsInline
           webkit-playsinline="true"
-          onLoadStart={() => {
-            if (getAudioUrl()) {
-              setIsLoading(true);
-              setAudioError(false);
-            }
-          }}
-          onCanPlay={() => {
-            setIsLoading(false);
-            setAudioError(false);
-          }}
-          onError={() => {
-            setAudioError(true);
-            setIsLoading(false);
-          }}
-          onLoadedMetadata={() => {
-            setIsLoading(false);
-            setAudioError(false);
-          }}
         />
 
         {/* Song Info and Logo */}
@@ -869,18 +419,7 @@ export const FullPageMediaPlayer = ({ song }: FullPageMediaPlayerProps) => {
             disabled={isLoading}
             onValueChange={(value) => {
               const newTime = value[0];
-              const previousTime = currentTime;
-              setCurrentTime(newTime);
-
-              // Track seek event
-              trackPlayerEvent.seek(song.title, song.id, previousTime, newTime);
-
-              // Update audio position if available and not in error state
-              if (audioRef.current && !audioError && getAudioUrl()) {
-                audioRef.current.currentTime = newTime;
-              }
-              // In demo mode or error state, just update the time state
-              // The lyrics will automatically update based on currentTime
+              seekTo(newTime);
             }}
           />
           <div className="flex justify-between text-xs md:text-sm text-gray-600">
