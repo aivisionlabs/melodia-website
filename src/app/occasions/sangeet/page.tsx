@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title:
-    "Personalized Mahila Sangeet Songs | Personalized songs for Your Sangeet Ceremony",
+    "Personalized Sangeet Songs | Personalized songs for Your Sangeet Ceremony",
   description:
     "Create a unique, personalized song for your Sangeet. Celebrate your story with custom-made music that will make your sangeet ceremony unforgettable. Get a heartfelt song that captures the joy of your wedding.",
   keywords:
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: "Personalized Mahila Sangeet Songs | Melodia",
     description:
       "Make your Mahila Sangeet unforgettable with a custom song that tells your story. Perfect for brides, grooms, and families.",
-    url: "https://melodia-songs.com/mahila-sangeet",
+    url: "https://melodia-songs.com/occasions/sangeet",
     images: [
       {
         url: "/images/melodia-logo-og.jpeg",
@@ -35,13 +35,33 @@ export const metadata: Metadata = {
     images: ["/images/melodia-logo-og.jpeg"],
   },
   alternates: {
-    canonical: "/mahila-sangeet",
+    canonical: "/occasions/sangeet",
   },
 };
 
 export default function SangeetPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Personalized Mahila Sangeet Songs",
+    description:
+      "Create a unique, personalized song for your Sangeet ceremony. Celebrate your story with custom-made music that will make your sangeet ceremony unforgettable.",
+    provider: {
+      "@type": "Organization",
+      name: "Melodia",
+      url: "https://melodia-songs.com",
+    },
+    serviceType: "Music Creation",
+    category: "Wedding Entertainment",
+    url: "https://melodia-songs.com/occasions/sangeet",
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-cream via-primary-yellow/5 to-accent-coral/5 flex flex-col overflow-x-hidden relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Header />
       <main className="flex-1 relative z-10">
         {/* Hero Section */}

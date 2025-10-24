@@ -10,6 +10,23 @@ export const metadata: Metadata = {
     "Explore all occasions for a custom song. From weddings and birthdays to anniversaries and corporate events, create a unique musical gift for any celebration.",
   keywords:
     "personalized songs, custom music, song occasions, wedding songs, birthday songs, anniversary songs, corporate event songs, farewell songs, romantic songs",
+  alternates: {
+    canonical: "/occasions",
+  },
+  openGraph: {
+    title: "All Occasions for Personalized Songs | Melodia",
+    description:
+      "Explore all occasions for a custom song. From weddings and birthdays to anniversaries and corporate events, create a unique musical gift for any celebration.",
+    url: "https://melodia-songs.com/occasions",
+    images: [
+      {
+        url: "/images/melodia-logo-og.jpeg",
+        width: 792,
+        height: 446,
+        alt: "All Occasions for Personalized Songs by Melodia",
+      },
+    ],
+  },
 };
 
 const occasions = [
@@ -124,8 +141,41 @@ const occasions = [
 ];
 
 export default function AllOccasionsPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "All Occasions for Personalized Songs",
+    description:
+      "Explore all occasions for a custom song. From weddings and birthdays to anniversaries and corporate events, create a unique musical gift for any celebration.",
+    url: "https://melodia-songs.com/occasions",
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: [
+        {
+          "@type": "Service",
+          name: "Wedding Songs",
+          url: "https://melodia-songs.com/occasions/weddings",
+        },
+        {
+          "@type": "Service",
+          name: "Birthday Songs",
+          url: "https://melodia-songs.com/occasions/birthday",
+        },
+        {
+          "@type": "Service",
+          name: "Anniversary Songs",
+          url: "https://melodia-songs.com/occasions/anniversary",
+        },
+      ],
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-cream via-primary-yellow/5 to-accent-coral/5 flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Header />
       <main className="flex-1 py-12 sm:py-16 md:py-20 px-4">
         <div className="max-w-5xl mx-auto">
