@@ -52,7 +52,7 @@ export default function HomePage() {
               className="animate-fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              Create a Timeless Memory
+              Create Musical Memories
             </span>
           </h1>
           <p
@@ -60,7 +60,7 @@ export default function HomePage() {
             style={{ animationDelay: "0.4s" }}
           >
             Turn your favorite stories and memories into a unique, heartfelt
-            song for your loved ones. The most personal gift imaginable.
+            song for your loved ones.
           </p>
           <div
             className="mt-6 sm:mt-8 animate-fade-in"
@@ -88,7 +88,7 @@ export default function HomePage() {
                   <Heart className="w-8 h-8" />
                 </div>
                 <h3 className="text-lg sm:text-xl font-semibold text-text-teal font-heading">
-                  1. Share Your Story
+                  1. Share Your Story & Occassion
                 </h3>
                 <p className="text-text-teal/80 mt-2 text-sm sm:text-base">
                   Tell us about your favorite person and what makes your bond
@@ -103,8 +103,8 @@ export default function HomePage() {
                   2. We Compose Your Song
                 </h3>
                 <p className="text-text-teal/80 mt-2 text-sm sm:text-base">
-                  Our creative team crafts beautiful lyrics and melodies that
-                  bring your story to life.
+                  Our creative team crafts beautiful lyrics and studio quality
+                  song that bring your story to life.
                 </p>
               </div>
               <div className="flex flex-col items-center group hover:scale-105 transition-transform duration-300">
@@ -115,8 +115,7 @@ export default function HomePage() {
                   3. Gift Your Song
                 </h3>
                 <p className="text-text-teal/80 mt-2 text-sm sm:text-base">
-                  Receive a beautiful, studio-quality song ready to be shared
-                  and cherished.
+                  Receive a beautiful song ready to be shared and cherished.
                 </p>
               </div>
             </div>
@@ -199,7 +198,7 @@ export default function HomePage() {
                     </span>
                   </Link>
                   <span className="text-xs sm:text-sm text-gray-600 block">
-                    {song.categories?.join(", ") || song.music_style}
+                    {song.song_description}
                   </span>
                 </div>
                 <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 ml-2">
@@ -207,6 +206,61 @@ export default function HomePage() {
                 </span>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Occasions Section */}
+        <section className="py-12 sm:py-16 md:py-20 px-4 bg-white/50">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold text-text-teal text-center font-heading mb-8 sm:mb-12">
+              <span className="inline-flex items-center gap-2">
+                <Music className="w-6 h-6 text-accent-coral" />
+                A Unique Song for Every Celebration
+                <Music className="w-6 h-6 text-accent-coral" />
+              </span>
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              <Link href="/occasions/weddings" className="block">
+                <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:scale-105 transition-transform duration-300 cursor-pointer">
+                  <h3 className="text-xl font-bold text-text-teal font-heading mb-2">
+                    Weddings
+                  </h3>
+                  <p className="text-text-teal/80 text-sm">
+                    Create the perfect song for your Mahila Sangeet, Haldi, or
+                    ring ceremony.
+                  </p>
+                </div>
+              </Link>
+              <Link href="/occasions/anniversary" className="block">
+                <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:scale-105 transition-transform duration-300 cursor-pointer">
+                  <h3 className="text-xl font-bold text-text-teal font-heading mb-2">
+                    Anniversaries
+                  </h3>
+                  <p className="text-text-teal/80 text-sm">
+                    Relive your favorite moments with a song that tells your
+                    unique love story.
+                  </p>
+                </div>
+              </Link>
+              <Link href="/occasions/birthday" className="block">
+                <div className="bg-white p-6 rounded-lg shadow-lg text-center hover:scale-105 transition-transform duration-300 cursor-pointer">
+                  <h3 className="text-xl font-bold text-text-teal font-heading mb-2">
+                    Birthdays
+                  </h3>
+                  <p className="text-text-teal/80 text-sm">
+                    Surprise them with a heartfelt, personalized birthday
+                    anthem.
+                  </p>
+                </div>
+              </Link>
+            </div>
+            <div className="text-center mt-12">
+              <Link href="/occasions">
+                <Button variant="outline" size="lg">
+                  View All Occasions
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
 

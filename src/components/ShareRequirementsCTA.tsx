@@ -7,11 +7,13 @@ import { Edit } from "lucide-react";
 interface ShareRequirementsCTAProps {
   className?: string;
   size?: "sm" | "md" | "lg";
+  text?: string;
 }
 
 const ShareRequirementsCTA = ({
   className = "",
   size = "md",
+  text,
 }: ShareRequirementsCTAProps) => {
   const sizeClasses = {
     sm: "px-2 py-1.5 text-xs sm:text-sm",
@@ -28,7 +30,9 @@ const ShareRequirementsCTA = ({
       className={`bg-primary-yellow hover:bg-yellow-600 text-teal font-semibold rounded-lg shadow-elegant hover:shadow-glow transition-all duration-200 ${sizeClasses[size]} ${className}`}
     >
       <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-      <span className="ml-1 sm:ml-2">Start Your Joyful Journey! 🎵</span>
+      <span className="ml-1 sm:ml-2">
+        {text || "Start Your Joyful Journey! 🎵"}
+      </span>
     </Button>
   );
 };
