@@ -2,15 +2,54 @@
 
 import { createSongAction } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  sequence: number;
+}
 
 export default function CreateSongPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const hasSubmittedRef = useRef(false);
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        if (data.success) {
+          setCategories(data.categories);
+        } else {
+          console.error('Failed to fetch categories:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const handleCategoryChange = (categoryId: number) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
 
   const handleSubmit = async (formData: FormData) => {
     // Guard against double-submits (fast double click / enter)
@@ -20,6 +59,9 @@ export default function CreateSongPage() {
     setError(null);
 
     try {
+      // Add selected categories to form data
+      formData.set('selectedCategories', JSON.stringify(selectedCategories));
+      
       const result = await createSongAction(formData);
 
       if (result?.success && result.redirect) {
@@ -138,21 +180,35 @@ export default function CreateSongPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="categories"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label className="block text-sm font-medium text-gray-700">
                 Categories
               </label>
-              <input
-                type="text"
-                name="categories"
-                id="categories"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm text-gray-900 px-3 py-2"
-                placeholder="Enter categories separated by commas (e.g., Birthday, Party, Kids)"
-              />
+              {categoriesLoading ? (
+                <div className="mt-1 text-sm text-gray-500">Loading categories...</div>
+              ) : (
+                <div className="mt-1 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {categories.map((category) => (
+                      <label key={category.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={() => handleCategoryChange(category.id)}
+                          className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{category.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedCategories.length > 0 && (
+                    <p className="text-sm text-gray-500">
+                      Selected: {selectedCategories.length} categor{selectedCategories.length === 1 ? 'y' : 'ies'}
+                    </p>
+                  )}
+                </div>
+              )}
               <p className="mt-1 text-sm text-gray-500">
-                Optional: Add categories to help organize songs
+                Optional: Select categories to help organize songs
               </p>
             </div>
 

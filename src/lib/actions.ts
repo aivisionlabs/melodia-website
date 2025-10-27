@@ -46,10 +46,9 @@ export async function createSongAction(formData: FormData) {
     const title = formData.get('title') as string;
     const lyrics = formData.get('lyrics') as string;
     const music_style = formData.get('music_style') as string;
-    const categories = formData.get('categories') as string;
+    const selectedCategoriesJson = formData.get('selectedCategories') as string;
     const tags = formData.get('tags') as string;
     const negativeTags = formData.get('negativeTags') as string;
-
 
     if (!title || !lyrics || !music_style) {
       console.error('Missing required fields');
@@ -59,12 +58,21 @@ export async function createSongAction(formData: FormData) {
       };
     }
 
-    // Create song in database
+    // Parse selected categories
+    let selectedCategoryIds: number[] = [];
+    if (selectedCategoriesJson) {
+      try {
+        selectedCategoryIds = JSON.parse(selectedCategoriesJson);
+      } catch (error) {
+        console.error('Error parsing selected categories:', error);
+      }
+    }
+
+    // Create song in database (without categories array)
     const songData: any = {
       title,
       lyrics,
       music_style,
-      categories: categories ? categories.split(',').map(c => c.trim()) : [],
       tags: tags ? tags.split(',').map(t => t.trim()) : [],
       negative_tags: negativeTags,
       prompt: lyrics,
@@ -78,6 +86,17 @@ export async function createSongAction(formData: FormData) {
         success: false,
         error: songResult.error || 'Failed to create song in database'
       };
+    }
+
+    // Create song-category mappings if categories are selected
+    if (selectedCategoryIds.length > 0) {
+      const { createSongCategoryMappings } = await import('@/lib/db/services');
+      const mappingResult = await createSongCategoryMappings(songResult.songId!, selectedCategoryIds);
+      
+      if (!mappingResult.success) {
+        console.error('Failed to create category mappings:', mappingResult.error);
+        // Continue with song creation even if category mapping fails
+      }
     }
 
     // Update status to pending

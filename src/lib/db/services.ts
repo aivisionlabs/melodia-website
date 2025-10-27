@@ -5,7 +5,7 @@ import { Song } from '@/types';
 import { generateBaseSlug } from '@/lib/utils/slug';
 import bcrypt from 'bcrypt';
 import { db } from './index';
-import { adminUsersTable } from './schema';
+import { adminUsersTable, songCategoriesTable } from './schema';
 import { eq } from 'drizzle-orm';
 
 // Song Services
@@ -215,7 +215,6 @@ export async function createSong(songData: {
   title: string;
   lyrics: string;
   music_style: string;
-  categories?: string[];
   tags?: string[];
   negative_tags?: string;
   prompt?: string;
@@ -240,7 +239,6 @@ export async function createSong(songData: {
       title: songData.title,
       lyrics: songData.lyrics,
       music_style: songData.music_style,
-      categories: songData.categories || [],
       tags: songData.tags || [],
       negative_tags: songData.negative_tags,
       prompt: songData.prompt || songData.lyrics,
@@ -406,5 +404,26 @@ export async function restoreSong(songId: number): Promise<{ success: boolean; e
   } catch (error) {
     console.error('Error restoring song:', error);
     return { success: false, error: 'Failed to restore song' };
+  }
+}
+
+// Song-Category mapping services
+export async function createSongCategoryMappings(songId: number, categoryIds: number[]): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (categoryIds.length === 0) {
+      return { success: true };
+    }
+
+    // Create mappings for each category
+    const mappings = categoryIds.map(categoryId => ({
+      song_id: songId,
+      category_id: categoryId,
+    }));
+
+    await db.insert(songCategoriesTable).values(mappings);
+    return { success: true };
+  } catch (error) {
+    console.error('Error creating song-category mappings:', error);
+    return { success: false, error: 'Failed to create category mappings' };
   }
 }
