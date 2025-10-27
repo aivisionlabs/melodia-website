@@ -2,15 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import DeleteSongButton from "@/components/DeleteSongButton";
-import { Song } from "@/types";
+import TimestampLyricsEditor from "@/components/TimestampLyricsEditor";
+import { getSongWithLyricsAction } from "@/lib/actions";
+import { Song, LyricLine } from "@/types";
 
 interface SongListProps {
   songs: Song[];
 }
 
 export default function SongList({ songs }: SongListProps) {
+  const router = useRouter();
   const [currentSongs, setCurrentSongs] = useState<Song[]>(songs);
+
+  // Modal state for lyrics editor
+  const [showLyricsEditor, setShowLyricsEditor] = useState(false);
+  const [editorSongData, setEditorSongData] = useState<{
+    songId: number;
+    slug: string;
+    timestampLyrics: LyricLine[] | null;
+    plainLyrics: string | null;
+  } | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -35,6 +48,43 @@ export default function SongList({ songs }: SongListProps) {
     );
   };
 
+  const handleSongClick = (song: Song) => {
+    // If song is in generating state, navigate to the generate page
+    if (song.status === "generating" && song.suno_task_id) {
+      router.push(`/song-admin-portal/generate/${song.suno_task_id}`);
+    } else if (song.slug) {
+      // Otherwise, navigate to the song page
+      router.push(`/library/${song.slug}`);
+    }
+  };
+
+  const handleFixLyrics = async (song: Song) => {
+    try {
+      const result = await getSongWithLyricsAction(song.id);
+      if (result.success && result.song) {
+        setEditorSongData({
+          songId: result.song.id,
+          slug: result.song.slug,
+          timestampLyrics: result.song.timestamp_lyrics,
+          plainLyrics: result.song.lyrics,
+        });
+        setShowLyricsEditor(true);
+      }
+    } catch (error) {
+      console.error("Error loading song data:", error);
+    }
+  };
+
+  const handleEditorSave = () => {
+    setShowLyricsEditor(false);
+    // Refresh the page to show updated data
+    window.location.reload();
+  };
+
+  const handleEditorCancel = () => {
+    setShowLyricsEditor(false);
+  };
+
   if (currentSongs.length === 0) {
     return (
       <div className="text-center py-12">
@@ -55,74 +105,105 @@ export default function SongList({ songs }: SongListProps) {
   }
 
   return (
-    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-      <ul className="divide-y divide-gray-200">
-        {currentSongs.map((song) => (
-          <li key={song.id}>
-            <div className="px-4 py-4 sm:px-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <span className="text-yellow-600 font-medium">
-                        {song.title.charAt(0)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {song.title}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {song.music_style} • {song.service_provider}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                      song.status || "draft"
-                    )}`}
-                  >
-                    {song.status || "draft"}
-                  </span>
-                  <div className="text-sm text-gray-500">
-                    {song.add_to_library
-                      ? "Added to Library"
-                      : "Not in Library"}
-                  </div>
-                  <Link
-                    href={`/library/${song.slug}`}
-                    className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
-                  >
-                    View
-                  </Link>
-                  <DeleteSongButton
-                    songId={song.id}
-                    songTitle={song.title}
-                    variant="dropdown"
-                    onDelete={() => handleSongDelete(song.id)}
-                  />
-                </div>
-              </div>
-              {song.categories && song.categories.length > 0 && (
-                <div className="mt-2">
-                  <div className="flex flex-wrap gap-1">
-                    {song.categories.map((category, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+    <>
+      {/* Lyrics Editor Modal */}
+      {showLyricsEditor && editorSongData && (
+        <TimestampLyricsEditor
+          songId={editorSongData.songId}
+          slug={editorSongData.slug}
+          timestampLyrics={editorSongData.timestampLyrics}
+          plainLyrics={editorSongData.plainLyrics}
+          onSave={handleEditorSave}
+          onCancel={handleEditorCancel}
+        />
+      )}
+
+      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul className="divide-y divide-gray-200">
+          {currentSongs.map((song) => (
+            <li key={song.id}>
+              <div className="px-4 py-4 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center flex-1">
+                    <div className="flex-shrink-0">
+                      <div
+                        className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center cursor-pointer"
+                        onClick={() => handleSongClick(song)}
                       >
-                        {category}
-                      </span>
-                    ))}
+                        <span className="text-yellow-600 font-medium">
+                          {song.title.charAt(0)}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="ml-4 flex-1 cursor-pointer"
+                      onClick={() => handleSongClick(song)}
+                    >
+                      <div className="text-sm font-medium text-gray-900">
+                        {song.title}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {song.music_style} • {song.service_provider}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4 ml-4">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                        song.status || "draft"
+                      )}`}
+                    >
+                      {song.status || "draft"}
+                    </span>
+                    <div className="text-sm text-gray-500">
+                      {song.add_to_library ? "In Library" : "Private"}
+                    </div>
+
+                    {/* Fix Lyrics Button - Only show if song has timestamp_lyrics */}
+                    {song.timestamp_lyrics &&
+                      song.timestamp_lyrics.length > 0 && (
+                        <button
+                          onClick={() => handleFixLyrics(song)}
+                          className="text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
+                          title="Fix timestamp lyrics"
+                        >
+                          Fix Lyrics
+                        </button>
+                      )}
+
+                    <Link
+                      href={`/library/${song.slug}`}
+                      className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
+                    >
+                      View
+                    </Link>
+                    <DeleteSongButton
+                      songId={song.id}
+                      songTitle={song.title}
+                      variant="dropdown"
+                      onDelete={() => handleSongDelete(song.id)}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+                {song.categories && song.categories.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex flex-wrap gap-1">
+                      {song.categories.map((category, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }

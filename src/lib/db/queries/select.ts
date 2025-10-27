@@ -364,8 +364,8 @@ export async function getAllSongs(): Promise<SelectSong[]> {
   return db
     .select()
     .from(songsTable)
-    .where(and(eq(songsTable.add_to_library, true), eq(songsTable.is_deleted, false)))
-    .orderBy(songsTable.sequence, songsTable.created_at);
+    .where(eq(songsTable.is_deleted, false))
+    .orderBy(sql`${songsTable.created_at} DESC`);
 }
 
 export async function getSongsByCategorySlug(categorySlug: string): Promise<SelectSong[]> {

@@ -26,15 +26,15 @@ export default function CreateSongPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/categories');
+        const response = await fetch("/api/categories");
         const data = await response.json();
         if (data.success) {
           setCategories(data.categories);
         } else {
-          console.error('Failed to fetch categories:', data.error);
+          console.error("Failed to fetch categories:", data.error);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error("Error fetching categories:", error);
       } finally {
         setCategoriesLoading(false);
       }
@@ -44,9 +44,9 @@ export default function CreateSongPage() {
   }, []);
 
   const handleCategoryChange = (categoryId: number) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId)
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     );
   };
@@ -60,8 +60,8 @@ export default function CreateSongPage() {
 
     try {
       // Add selected categories to form data
-      formData.set('selectedCategories', JSON.stringify(selectedCategories));
-      
+      formData.set("selectedCategories", JSON.stringify(selectedCategories));
+
       const result = await createSongAction(formData);
 
       if (result?.success && result.redirect) {
@@ -184,7 +184,9 @@ export default function CreateSongPage() {
                 Categories
               </label>
               {categoriesLoading ? (
-                <div className="mt-1 text-sm text-gray-500">Loading categories...</div>
+                <div className="mt-1 text-sm text-gray-500">
+                  Loading categories...
+                </div>
               ) : (
                 <div className="mt-1 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
@@ -196,13 +198,16 @@ export default function CreateSongPage() {
                           onChange={() => handleCategoryChange(category.id)}
                           className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{category.name}</span>
+                        <span className="ml-2 text-sm text-gray-700">
+                          {category.name}
+                        </span>
                       </label>
                     ))}
                   </div>
                   {selectedCategories.length > 0 && (
                     <p className="text-sm text-gray-500">
-                      Selected: {selectedCategories.length} categor{selectedCategories.length === 1 ? 'y' : 'ies'}
+                      Selected: {selectedCategories.length} categor
+                      {selectedCategories.length === 1 ? "y" : "ies"}
                     </p>
                   )}
                 </div>

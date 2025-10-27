@@ -1,43 +1,10 @@
 'use server'
 
-import { Song, PublicSong, AlignedWord } from '@/types';
-import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
-import { createServerSupabaseClient } from './supabase';
+import { Song } from '@/types';
 import { unstable_cache } from 'next/cache';
+import { createSong, incrementSongPlay, incrementSongView, updateSongStatus, validateAdminCredentials } from './db/services';
 
 
-// Rate limiting map (in production, use Redis or similar)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-
-const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
-const RATE_LIMIT_MAX = 100 // requests per window
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const userLimit = rateLimitMap.get(ip)
-
-  if (!userLimit || now > userLimit.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
-    return true
-  }
-
-  if (userLimit.count >= RATE_LIMIT_MAX) {
-    return false
-  }
-
-  userLimit.count++
-  return true
-}
-
-// Input validation
-function validateSongId(id: string): boolean {
-  if (!id || typeof id !== 'string') return false
-  return /^\d+$/.test(id)
-}
-
-function sanitizeSearchQuery(query: string): string {
-  return query.trim().toLowerCase().slice(0, 50)
-}
 
 
 // Song creation action with Suno integration
@@ -92,7 +59,7 @@ export async function createSongAction(formData: FormData) {
     if (selectedCategoryIds.length > 0) {
       const { createSongCategoryMappings } = await import('@/lib/db/services');
       const mappingResult = await createSongCategoryMappings(songResult.songId!, selectedCategoryIds);
-      
+
       if (!mappingResult.success) {
         console.error('Failed to create category mappings:', mappingResult.error);
         // Continue with song creation even if category mapping fails
@@ -1056,6 +1023,121 @@ export async function completeSongWithLyricsAction(
     return {
       success: false,
       error: 'Failed to complete song'
+    };
+  }
+}
+
+// Action to update timestamp_lyrics field in the database
+export async function updateTimestampLyricsAction(
+  songId: number,
+  timestampLyrics: any
+) {
+  try {
+    // Validate that timestampLyrics is a valid array
+    if (!Array.isArray(timestampLyrics)) {
+      return {
+        success: false,
+        error: 'Invalid format: timestamp_lyrics must be an array'
+      };
+    }
+
+    // Validate that each item in the array is a valid LyricLine
+    const LyricLine = timestampLyrics as any[];
+    for (let i = 0; i < LyricLine.length; i++) {
+      const line = LyricLine[i];
+      if (!line || typeof line !== 'object') {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: each item must be an object`
+        };
+      }
+
+      // Check for required fields
+      if (typeof line.index !== 'number') {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: 'index' must be a number`
+        };
+      }
+
+      if (typeof line.text !== 'string') {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: 'text' must be a string`
+        };
+      }
+
+      if (typeof line.start !== 'number') {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: 'start' must be a number`
+        };
+      }
+
+      if (typeof line.end !== 'number') {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: 'end' must be a number`
+        };
+      }
+
+      // Validate that end is greater than start
+      if (line.end <= line.start) {
+        return {
+          success: false,
+          error: `Invalid format at index ${i}: 'end' must be greater than 'start'`
+        };
+      }
+    }
+
+    // Update the database
+    const { updateSong } = await import('@/lib/db/queries/update');
+    await updateSong(songId, {
+      timestamp_lyrics: timestampLyrics
+    });
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('Error updating timestamp lyrics:', error);
+    return {
+      success: false,
+      error: 'Failed to update timestamp lyrics'
+    };
+  }
+}
+
+// Action to get full song data including timestamp_lyrics and lyrics
+export async function getSongWithLyricsAction(songId: number) {
+  try {
+    const { getSongById } = await import('@/lib/db/services');
+    const song = await getSongById(songId);
+
+    if (!song) {
+      return {
+        success: false,
+        error: 'Song not found'
+      };
+    }
+
+    return {
+      success: true,
+      song: {
+        id: song.id,
+        title: song.title,
+        slug: song.slug,
+        lyrics: song.lyrics,
+        timestamp_lyrics: song.timestamp_lyrics,
+        timestamped_lyrics_variants: song.timestamped_lyrics_variants,
+        selected_variant: song.selected_variant
+      }
+    };
+  } catch (error) {
+    console.error('Error getting song with lyrics:', error);
+    return {
+      success: false,
+      error: 'Failed to get song data'
     };
   }
 }

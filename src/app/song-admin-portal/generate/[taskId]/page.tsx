@@ -4,12 +4,15 @@ import { SunoVariant } from "@/lib/suno-api";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import DeleteSongButton from "@/components/DeleteSongButton";
+import TimestampLyricsEditor from "@/components/TimestampLyricsEditor";
 import {
   getSongByTaskIdAction,
   updateSongWithVariantsAction,
   getSunoRecordInfoAction,
+  getSongWithLyricsAction,
 } from "@/lib/actions";
 import { Download, Check } from "lucide-react";
+import type { LyricLine } from "@/types";
 
 interface GenerateProgressPageProps {
   params: Promise<{
@@ -35,6 +38,13 @@ export default function GenerateProgressPage({
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [addToLibrary, setAddToLibrary] = useState(true);
+
+  // Modal state for timestamp lyrics editor
+  const [showLyricsEditor, setShowLyricsEditor] = useState(false);
+  const [editorSongData, setEditorSongData] = useState<{
+    timestampLyrics: LyricLine[] | null;
+    plainLyrics: string | null;
+  } | null>(null);
 
   useEffect(() => {
     let songInfoInterval: NodeJS.Timeout | null = null;
@@ -210,16 +220,31 @@ export default function GenerateProgressPage({
           result.timestampedLyricsGenerated
         ) {
           console.log("Song saved with synchronized lyrics!");
+
+          // Fetch song data for the modal
+          const songDataResult = await getSongWithLyricsAction(songInfo.id);
+
+          if (songDataResult.success && songDataResult.song) {
+            setEditorSongData({
+              timestampLyrics: songDataResult.song.timestamp_lyrics,
+              plainLyrics: songDataResult.song.lyrics,
+            });
+            setShowLyricsEditor(true);
+          } else {
+            // If we can't fetch song data, just redirect
+            router.push(`/library/${songInfo.slug}`);
+          }
         } else if ("lyricsError" in result && result.lyricsError) {
           console.warn(
             "Song saved but lyrics generation failed:",
             result.lyricsError
           );
           // Still redirect even if lyrics generation fails
+          router.push(`/library/${songInfo.slug}`);
+        } else {
+          // No timestamped lyrics generated, redirect normally
+          router.push(`/library/${songInfo.slug}`);
         }
-
-        // Redirect to the song page or dashboard
-        router.push(`/library/${songInfo.slug}`);
       } else {
         setError(result.error || "Failed to save selection");
       }
@@ -231,211 +256,239 @@ export default function GenerateProgressPage({
     }
   };
 
+  const handleEditorSave = () => {
+    setShowLyricsEditor(false);
+    router.push(`/library/${songInfo?.slug}`);
+  };
+
+  const handleEditorCancel = () => {
+    setShowLyricsEditor(false);
+    router.push(`/library/${songInfo?.slug}`);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Song Generation in Progress
-            </h1>
-            <p className="text-lg text-gray-600 mb-6">
-              It will take 30-40 seconds to start song generation
-            </p>
-          </div>
+    <>
+      {showLyricsEditor && editorSongData && songInfo && (
+        <TimestampLyricsEditor
+          songId={songInfo.id}
+          slug={songInfo.slug}
+          timestampLyrics={editorSongData.timestampLyrics}
+          plainLyrics={editorSongData.plainLyrics}
+          onSave={handleEditorSave}
+          onCancel={handleEditorCancel}
+        />
+      )}
 
-          {error ? (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Generation Failed
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">{error}</div>
-                </div>
-              </div>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Song Generation in Progress
+              </h1>
+              <p className="text-lg text-gray-600 mb-6">
+                It will take 30-40 seconds to start song generation
+              </p>
             </div>
-          ) : (
-            <>
-              {/* Progress Bar */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Progress
-                  </span>
-                  <span className="text-sm font-medium text-gray-700">
-                    {progress}%
-                  </span>
+
+            {error ? (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Generation Failed
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">{error}</div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-yellow-600 h-3 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <p className="mt-2 text-sm text-gray-600">
-                  {getStatusMessage()}
-                </p>
               </div>
-
-              {/* Variants Status */}
-              {variants?.length > 0 && (
+            ) : (
+              <>
+                {/* Progress Bar */}
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Generated Variants
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {variants.map((variant, index) => (
-                      <div
-                        key={variant.id}
-                        className={`border-2 rounded-lg p-4 transition-all duration-200 ${
-                          selectedVariant === index
-                            ? "border-yellow-500 bg-yellow-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-gray-900">
-                            Variant {index + 1}
-                          </h4>
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Ready
-                            </span>
-                            {selectedVariant === index && (
-                              <Check className="h-4 w-4 text-yellow-600" />
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Duration: {Math.round(Number(variant.duration) || 0)}s
-                        </p>
-                        {variant.streamAudioUrl && (
-                          <audio controls className="w-full mb-3">
-                            <source
-                              src={variant.streamAudioUrl}
-                              type="audio/mpeg"
-                            />
-                            Your browser does not support the audio element.
-                          </audio>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <button
-                            onClick={() => handleVariantSelect(index)}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                              selectedVariant === index
-                                ? "bg-yellow-600 text-white"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                            }`}
-                          >
-                            {selectedVariant === index ? "Selected" : "Select"}
-                          </button>
-                          <button
-                            onClick={() => handleDownload(variant, index)}
-                            className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
-                            title="Download audio file"
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Progress
+                    </span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {progress}%
+                    </span>
                   </div>
-                </div>
-              )}
-
-              {/* Original Lyrics Display */}
-              {lyrics && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Original Lyrics (Preview)
-                  </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                      {lyrics}
-                    </pre>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-yellow-600 h-3 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${progress}%` }}
+                    ></div>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Note: These are the original lyrics you entered.
-                    Synchronized lyrics will be generated when you save your
-                    selection.
+                  <p className="mt-2 text-sm text-gray-600">
+                    {getStatusMessage()}
                   </p>
                 </div>
-              )}
-            </>
-          )}
 
-          {/* Add to Library Checkbox - Only show when variants are ready */}
-          {status === "SUCCESS" && variants.length >= 2 && (
-            <div className="flex items-center justify-center mb-6">
-              <input
-                type="checkbox"
-                id="addToLibrary"
-                checked={addToLibrary}
-                onChange={(e) => setAddToLibrary(e.target.checked)}
-                className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
-              />
-              <label
-                htmlFor="addToLibrary"
-                className="ml-2 block text-sm text-gray-700"
-              >
-                Add to Library
-              </label>
-            </div>
-          )}
-          {status === "SUCCESS" && variants.length >= 2 && (
-            <p className="text-center text-sm text-gray-500 mb-6">
-              When checked, this song will be visible in the public library.
-              Uncheck to keep it private.
-            </p>
-          )}
+                {/* Variants Status */}
+                {variants?.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Generated Variants
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {variants.map((variant, index) => (
+                        <div
+                          key={variant.id}
+                          className={`border-2 rounded-lg p-4 transition-all duration-200 ${
+                            selectedVariant === index
+                              ? "border-yellow-500 bg-yellow-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">
+                              Variant {index + 1}
+                            </h4>
+                            <div className="flex items-center space-x-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Ready
+                              </span>
+                              {selectedVariant === index && (
+                                <Check className="h-4 w-4 text-yellow-600" />
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Duration:{" "}
+                            {Math.round(Number(variant.duration) || 0)}s
+                          </p>
+                          {variant.streamAudioUrl && (
+                            <audio controls className="w-full mb-3">
+                              <source
+                                src={variant.streamAudioUrl}
+                                type="audio/mpeg"
+                              />
+                              Your browser does not support the audio element.
+                            </audio>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <button
+                              onClick={() => handleVariantSelect(index)}
+                              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                                selectedVariant === index
+                                  ? "bg-yellow-600 text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              }`}
+                            >
+                              {selectedVariant === index
+                                ? "Selected"
+                                : "Select"}
+                            </button>
+                            <button
+                              onClick={() => handleDownload(variant, index)}
+                              className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                              title="Download audio file"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Action Buttons */}
-          <div className="mt-8 text-center space-x-4">
+                {/* Original Lyrics Display */}
+                {lyrics && (
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      Original Lyrics (Preview)
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
+                        {lyrics}
+                      </pre>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Note: These are the original lyrics you entered.
+                      Synchronized lyrics will be generated when you save your
+                      selection.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Add to Library Checkbox - Only show when variants are ready */}
             {status === "SUCCESS" && variants.length >= 2 && (
+              <div className="flex items-center justify-center mb-6">
+                <input
+                  type="checkbox"
+                  id="addToLibrary"
+                  checked={addToLibrary}
+                  onChange={(e) => setAddToLibrary(e.target.checked)}
+                  className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="addToLibrary"
+                  className="ml-2 block text-sm text-gray-700"
+                >
+                  Add to Library
+                </label>
+              </div>
+            )}
+            {status === "SUCCESS" && variants.length >= 2 && (
+              <p className="text-center text-sm text-gray-500 mb-6">
+                When checked, this song will be visible in the public library.
+                Uncheck to keep it private.
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="mt-8 text-center space-x-4">
+              {status === "SUCCESS" && variants.length >= 2 && (
+                <button
+                  onClick={handleSaveSelection}
+                  disabled={selectedVariant === null || isSaving}
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedVariant === null || isSaving
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
+                >
+                  {isSaving
+                    ? "Saving & Generating Lyrics..."
+                    : "Save Selection"}
+                </button>
+              )}
               <button
-                onClick={handleSaveSelection}
-                disabled={selectedVariant === null || isSaving}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                  selectedVariant === null || isSaving
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
+                onClick={() => router.push("/song-admin-portal")}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium"
               >
-                {isSaving ? "Saving & Generating Lyrics..." : "Save Selection"}
+                Back to Dashboard
               </button>
-            )}
-            <button
-              onClick={() => router.push("/song-admin-portal")}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium"
-            >
-              Back to Dashboard
-            </button>
-            {songInfo && (
-              <DeleteSongButton
-                songId={songInfo.id}
-                songTitle={songInfo.title}
-                variant="icon"
-                onDelete={() => router.push("/song-admin-portal")}
-              />
-            )}
+              {songInfo && (
+                <DeleteSongButton
+                  songId={songInfo.id}
+                  songTitle={songInfo.title}
+                  variant="icon"
+                  onDelete={() => router.push("/song-admin-portal")}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
