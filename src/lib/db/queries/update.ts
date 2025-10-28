@@ -23,6 +23,7 @@ export async function updateSong(
     tags: string[];
     negative_tags: string;
     metadata: any;
+    show_lyrics: boolean;
   }>
 ) {
   try {
@@ -62,12 +63,14 @@ export async function updateSongWithVariants(
   id: number,
   sunoVariants: any[],
   selectedVariant?: number,
-  addToLibrary?: boolean
+  addToLibrary?: boolean,
+  showLyrics?: boolean
 ) {
   const updateData: any = {
     suno_variants: sunoVariants,
     status: 'completed',
-    add_to_library: addToLibrary !== undefined ? addToLibrary : true
+    add_to_library: addToLibrary !== undefined ? addToLibrary : true,
+    show_lyrics: showLyrics !== undefined ? showLyrics : true
   };
 
   if (selectedVariant !== undefined) {

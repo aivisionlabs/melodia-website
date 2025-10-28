@@ -38,6 +38,7 @@ export default function GenerateProgressPage({
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [addToLibrary, setAddToLibrary] = useState(true);
+  const [showLyrics, setShowLyrics] = useState(true);
 
   // Modal state for timestamp lyrics editor
   const [showLyricsEditor, setShowLyricsEditor] = useState(false);
@@ -211,7 +212,8 @@ export default function GenerateProgressPage({
         songInfo.id,
         variants,
         selectedVariant,
-        addToLibrary
+        addToLibrary,
+        showLyrics
       );
 
       if (result.success) {
@@ -429,28 +431,45 @@ export default function GenerateProgressPage({
               </>
             )}
 
-            {/* Add to Library Checkbox - Only show when variants are ready */}
+            {/* Add to Library and Show Lyrics Checkboxes - Only show when variants are ready */}
             {status === "SUCCESS" && variants.length >= 2 && (
-              <div className="flex items-center justify-center mb-6">
-                <input
-                  type="checkbox"
-                  id="addToLibrary"
-                  checked={addToLibrary}
-                  onChange={(e) => setAddToLibrary(e.target.checked)}
-                  className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="addToLibrary"
-                  className="ml-2 block text-sm text-gray-700"
-                >
-                  Add to Library
-                </label>
+              <div className="flex items-center justify-center mb-6 space-x-6">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="addToLibrary"
+                    checked={addToLibrary}
+                    onChange={(e) => setAddToLibrary(e.target.checked)}
+                    className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="addToLibrary"
+                    className="ml-2 block text-sm text-gray-700"
+                  >
+                    Add to Library
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="showLyrics"
+                    checked={showLyrics}
+                    onChange={(e) => setShowLyrics(e.target.checked)}
+                    className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="showLyrics"
+                    className="ml-2 block text-sm text-gray-700"
+                  >
+                    Show Lyrics
+                  </label>
+                </div>
               </div>
             )}
             {status === "SUCCESS" && variants.length >= 2 && (
               <p className="text-center text-sm text-gray-500 mb-6">
-                When checked, this song will be visible in the public library.
-                Uncheck to keep it private.
+                Add to Library: Makes the song visible in the public library.
+                Show Lyrics: Controls whether synchronized lyrics are displayed.
               </p>
             )}
 

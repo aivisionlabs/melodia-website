@@ -538,11 +538,12 @@ export async function updateSongWithVariantsAction(
   songId: number,
   variants: any[],
   selectedVariant: number,
-  addToLibrary?: boolean
+  addToLibrary?: boolean,
+  showLyrics?: boolean
 ) {
   try {
     const { updateSongWithSunoVariants } = await import('@/lib/db/services');
-    const result = await updateSongWithSunoVariants(songId, variants, selectedVariant, addToLibrary);
+    const result = await updateSongWithSunoVariants(songId, variants, selectedVariant, addToLibrary, showLyrics);
 
     if (result.success) {
       // After successfully updating the song with variants, generate timestamped lyrics
@@ -1139,5 +1140,20 @@ export async function getSongWithLyricsAction(songId: number) {
       success: false,
       error: 'Failed to get song data'
     };
+  }
+}
+
+// Action to toggle show_lyrics field for a song
+export async function toggleShowLyricsAction(songId: number, showLyrics: boolean) {
+  try {
+    const { updateSong } = await import('./db/queries/update');
+    await updateSong(songId, {
+      show_lyrics: showLyrics
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling show lyrics:', error);
+    return { success: false, error: 'Failed to update show_lyrics' };
   }
 }

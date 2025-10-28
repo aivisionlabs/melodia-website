@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import DeleteSongButton from "@/components/DeleteSongButton";
 import TimestampLyricsEditor from "@/components/TimestampLyricsEditor";
-import { getSongWithLyricsAction } from "@/lib/actions";
+import { getSongWithLyricsAction, toggleShowLyricsAction } from "@/lib/actions";
 import { Song, LyricLine } from "@/types";
+// Removed icon imports; using text CTA instead
 
 interface SongListProps {
   songs: Song[];
@@ -85,6 +86,23 @@ export default function SongList({ songs }: SongListProps) {
     setShowLyricsEditor(false);
   };
 
+  const handleToggleShowLyrics = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering song click
+    try {
+      const result = await toggleShowLyricsAction(song.id, !song.show_lyrics);
+      if (result.success) {
+        // Update the local state
+        setCurrentSongs((prevSongs) =>
+          prevSongs.map((s) =>
+            s.id === song.id ? { ...s, show_lyrics: !song.show_lyrics } : s
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling show lyrics:", error);
+    }
+  };
+
   if (currentSongs.length === 0) {
     return (
       <div className="text-center py-12">
@@ -159,11 +177,26 @@ export default function SongList({ songs }: SongListProps) {
                       {song.add_to_library ? "In Library" : "Private"}
                     </div>
 
+                    {/* Show Lyrics CTA */}
+                    <button
+                      onClick={(e) => handleToggleShowLyrics(song, e)}
+                      className={`text-sm font-medium px-2 py-1 rounded-md transition-colors ${
+                        song.show_lyrics
+                          ? "text-green-700 hover:text-green-800 hover:bg-green-50"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                      }`}
+                    >
+                      {song.show_lyrics ? "Hide Lyrics" : "Show Lyrics"}
+                    </button>
+
                     {/* Fix Lyrics Button - Only show if song has timestamp_lyrics */}
                     {song.timestamp_lyrics &&
                       song.timestamp_lyrics.length > 0 && (
                         <button
-                          onClick={() => handleFixLyrics(song)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFixLyrics(song);
+                          }}
                           className="text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
                           title="Fix timestamp lyrics"
                         >
@@ -173,6 +206,7 @@ export default function SongList({ songs }: SongListProps) {
 
                     <Link
                       href={`/library/${song.slug}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
                     >
                       View

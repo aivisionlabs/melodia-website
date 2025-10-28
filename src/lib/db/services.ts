@@ -286,10 +286,11 @@ export async function updateSongWithSunoVariants(
   songId: number,
   sunoVariants: any[],
   selectedVariant?: number,
-  addToLibrary?: boolean
+  addToLibrary?: boolean,
+  showLyrics?: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, addToLibrary);
+    await updateSongWithVariantsQuery(songId, sunoVariants, selectedVariant, addToLibrary, showLyrics);
     return { success: true };
   } catch (error) {
     console.error('Error updating song with variants:', error);
