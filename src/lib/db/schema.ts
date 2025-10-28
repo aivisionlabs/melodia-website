@@ -29,6 +29,7 @@ export const songsTable = pgTable('songs', {
   slug: text('slug').notNull().unique(),
   add_to_library: boolean('add_to_library').default(true),
   is_deleted: boolean('is_deleted').default(false),
+  is_active: boolean('is_active').default(true),
   status: text('status').default('draft'),
   categories: text('categories').array(),
   tags: text('tags').array(),
