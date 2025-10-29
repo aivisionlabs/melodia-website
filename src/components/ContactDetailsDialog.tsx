@@ -28,10 +28,12 @@ export function ContactDetailsDialog({
   const validateForm = () => {
     const newErrors: { mobileNumber?: string; email?: string } = {};
 
-    // Mobile number validation (optional but if provided, should be valid)
-    if (
-      mobileNumber &&
-      !/^[\+]?[1-9][\d]{0,15}$/.test(mobileNumber.replace(/\s/g, ""))
+    // Mobile number validation (required and must be valid)
+    const trimmedMobile = mobileNumber.trim();
+    if (!trimmedMobile) {
+      newErrors.mobileNumber = "Mobile number is required";
+    } else if (
+      !/^[\+]?[1-9][\d]{0,15}$/.test(trimmedMobile.replace(/\s/g, ""))
     ) {
       newErrors.mobileNumber = "Please enter a valid mobile number";
     }
@@ -98,6 +100,7 @@ export function ContactDetailsDialog({
             value={mobileNumber}
             onChange={(e) => setMobileNumber(e.target.value)}
             error={errors.mobileNumber}
+            required
           />
 
           <FormField
@@ -123,4 +126,3 @@ export function ContactDetailsDialog({
     </div>
   );
 }
-

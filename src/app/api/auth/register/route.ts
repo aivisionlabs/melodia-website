@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
         name: validatedData.name,
         email: validatedData.email,
         password_hash: passwordHash,
-        date_of_birth: new Date(validatedData.dateOfBirth),
-        phone_number: validatedData.phoneNumber,
+        date_of_birth: validatedData.dateOfBirth, // Already in YYYY-MM-DD format
+        phone_number: validatedData.phoneNumber || null,
         email_verified: false,
       })
       .returning();

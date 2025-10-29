@@ -69,10 +69,10 @@ export async function createOrder(
 
     return {
       id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      receipt: order.receipt,
-      status: order.status,
+      amount: typeof order.amount === 'string' ? parseInt(order.amount, 10) : order.amount,
+      currency: order.currency || 'INR',
+      receipt: order.receipt || '',
+      status: order.status || 'created',
     };
   } catch (error) {
     console.error('Razorpay order creation error:', error);

@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,14 +18,15 @@ import {
 import Link from "next/link";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     songRequestId: string;
-  };
+  }>;
 }
 
 export default function GenerateLyricsPage({ params }: PageProps) {
   const router = useRouter();
-  const songRequestId = parseInt(params.songRequestId);
+  const { songRequestId: songRequestIdParam } = use(params);
+  const songRequestId = parseInt(songRequestIdParam);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -264,4 +265,3 @@ export default function GenerateLyricsPage({ params }: PageProps) {
     </div>
   );
 }
-

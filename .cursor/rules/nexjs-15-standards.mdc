@@ -1,0 +1,4 @@
+---
+alwaysApply: false
+---
+Make sure we refer to next.js 15 standatrds while implementing routes and pages

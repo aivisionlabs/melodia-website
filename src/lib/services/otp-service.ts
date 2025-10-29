@@ -5,7 +5,7 @@
 
 import { db } from '@/lib/db';
 import { emailVerificationCodesTable } from '@/lib/db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, sql } from 'drizzle-orm';
 
 /**
  * Generate a 6-digit OTP code
@@ -81,7 +81,7 @@ export async function verifyOTP(
   const otpCode = codes[0];
 
   // Check attempts
-  if (otpCode.attempts >= 5) {
+  if ((otpCode.attempts ?? 0) >= 5) {
     return { valid: false, error: 'Too many attempts. Please request a new code.' };
   }
 
@@ -94,7 +94,7 @@ export async function verifyOTP(
 export async function incrementOTPAttempts(userId: number) {
   await db
     .update(emailVerificationCodesTable)
-    .set({ attempts: db.$sql`attempts + 1` })
+    .set({ attempts: sql`${emailVerificationCodesTable.attempts} + 1` })
     .where(eq(emailVerificationCodesTable.user_id, userId));
 }
 

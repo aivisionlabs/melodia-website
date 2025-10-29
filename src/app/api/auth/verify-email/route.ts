@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { usersTable, emailVerificationCodesTable } from '@/lib/db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 const verifySchema = z.object({
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       // Increment attempts
       await db
         .update(emailVerificationCodesTable)
-        .set({ attempts: db.$sql`attempts + 1` })
+        .set({ attempts: sql`${emailVerificationCodesTable.attempts} + 1` })
         .where(eq(emailVerificationCodesTable.user_id, user.id));
 
       return NextResponse.json(

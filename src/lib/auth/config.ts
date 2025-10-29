@@ -110,7 +110,8 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
-        token.emailVerified = user.emailVerified;
+        // Convert emailVerified to boolean if it exists (handles Date, boolean, or null)
+        token.emailVerified = user.emailVerified != null ? !!user.emailVerified : undefined;
       }
 
       // Google OAuth - auto-verify email
@@ -133,15 +134,15 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
-        session.user.name = token.name as string;
+        session.user.name = token.name as string | null;
         session.user.image = token.picture as string;
-        (session.user as any).emailVerified = token.emailVerified as boolean;
+        session.user.emailVerified = token.emailVerified as boolean;
       }
 
       return session;
     },
 
-    async signIn({ user, account, profile }) {
+    async signIn({ account, profile }) {
       // Google OAuth sign in
       if (account?.provider === 'google' && profile?.email) {
         try {
@@ -159,7 +160,7 @@ export const authOptions: NextAuthOptions = {
               name: profile.name || profile.email.split('@')[0],
               email_verified: true,
               profile_picture: (profile as any).picture,
-              date_of_birth: new Date('1990-01-01'), // Default, can be updated later
+              date_of_birth: '1990-01-01', // Default, can be updated later (format: YYYY-MM-DD)
             });
           } else {
             // Update existing user's email verification

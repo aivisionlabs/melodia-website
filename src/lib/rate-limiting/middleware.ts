@@ -8,7 +8,7 @@ import { getRateLimitConfig } from './config';
 import { incrementRateLimit, isIPBlocked } from './redis';
 import { db } from '@/lib/db';
 import { rateLimitViolationsTable, blockedIpsTable } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 /**
  * Get client IP address
@@ -139,7 +139,7 @@ async function logRateLimitViolation(
       await db
         .update(rateLimitViolationsTable)
         .set({
-          violation_count: db.$sql`violation_count + 1`,
+          violation_count: sql`${rateLimitViolationsTable.violation_count} + 1`,
           updated_at: new Date(),
         })
         .where(eq(rateLimitViolationsTable.id, existing[0].id));
@@ -151,7 +151,7 @@ async function logRateLimitViolation(
         .where(eq(rateLimitViolationsTable.id, existing[0].id))
         .limit(1);
 
-      if (updated.length > 0 && updated[0].violation_count >= 5) {
+      if (updated.length > 0 && updated[0].violation_count !== null && updated[0].violation_count >= 5) {
         await blockIPInDatabase(ip, updated[0].violation_count);
       }
     } else {

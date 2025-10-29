@@ -211,3 +211,178 @@ export async function getTimestampedLyrics(songId: string) {
     };
   }
 }
+
+/**
+ * Factory class for Suno API
+ * Provides a unified interface for API operations
+ */
+export class SunoAPIFactory {
+  /**
+   * Get API instance
+   */
+  static getAPI(): SunoAPIWrapper {
+    return new SunoAPIWrapper();
+  }
+}
+
+/**
+ * Wrapper class that adapts function-based API to object-based interface
+ */
+class SunoAPIWrapper {
+  /**
+   * Generate a song
+   * @param request Request object with prompt, style, title, etc.
+   * @returns Response with code and data.taskId
+   */
+  async generateSong(request: {
+    prompt?: string;
+    lyrics?: string;
+    style: string;
+    title: string;
+    customMode?: boolean;
+    instrumental?: boolean;
+    model?: string;
+    negativeTags?: string;
+    callBackUrl?: string;
+  }): Promise<{ code: number; msg?: string; data: { taskId: string } }> {
+    try {
+      // Use prompt if provided, otherwise use lyrics
+      const lyrics = request.prompt || request.lyrics || '';
+      
+      const response = await generateSong({
+        title: request.title,
+        lyrics: lyrics,
+        style: request.style,
+        callbackUrl: request.callBackUrl,
+      });
+
+      return {
+        code: 200,
+        data: {
+          taskId: response.taskId,
+        },
+      };
+    } catch (error: any) {
+      console.error('Error in generateSong:', error);
+      return {
+        code: 500,
+        msg: error.message || 'Failed to generate song',
+        data: {
+          taskId: '',
+        },
+      };
+    }
+  }
+
+  /**
+   * Get record info for a task
+   * @param taskId Task ID
+   * @returns Response with task information
+   */
+  async getRecordInfo(taskId: string): Promise<{
+    code: number;
+    msg?: string;
+    data: {
+      taskId: string;
+      parentMusicId: string;
+      param: string;
+      response: {
+        taskId: string;
+        sunoData: any[];
+      };
+      status: string;
+      type: string;
+      errorCode?: string;
+      errorMessage?: string;
+    };
+  }> {
+    try {
+      const statusResponse = await getSongStatus(taskId);
+      
+      return {
+        code: 200,
+        data: {
+          taskId: statusResponse.taskId,
+          parentMusicId: '',
+          param: '',
+          response: {
+            taskId: statusResponse.taskId,
+            sunoData: statusResponse.songs || [],
+          },
+          status: statusResponse.status.toUpperCase(),
+          type: 'generate',
+          ...(statusResponse.error && {
+            errorCode: 'API_ERROR',
+            errorMessage: statusResponse.error,
+          }),
+        },
+      };
+    } catch (error: any) {
+      console.error('Error in getRecordInfo:', error);
+      return {
+        code: 500,
+        msg: error.message || 'Failed to fetch record info',
+        data: {
+          taskId,
+          parentMusicId: '',
+          param: '',
+          response: { taskId, sunoData: [] },
+          status: 'PENDING',
+          type: 'generate',
+          errorCode: 'INTERNAL_ERROR',
+          errorMessage: error.message || 'Failed to fetch record info',
+        },
+      };
+    }
+  }
+
+  /**
+   * Get timestamped lyrics
+   * @param request Request with taskId, audioId, and musicIndex
+   * @returns Response with code and data.alignedWords
+   */
+  async getTimestampedLyrics(request: {
+    taskId: string;
+    audioId?: string;
+    musicIndex?: number;
+  }): Promise<{
+    code: number;
+    msg?: string;
+    data?: {
+      alignedWords: any[];
+    };
+  }> {
+    try {
+      // Use audioId if provided, otherwise use taskId
+      const songId = request.audioId || request.taskId;
+      
+      const result = await getTimestampedLyrics(songId);
+
+      if (!result.success) {
+        return {
+          code: 500,
+          msg: 'Failed to get timestamped lyrics',
+          data: {
+            alignedWords: [],
+          },
+        };
+      }
+
+      return {
+        code: 200,
+        data: {
+          alignedWords: result.lyrics || [],
+        },
+      };
+    } catch (error: any) {
+      console.error('Error in getTimestampedLyrics:', error);
+      return {
+        code: 500,
+        msg: error.message || 'Failed to get timestamped lyrics',
+        data: {
+          alignedWords: [],
+        },
+      };
+    }
+  }
+}

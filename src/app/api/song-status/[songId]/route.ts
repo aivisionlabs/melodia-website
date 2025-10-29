@@ -13,10 +13,11 @@ import { sendSongReadyNotification } from '@/lib/services/email-service';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { songId: string } }
+  { params }: { params: Promise<{ songId: string }> }
 ) {
   try {
-    const songId = parseInt(params.songId);
+    const { songId: songIdParam } = await params;
+    const songId = parseInt(songIdParam);
 
     if (isNaN(songId)) {
       return NextResponse.json(
@@ -107,7 +108,7 @@ export async function GET(
       if (songRequest.length > 0 && songRequest[0].email) {
         await sendSongReadyNotification(
           songRequest[0].email,
-          songRequest[0].requester_name,
+          songRequest[0].requester_name ?? undefined,
           (song.metadata as any)?.title || 'Your Song',
           song.slug
         );

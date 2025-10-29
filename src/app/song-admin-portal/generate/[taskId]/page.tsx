@@ -1,6 +1,5 @@
 "use client";
 
-import { SunoVariant } from "@/lib/suno-api";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import DeleteSongButton from "@/components/DeleteSongButton";
@@ -13,6 +12,15 @@ import {
 } from "@/lib/actions";
 import { Download, Check } from "lucide-react";
 import type { LyricLine } from "@/types";
+
+interface SunoVariant {
+  id: string;
+  title?: string;
+  audioUrl?: string;
+  streamAudioUrl?: string;
+  duration?: number | string;
+  prompt?: string;
+}
 
 interface GenerateProgressPageProps {
   params: Promise<{
@@ -191,9 +199,15 @@ export default function GenerateProgressPage({
 
   const handleDownload = async (variant: SunoVariant, variantIndex: number) => {
     try {
+      const audioUrl = variant.audioUrl || variant.streamAudioUrl;
+      if (!audioUrl) {
+        console.error("No audio URL available for download");
+        return;
+      }
+
       const link = document.createElement("a");
-      link.href = variant.audioUrl;
-      link.download = `${variant.title}_variant_${variantIndex + 1}.mp3`;
+      link.href = audioUrl;
+      link.download = `${variant.title || "variant"}_variant_${variantIndex + 1}.mp3`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

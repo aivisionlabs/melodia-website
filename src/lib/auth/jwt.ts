@@ -5,7 +5,11 @@
 
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'default-secret-change-in-production';
+const JWT_SECRET: string = process.env.NEXTAUTH_SECRET || 'default-secret-change-in-production';
+
+if (!process.env.NEXTAUTH_SECRET) {
+  console.warn('⚠️  NEXTAUTH_SECRET not set, using default secret (NOT SECURE FOR PRODUCTION)');
+}
 
 export interface JWTPayload {
   userId: number;
@@ -18,7 +22,7 @@ export interface JWTPayload {
  * Sign a JWT token
  */
 export function signToken(payload: JWTPayload, expiresIn: string = '7d'): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 }
 
 /**
@@ -27,7 +31,7 @@ export function signToken(payload: JWTPayload, expiresIn: string = '7d'): string
 export function verifyToken(token: string): JWTPayload {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch (error) {
+  } catch {
     throw new Error('Invalid or expired token');
   }
 }
