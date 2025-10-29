@@ -153,7 +153,7 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
         {currentRequests.map((request) => (
           <li key={request.id}>
             <div className="px-4 py-4 sm:px-6">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-3 mb-2">
                     <span
@@ -239,9 +239,9 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
                   </div>
                 </div>
 
-                <div className="ml-4 flex-shrink-0 flex flex-col items-end gap-2">
+                <div className="mt-3 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
                   {/* Action buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full">
                     {request.status !== "completed" &&
                       request.status !== "cancelled" &&
                       request.song &&
@@ -249,7 +249,7 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
                         <button
                           onClick={() => handleMarkAsCompleted(request.id)}
                           disabled={markingAsCompleted === request.id}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                         >
                           {markingAsCompleted === request.id
                             ? "Marking..."
@@ -261,7 +261,7 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
                         <button
                           onClick={() => handleCancelRequest(request.id)}
                           disabled={cancellingRequest === request.id}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                         >
                           {cancellingRequest === request.id
                             ? "Cancelling..."
@@ -272,19 +272,19 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
 
                   {/* Status indicators */}
                   {request.status === "completed" && (
-                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700">
+                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700 text-center sm:text-right">
                       ✓ Completed
                     </span>
                   )}
                   {request.status === "cancelled" && (
-                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 text-center sm:text-right">
                       ✗ Cancelled
                     </span>
                   )}
                   {request.status !== "completed" &&
                     request.status !== "cancelled" &&
                     !request.song && (
-                      <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500">
+                      <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 text-center sm:text-right">
                         No song created yet
                       </span>
                     )}
@@ -293,7 +293,7 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
                     request.song &&
                     request.song.status &&
                     request.song.status !== "completed" && (
-                      <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-yellow-700">
+                      <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-yellow-700 text-center sm:text-right">
                         Song in progress
                       </span>
                     )}

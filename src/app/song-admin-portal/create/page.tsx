@@ -189,7 +189,7 @@ export default function CreateSongPage() {
                 </div>
               ) : (
                 <div className="mt-1 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {categories.map((category) => (
                       <label key={category.id} className="flex items-center">
                         <input
@@ -279,17 +279,17 @@ export default function CreateSongPage() {
               </div>
             )}
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
               <a
                 href="/song-admin-portal"
-                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 w-full sm:w-auto text-center"
               >
                 Cancel
               </a>
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 ${
+                className={`py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 w-full sm:w-auto ${
                   isLoading
                     ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                     : "bg-yellow-600 hover:bg-yellow-700 text-white"

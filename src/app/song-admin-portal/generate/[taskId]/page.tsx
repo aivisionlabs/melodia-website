@@ -301,7 +301,7 @@ export default function GenerateProgressPage({
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 Song Generation in Progress
@@ -451,7 +451,7 @@ export default function GenerateProgressPage({
 
             {/* Add to Library and Show Lyrics Checkboxes - Only show when variants are ready */}
             {status === "SUCCESS" && variants.length >= 2 && (
-              <div className="flex items-center justify-center mb-6 space-x-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center mb-6 gap-3 sm:gap-6">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -492,12 +492,12 @@ export default function GenerateProgressPage({
             )}
 
             {/* Action Buttons */}
-            <div className="mt-8 text-center space-x-4">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               {status === "SUCCESS" && variants.length >= 2 && (
                 <button
                   onClick={handleSaveSelection}
                   disabled={selectedVariant === null || isSaving}
-                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-6 py-2 rounded-md text-sm font-medium transition-colors w-full sm:w-auto ${
                     selectedVariant === null || isSaving
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700 text-white"
@@ -510,7 +510,7 @@ export default function GenerateProgressPage({
               )}
               <button
                 onClick={() => router.push("/song-admin-portal")}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium w-full sm:w-auto"
               >
                 Back to Dashboard
               </button>

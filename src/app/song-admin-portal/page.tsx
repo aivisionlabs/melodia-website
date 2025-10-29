@@ -13,7 +13,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       {/* Song Requests Section */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Song Requests</h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
 
       {/* Songs Management Section */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Song Management
@@ -35,10 +35,10 @@ export default async function AdminDashboardPage() {
               Manage all generated songs in the system
             </p>
           </div>
-          <div className="flex space-x-4">
+          <div className="w-full sm:w-auto flex gap-3">
             <Link
               href="/song-admin-portal/create"
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium w-full sm:w-auto text-center"
             >
               Create New Song
             </Link>

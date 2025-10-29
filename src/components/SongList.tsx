@@ -162,8 +162,8 @@ export default function SongList({ songs }: SongListProps) {
           {currentSongs.map((song) => (
             <li key={song.id}>
               <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center flex-1 min-w-0">
                     <div className="flex-shrink-0">
                       <div
                         className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center cursor-pointer"
@@ -175,10 +175,10 @@ export default function SongList({ songs }: SongListProps) {
                       </div>
                     </div>
                     <div
-                      className="ml-4 flex-1 cursor-pointer"
+                      className="ml-4 flex-1 min-w-0 cursor-pointer"
                       onClick={() => handleSongClick(song)}
                     >
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {song.title}
                       </div>
                       <div className="text-sm text-gray-500">
@@ -186,7 +186,7 @@ export default function SongList({ songs }: SongListProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4 ml-4">
+                  <div className="mt-1 sm:mt-0 flex flex-wrap items-center gap-2 sm:gap-4 sm:ml-4">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
                         song.status || "draft"
@@ -201,7 +201,7 @@ export default function SongList({ songs }: SongListProps) {
                     {/* Show Lyrics CTA */}
                     <button
                       onClick={(e) => handleToggleShowLyrics(song, e)}
-                      className={`text-sm font-medium px-2 py-1 rounded-md transition-colors ${
+                      className={`text-xs sm:text-sm font-medium px-2 py-1 rounded-md transition-colors ${
                         song.show_lyrics
                           ? "text-green-700 hover:text-green-800 hover:bg-green-50"
                           : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -218,7 +218,7 @@ export default function SongList({ songs }: SongListProps) {
                             e.stopPropagation();
                             handleFixLyrics(song);
                           }}
-                          className="text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
+                          className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
                           title="Fix timestamp lyrics"
                         >
                           Fix Lyrics
@@ -229,7 +229,7 @@ export default function SongList({ songs }: SongListProps) {
                     {song.song_url && (
                       <button
                         onClick={(e) => handleDownload(song, e)}
-                        className="flex items-center gap-1 text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-900 text-xs sm:text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
                         title="Download song"
                       >
                         <Download className="h-4 w-4" />
@@ -239,7 +239,7 @@ export default function SongList({ songs }: SongListProps) {
                     <Link
                       href={`/library/${song.slug}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
+                      className="text-yellow-600 hover:text-yellow-900 text-xs sm:text-sm font-medium"
                     >
                       View
                     </Link>
