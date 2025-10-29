@@ -1,7 +1,7 @@
 import { AlignedWord } from '@/types';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../index';
-import { songsTable } from '../schema';
+import { songsTable, songRequestsTable } from '../schema';
 
 export async function updateSong(
   songId: number,
@@ -150,6 +150,26 @@ export async function decrementSongLikeBySlug(slug: string) {
       .where(eq(songsTable.slug, slug));
   } catch (error) {
     console.error('Error decrementing like count:', error);
+    throw error;
+  }
+}
+
+// Update song request status
+export async function updateSongRequestStatus(
+  requestId: number,
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+) {
+  try {
+    await db
+      .update(songRequestsTable)
+      .set({
+        status,
+        updated_at: sql`NOW()`,
+      })
+      .where(eq(songRequestsTable.id, requestId));
+    console.log(`Updated song request ${requestId} status to ${status}`);
+  } catch (error) {
+    console.error('Error updating song request status:', error);
     throw error;
   }
 }

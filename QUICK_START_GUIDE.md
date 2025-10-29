@@ -13,7 +13,6 @@ Create `.env.local` file in root:
 ```env
 # Minimum required for demo mode
 DATABASE_URL=your_existing_database_url
-POSTGRES_URL=your_existing_database_url
 NEXTAUTH_SECRET=generate-a-secret-32-characters-or-longer
 NEXTAUTH_URL=http://localhost:3000
 DEMO_MODE=true

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { trackCTAEvent } from "@/lib/analytics";
 import { Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ShareRequirementsCTAProps {
   className?: string;
@@ -15,6 +16,8 @@ const ShareRequirementsCTA = ({
   size = "md",
   text,
 }: ShareRequirementsCTAProps) => {
+  const router = useRouter();
+
   const sizeClasses = {
     sm: "px-2 py-1.5 text-xs sm:text-sm",
     md: "px-3 py-2 text-sm sm:text-base",
@@ -25,7 +28,7 @@ const ShareRequirementsCTA = ({
     <Button
       onClick={() => {
         trackCTAEvent.ctaClick("create_song_cta", "main_page", "button");
-        window.open("https://melodia-app.vercel.app", "_blank");
+        router.push("/create-song-request");
       }}
       className={`bg-primary-yellow hover:bg-yellow-600 text-teal font-semibold rounded-lg shadow-elegant hover:shadow-glow transition-all duration-200 ${sizeClasses[size]} ${className}`}
     >

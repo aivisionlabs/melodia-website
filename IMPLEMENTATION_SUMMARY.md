@@ -151,7 +151,6 @@ Created documentation at: `docs/ENVIRONMENT_VARIABLES.md`
 ```env
 # Database
 DATABASE_URL=postgresql://...
-POSTGRES_URL=postgresql://...
 
 # NextAuth.js (REQUIRED)
 NEXTAUTH_SECRET=your-secret-32-characters-minimum

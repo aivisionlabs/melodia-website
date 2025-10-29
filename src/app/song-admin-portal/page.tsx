@@ -1,25 +1,51 @@
-import { getAllSongs } from "@/lib/db/services";
+import { getAllSongs, getAllSongRequests } from "@/lib/db/services";
 import Link from "next/link";
 import SongList from "@/components/SongList";
+import SongRequestList from "@/components/SongRequestList";
 
 export default async function AdminDashboardPage() {
-  const songs = await getAllSongs();
+  const [songs, requests] = await Promise.all([
+    getAllSongs(),
+    getAllSongRequests(),
+  ]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Song Management</h1>
-        <div className="flex space-x-4">
-          <Link
-            href="/song-admin-portal/create"
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Create New Song
-          </Link>
+    <div className="space-y-8">
+      {/* Song Requests Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Song Requests</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage incoming song requests and track their progress
+            </p>
+          </div>
         </div>
+        <SongRequestList requests={requests} />
       </div>
 
-      <SongList songs={songs} />
+      {/* Songs Management Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Song Management
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage all generated songs in the system
+            </p>
+          </div>
+          <div className="flex space-x-4">
+            <Link
+              href="/song-admin-portal/create"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Create New Song
+            </Link>
+          </div>
+        </div>
+        <SongList songs={songs} />
+      </div>
     </div>
   );
 }

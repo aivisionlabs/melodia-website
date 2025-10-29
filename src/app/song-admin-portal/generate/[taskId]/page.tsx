@@ -140,7 +140,11 @@ export default function GenerateProgressPage({
           }
 
           // Set lyrics from the first variant if available
-          if (currentVariants.length > 0 && currentVariants[0].prompt) {
+          if (
+            Array.isArray(currentVariants) &&
+            currentVariants.length > 0 &&
+            currentVariants[0].prompt
+          ) {
             setLyrics(currentVariants[0].prompt);
           }
         } else {

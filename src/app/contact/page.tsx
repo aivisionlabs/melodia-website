@@ -121,7 +121,7 @@ export default function ContactPage() {
                   <div className="flex space-x-2 justify-center">
                     <a
                       href="tel:+918880522285"
-                      className="bg-primary text-teal px-3 py-1 rounded-md hover:opacity-90 transition-opacity font-medium text-sm"
+                      className="bg-primary text-teal px-3 py-1 rounded-md hover:scale-105 transition-transform font-medium text-sm inline-block"
                     >
                       📞 Call
                     </a>
@@ -149,7 +149,7 @@ export default function ContactPage() {
                   <div className="flex space-x-2 justify-center">
                     <a
                       href="tel:+919008638618"
-                      className="bg-primary text-teal px-3 py-1 rounded-md hover:opacity-90 transition-opacity font-medium text-sm"
+                      className="bg-primary text-teal px-3 py-1 rounded-md hover:scale-105 transition-transform font-medium text-sm inline-block"
                     >
                       📞 Call
                     </a>
@@ -183,7 +183,7 @@ export default function ContactPage() {
                 </p>
                 <a
                   href="mailto:info@melodia-songs.com"
-                  className="bg-primary text-teal px-4 py-2 rounded-md hover:opacity-90 transition-opacity font-medium"
+                  className="bg-primary text-teal px-4 py-2 rounded-md hover:scale-105 transition-transform font-medium inline-block"
                 >
                   Send Email
                 </a>
@@ -341,7 +341,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-primary hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-teal py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-all font-medium shadow-elegant"
+                  className="w-full bg-gradient-primary hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed text-teal py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-all font-medium shadow-elegant"
                 >
                   {isSubmitting ? "Sending..." : "Send Message"}
                 </button>

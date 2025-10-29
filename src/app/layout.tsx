@@ -5,6 +5,7 @@ import { StructuredData } from "@/components/StructuredData";
 import Script from "next/script";
 import { PageTracking } from "@/components/PageTracking";
 import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "./providers";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -110,11 +111,13 @@ export default function RootLayout({
       <body
         className={`${montserrat.variable} ${poppins.variable} font-body antialiased`}
       >
-        <StructuredData type="website" />
-        <StructuredData type="organization" />
-        <PageTracking />
-        {children}
-        <Toaster />
+        <Providers>
+          <StructuredData type="website" />
+          <StructuredData type="organization" />
+          <PageTracking />
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );

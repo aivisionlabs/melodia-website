@@ -32,7 +32,6 @@ interface Song {
   selected_variant?: number;
   slug?: string;
   show_lyrics?: boolean;
-  plain_lyrics?: string | null;
   likes_count?: number;
 }
 
@@ -77,23 +76,19 @@ export function useLyrics({
 
   // Helper function to check if lyrics are available
   const hasLyrics = useCallback(() => {
-    const plainLyrics = song.plain_lyrics || fetchedLyrics?.plain_lyrics;
+    const lyrics = song.lyrics || fetchedLyrics?.plain_lyrics;
     return (
-      plainLyrics !== null &&
-      typeof plainLyrics === "string" &&
-      plainLyrics.trim().length > 0
+      lyrics !== null &&
+      typeof lyrics === "string" &&
+      lyrics.trim().length > 0
     );
-  }, [song.plain_lyrics, fetchedLyrics?.plain_lyrics]);
+  }, [song.lyrics, fetchedLyrics?.plain_lyrics]);
 
   // Helper function to get lyrics data
   const getLyricsData = useCallback(() => {
-    // If show_lyrics is false, only use the plain lyrics field
-    if (song.show_lyrics === false) {
-      return song.lyrics as string | null;
-    }
-    // If show_lyrics is true or undefined, use the plain lyrics field as well
-    return song.plain_lyrics || fetchedLyrics?.plain_lyrics || null;
-  }, [song.lyrics, song.show_lyrics, song.plain_lyrics, fetchedLyrics?.plain_lyrics]);
+    // Always use the lyrics field
+    return song.lyrics as string | null || fetchedLyrics?.plain_lyrics || null;
+  }, [song.lyrics, fetchedLyrics?.plain_lyrics]);
 
   // Function to fetch lyrics for library songs
   const fetchSongLyrics = useCallback(async () => {

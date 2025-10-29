@@ -43,6 +43,11 @@ export const songsTable = pgTable('songs', {
   sequence: integer('sequence'), // Field to control display order
   show_lyrics: boolean('show_lyrics').default(true), // Field to control whether to show lyrics
   likes_count: integer('likes_count').default(0),
+  // Extra columns present in all_data.sql export (kept nullable for compatibility)
+  song_request_id: integer('song_request_id'),
+  user_id: integer('user_id'),
+  is_featured: boolean('is_featured').default(false),
+  song_url_variant_1: text('song_url_variant_1'),
 });
 
 // Categories table (canonical list with fixed order via sequence)
@@ -101,7 +106,7 @@ export const songRequestsTable = pgTable('song_requests', {
   id: serial('id').primaryKey(),
   user_id: integer('user_id').references(() => usersTable.id),
   anonymous_user_id: uuid('anonymous_user_id').references(() => anonymousUsersTable.id),
-  requester_name: text('requester_name').notNull(),
+  requester_name: text('requester_name'),
   recipient_details: text('recipient_details').notNull(),
   occasion: text('occasion'),
   languages: text('languages').notNull(),

@@ -7,8 +7,9 @@ Create a `.env.local` file in the root directory with the following variables:
 ### Database
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/melodia
-POSTGRES_URL=postgresql://user:password@localhost:5432/melodia
 ```
+
+Note: Use only `DATABASE_URL`. `POSTGRES_URL` is not used by this project.
 
 ### NextAuth.js Authentication
 ```env

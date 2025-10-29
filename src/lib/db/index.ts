@@ -18,26 +18,13 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is not set. Please configure it in environment variables or .env.local');
 }
 
-// Supabase requires SSL; include both supabase.co and supabase.com (pooler)
-const isSupabase = /\.supabase\./.test(databaseUrl);
-const isSupabasePooler = /pooler\.supabase\.com/.test(databaseUrl);
-
-const clientOptions = isSupabase
-  ? {
-    ssl: 'require',
-    ...(isSupabasePooler ? { prepare: false } : {}),
-    connect_timeout: 30,
-    idle_timeout: 20,
-    max: 5,
-  }
-  : {};
-
+// PostgreSQL client configuration
 declare global {
   var __melodia_postgres_client: ReturnType<typeof postgres> | undefined;
 }
 
 const existing = globalThis.__melodia_postgres_client;
-const client = existing ?? postgres(databaseUrl, clientOptions as any);
+const client = existing ?? postgres(databaseUrl);
 if (!existing) {
   globalThis.__melodia_postgres_client = client;
 }

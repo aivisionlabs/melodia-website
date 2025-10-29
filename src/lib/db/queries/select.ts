@@ -1,6 +1,6 @@
 import { and, eq, sql, ilike, or } from 'drizzle-orm';
 import { db } from '../index';
-import { SelectSong, SelectCategory, categoriesTable, songsTable, songCategoriesTable } from '../schema';
+import { SelectSong, SelectCategory, categoriesTable, songsTable, songCategoriesTable, songRequestsTable, userSongsTable, SelectSongRequest, SelectUserSong } from '../schema';
 
 // Lightweight row shape for library listings (avoids heavy JSON columns)
 type LibrarySongRow = {
@@ -465,4 +465,25 @@ export async function getActiveSongsCount(): Promise<number> {
     .from(songsTable)
     .where(and(eq(songsTable.add_to_library, true), eq(songsTable.is_deleted, false)));
   return Number(totalResult[0]?.count || 0);
+}
+
+// Get all song requests with related song information
+export async function getAllSongRequests(): Promise<Array<SelectSongRequest & { song?: SelectUserSong | SelectSong | null }>> {
+  // First get all requests with user songs
+  const requestsWithUserSongs = await db
+    .select({
+      request: songRequestsTable,
+      userSong: userSongsTable,
+      librarySong: songsTable,
+    })
+    .from(songRequestsTable)
+    .leftJoin(userSongsTable, eq(userSongsTable.song_request_id, songRequestsTable.id))
+    .leftJoin(songsTable, eq(songsTable.song_request_id, songRequestsTable.id))
+    .orderBy(sql`${songRequestsTable.created_at} DESC`);
+
+  return requestsWithUserSongs.map(row => ({
+    ...row.request,
+    // Prefer user song, fallback to library song, or null
+    song: row.userSong || row.librarySong || null,
+  }));
 }

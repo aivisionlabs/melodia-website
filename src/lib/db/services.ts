@@ -1,11 +1,11 @@
-import { getAllSongs as getAllSongsQuery, getSongBySlug as getSongBySlugQuery, getSongByTaskId as getSongByTaskIdQuery } from './queries/select';
+import { getAllSongs as getAllSongsQuery, getSongBySlug as getSongBySlugQuery, getSongByTaskId as getSongByTaskIdQuery, getAllSongRequests as getAllSongRequestsQuery } from './queries/select';
 import { createSong as createSongQuery } from './queries/insert';
-import { updateSongStatus as updateSongStatusQuery, updateSongWithVariants as updateSongWithVariantsQuery } from './queries/update';
+import { updateSongStatus as updateSongStatusQuery, updateSongWithVariants as updateSongWithVariantsQuery, updateSongRequestStatus as updateSongRequestStatusQuery } from './queries/update';
 import { Song } from '@/types';
 import { generateBaseSlug } from '@/lib/utils/slug';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { db } from './index';
-import { adminUsersTable, songCategoriesTable } from './schema';
+import { adminUsersTable, songCategoriesTable, SelectSongRequest, SelectUserSong, SelectSong } from './schema';
 import { eq } from 'drizzle-orm';
 
 // Song Services
@@ -426,5 +426,25 @@ export async function createSongCategoryMappings(songId: number, categoryIds: nu
   } catch (error) {
     console.error('Error creating song-category mappings:', error);
     return { success: false, error: 'Failed to create category mappings' };
+  }
+}
+
+// Song Request Services
+export async function getAllSongRequests(): Promise<Array<SelectSongRequest & { song?: SelectUserSong | SelectSong | null }>> {
+  try {
+    return await getAllSongRequestsQuery();
+  } catch (error) {
+    console.error('Error fetching song requests:', error);
+    return [];
+  }
+}
+
+export async function markSongRequestAsCompleted(requestId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    await updateSongRequestStatusQuery(requestId, 'completed');
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking song request as completed:', error);
+    return { success: false, error: 'Failed to mark request as completed' };
   }
 }
