@@ -157,7 +157,7 @@ export async function decrementSongLikeBySlug(slug: string) {
 // Update song request status
 export async function updateSongRequestStatus(
   requestId: number,
-  status: 'pending' | 'processing' | 'completed' | 'failed'
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
 ) {
   try {
     await db

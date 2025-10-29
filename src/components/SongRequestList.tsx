@@ -14,6 +14,9 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
   const [markingAsCompleted, setMarkingAsCompleted] = useState<number | null>(
     null
   );
+  const [cancellingRequest, setCancellingRequest] = useState<number | null>(
+    null
+  );
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
@@ -23,6 +26,8 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
         return "bg-yellow-100 text-yellow-800";
       case "failed":
         return "bg-red-100 text-red-800";
+      case "cancelled":
+        return "bg-gray-100 text-gray-800";
       case "pending":
       default:
         return "bg-blue-100 text-blue-800";
@@ -55,7 +60,8 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to mark request as completed");
+        const data = await response.json();
+        throw new Error(data.error || "Failed to mark request as completed");
       }
 
       // Update local state
@@ -66,9 +72,54 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
       );
     } catch (error) {
       console.error("Error marking request as completed:", error);
-      alert("Failed to mark request as completed. Please try again.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to mark request as completed. Please try again."
+      );
     } finally {
       setMarkingAsCompleted(null);
+    }
+  };
+
+  const handleCancelRequest = async (requestId: number) => {
+    if (cancellingRequest === requestId) return;
+
+    // Confirm cancellation
+    if (
+      !confirm(
+        "Are you sure you want to cancel this request? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setCancellingRequest(requestId);
+    try {
+      const response = await fetch(`/api/song-requests/${requestId}/cancel`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel request");
+      }
+
+      // Update local state
+      setCurrentRequests((prevRequests) =>
+        prevRequests.map((req) =>
+          req.id === requestId ? { ...req, status: "cancelled" } : req
+        )
+      );
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel request. Please try again."
+      );
+    } finally {
+      setCancellingRequest(null);
     }
   };
 
@@ -188,31 +239,58 @@ export default function SongRequestList({ requests }: SongRequestListProps) {
                   </div>
                 </div>
 
-                <div className="ml-4 flex-shrink-0">
-                  {request.status !== "completed" &&
-                    request.song &&
-                    request.song.status === "completed" && (
-                      <button
-                        onClick={() => handleMarkAsCompleted(request.id)}
-                        disabled={markingAsCompleted === request.id}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {markingAsCompleted === request.id
-                          ? "Marking..."
-                          : "Mark as Completed"}
-                      </button>
-                    )}
+                <div className="ml-4 flex-shrink-0 flex flex-col items-end gap-2">
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    {request.status !== "completed" &&
+                      request.status !== "cancelled" &&
+                      request.song &&
+                      request.song.status === "completed" && (
+                        <button
+                          onClick={() => handleMarkAsCompleted(request.id)}
+                          disabled={markingAsCompleted === request.id}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {markingAsCompleted === request.id
+                            ? "Marking..."
+                            : "Mark as Completed"}
+                        </button>
+                      )}
+                    {request.status !== "completed" &&
+                      request.status !== "cancelled" && (
+                        <button
+                          onClick={() => handleCancelRequest(request.id)}
+                          disabled={cancellingRequest === request.id}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {cancellingRequest === request.id
+                            ? "Cancelling..."
+                            : "Cancel Request"}
+                        </button>
+                      )}
+                  </div>
+
+                  {/* Status indicators */}
                   {request.status === "completed" && (
                     <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700">
                       ✓ Completed
                     </span>
                   )}
-                  {!request.song && (
-                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500">
-                      No song created yet
+                  {request.status === "cancelled" && (
+                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                      ✗ Cancelled
                     </span>
                   )}
-                  {request.song &&
+                  {request.status !== "completed" &&
+                    request.status !== "cancelled" &&
+                    !request.song && (
+                      <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500">
+                        No song created yet
+                      </span>
+                    )}
+                  {request.status !== "completed" &&
+                    request.status !== "cancelled" &&
+                    request.song &&
                     request.song.status &&
                     request.song.status !== "completed" && (
                       <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-yellow-700">

@@ -5,7 +5,7 @@ import { Song } from '@/types';
 import { generateBaseSlug } from '@/lib/utils/slug';
 import bcrypt from 'bcryptjs';
 import { db } from './index';
-import { adminUsersTable, songCategoriesTable, SelectSongRequest, SelectUserSong, SelectSong } from './schema';
+import { adminUsersTable, songCategoriesTable, SelectSongRequest, SelectUserSong, SelectSong, songRequestsTable } from './schema';
 import { eq } from 'drizzle-orm';
 
 // Song Services
@@ -446,5 +446,40 @@ export async function markSongRequestAsCompleted(requestId: number): Promise<{ s
   } catch (error) {
     console.error('Error marking song request as completed:', error);
     return { success: false, error: 'Failed to mark request as completed' };
+  }
+}
+
+export async function cancelSongRequest(requestId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check if request exists and get its current status
+    const requestResult = await db
+      .select({
+        id: songRequestsTable.id,
+        status: songRequestsTable.status,
+      })
+      .from(songRequestsTable)
+      .where(eq(songRequestsTable.id, requestId))
+      .limit(1);
+
+    if (requestResult.length === 0) {
+      return { success: false, error: 'Request not found' };
+    }
+
+    const request = requestResult[0];
+
+    // Only allow cancelling requests that aren't already completed or cancelled
+    if (request.status === 'completed') {
+      return { success: false, error: 'Cannot cancel a completed request' };
+    }
+
+    if (request.status === 'cancelled') {
+      return { success: false, error: 'Request is already cancelled' };
+    }
+
+    await updateSongRequestStatusQuery(requestId, 'cancelled');
+    return { success: true };
+  } catch (error) {
+    console.error('Error cancelling song request:', error);
+    return { success: false, error: 'Failed to cancel request' };
   }
 }

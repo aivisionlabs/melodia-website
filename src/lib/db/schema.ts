@@ -114,7 +114,7 @@ export const songRequestsTable = pgTable('song_requests', {
   song_story: text('song_story'),
   mobile_number: text('mobile_number'),
   email: text('email'),
-  status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  status: text('status').default('pending'), // 'pending', 'processing', 'completed', 'failed', 'cancelled'
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Download } from "lucide-react";
 import DeleteSongButton from "@/components/DeleteSongButton";
 import TimestampLyricsEditor from "@/components/TimestampLyricsEditor";
 import { getSongWithLyricsAction, toggleShowLyricsAction } from "@/lib/actions";
@@ -100,6 +101,26 @@ export default function SongList({ songs }: SongListProps) {
       }
     } catch (error) {
       console.error("Error toggling show lyrics:", error);
+    }
+  };
+
+  const handleDownload = (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering song click
+    try {
+      const audioUrl = song.song_url;
+      if (!audioUrl) {
+        console.error("No audio URL available for download");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = audioUrl;
+      link.download = `${song.title || "song"}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading audio:", error);
     }
   };
 
@@ -204,6 +225,17 @@ export default function SongList({ songs }: SongListProps) {
                         </button>
                       )}
 
+                    {/* Download Button - Only show if song has audio URL */}
+                    {song.song_url && (
+                      <button
+                        onClick={(e) => handleDownload(song, e)}
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
+                        title="Download song"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </button>
+                    )}
                     <Link
                       href={`/library/${song.slug}`}
                       onClick={(e) => e.stopPropagation()}
