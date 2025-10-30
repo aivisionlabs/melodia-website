@@ -23,7 +23,7 @@ export const songsTable = pgTable('songs', {
   timestamped_lyrics_variants: jsonb('timestamped_lyrics_variants'), // Store lyrics for both variants
   timestamped_lyrics_api_responses: jsonb('timestamped_lyrics_api_responses'), // Store only alignedWords data from API responses
   music_style: text('music_style'),
-  service_provider: text('service_provider').default('sunoapi'),
+  service_provider: text('service_provider').default('Melodia'),
   song_requester: text('song_requester'),
   prompt: text('prompt'),
   song_url: text('song_url'),

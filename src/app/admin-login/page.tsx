@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 60 * 60 * 24, // 24 hours
+        maxAge: 30 * 24 * 60 * 60, // 30 days (1 month)
       });
 
       redirect("/song-admin-portal");
