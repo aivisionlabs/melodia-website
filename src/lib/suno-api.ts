@@ -30,7 +30,9 @@ export interface SunoStatusResponse {
   songs?: Array<{
     id: string;
     audioUrl: string;
-    imageUrl?: string;
+    sourceAudioUrl: string;
+    streamAudioUrl: string;
+    sourceImageUrl: string;
     duration?: number;
     timestampedLyrics?: any;
   }>;
@@ -164,16 +166,17 @@ export async function getSongStatus(
     }
 
     const { data } = await response.json();
+
     return {
       taskId: data.taskId,
       status: data.status,
       songs: data.response.sunoData?.map((song: any) => ({
         id: song.id,
+        audioUrl: song.audioUrl,
         streamAudioUrl: song.sourceStreamAudioUrl,
-        audioUrl: song.sourceAudioUrl,
-        imageUrl: song.sourceImageUrl,
+        sourceAudioUrl: song.sourceAudioUrl,
+        sourceImageUrl: song.sourceImageUrl,
         duration: song.duration,
-        timestampedLyrics: song.timestamped_lyrics || song.timestampedLyrics,
       })),
       error: data.error,
     };
