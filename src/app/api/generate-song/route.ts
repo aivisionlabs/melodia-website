@@ -81,9 +81,9 @@ async function handler(req: NextRequest) {
     // Call Suno API
     const sunoResult = await generateSong({
       title: draft.song_title || 'Untitled Song',
-      lyrics: draft.generated_text,
+      prompt: draft.generated_text,
       style: draft.music_style || 'Pop',
-      callbackUrl,
+      callBackUrl: callbackUrl || '',
     });
 
     // Create user song record
