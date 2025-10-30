@@ -41,8 +41,27 @@ export const metadata: Metadata = {
 };
 
 export default function uromanticPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Personalized Romantic Songs",
+    description: "Express your deepest feelings with a custom romantic song that captures your love story. Perfect for proposals, Valentine's Day, or any romantic moment.",
+    provider: {
+      "@type": "Organization",
+      name: "Melodia",
+      url: "https://melodia-songs.com",
+    },
+    serviceType: "Music Creation",
+    category: "Romantic Music",
+    url: "https://melodia-songs.com/occasions/romantic",
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-cream via-primary-yellow/5 to-accent-coral/5 flex flex-col overflow-x-hidden relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Header />
       <main className="flex-1 relative z-10">
         <section className="w-full bg-gradient-to-br from-primary-yellow/20 via-transparent to-accent-coral/10 text-center pt-12 sm:pt-16 md:pt-20 pb-20 sm:pb-24 md:pb-32 px-4 relative overflow-hidden">

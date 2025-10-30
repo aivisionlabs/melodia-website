@@ -35,8 +35,27 @@ export const metadata: Metadata = {
 };
 
 export default function upartyPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Personalized Party Songs",
+    description: "Get the party started with custom songs that capture the energy and excitement of your celebration. Perfect for house parties, celebrations, or any festive occasion.",
+    provider: {
+      "@type": "Organization",
+      name: "Melodia",
+      url: "https://melodia-songs.com",
+    },
+    serviceType: "Music Creation",
+    category: "Party Music",
+    url: "https://melodia-songs.com/occasions/party",
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-cream via-primary-yellow/5 to-accent-coral/5 flex flex-col overflow-x-hidden relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Header />
       <main className="flex-1 relative z-10">
         <section className="w-full bg-gradient-to-br from-primary-yellow/20 via-transparent to-accent-coral/10 text-center pt-12 sm:pt-16 md:pt-20 pb-20 sm:pb-24 md:pb-32 px-4 relative overflow-hidden">
