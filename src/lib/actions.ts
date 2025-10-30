@@ -672,7 +672,6 @@ export async function generateTimestampedLyricsAction(
 
     const timestampedLyricsRequest = {
       taskId: taskId,
-      audioId: variant.id || "", // Use variant ID if available, otherwise empty string
       musicIndex: variantIndex
     };
 

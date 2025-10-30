@@ -3,15 +3,19 @@
  * Handles music generation via Suno API
  */
 
-const SUNO_API_URL = process.env.SUNO_API_URL || 'https://api.suno.ai';
+const SUNO_API_URL = process.env.SUNO_API_URL || 'https://api.sunoapi.org/api/v1';
 const SUNO_API_KEY = process.env.SUNO_API_KEY || '';
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
 
 export interface SunoGenerateRequest {
-  title: string;
-  lyrics: string;
+  prompt: string;
   style: string;
-  callbackUrl?: string;
+  title: string;
+  customMode: boolean;
+  instrumental: boolean;
+  model: string;
+  negativeTags?: string;
+  callBackUrl?: string;
 }
 
 export interface SunoGenerateResponse {
@@ -37,7 +41,13 @@ export interface SunoStatusResponse {
  * Generate a song with Suno API
  */
 export async function generateSong(
-  request: SunoGenerateRequest
+  request: {
+    prompt: string;
+    style: string;
+    title: string;
+    negativeTags?: string;
+    callBackUrl: string;
+  }
 ): Promise<SunoGenerateResponse> {
   // Demo mode - return mock data
   if (DEMO_MODE) {
@@ -49,6 +59,19 @@ export async function generateSong(
     };
   }
 
+  console.log("REQUEST:", {
+    title: request.title,
+    prompt: request.prompt,
+    style: request.style,
+    customMode: true,
+    instrumental: false,
+    model: "V5",
+    negativeTags: request.negativeTags,
+    callback_url: request.callBackUrl,
+  });
+
+  console.log("+++++++++++++ SUNO_API_KEY +++++++++++++", SUNO_API_KEY)
+
   try {
     const response = await fetch(`${SUNO_API_URL}/generate`, {
       method: 'POST',
@@ -58,18 +81,26 @@ export async function generateSong(
       },
       body: JSON.stringify({
         title: request.title,
-        lyrics: request.lyrics,
+        prompt: request.prompt,
         style: request.style,
-        callback_url: request.callbackUrl,
+        customMode: true,
+        instrumental: false,
+        model: "V5",
+        negativeTags: request.negativeTags,
+        callback_url: request.callBackUrl,
       }),
     });
+
+    console.log("RESPONSE FROM SUNO API:", response);
 
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Suno API error: ${error}`);
     }
 
-    const data = await response.json();
+    const { data } = await response.json();
+    console.log('Suno API generate response:', data);
+    console.log('Suno API taskId:', data.taskId);
     return {
       taskId: data.task_id || data.taskId,
       status: data.status,
@@ -121,7 +152,7 @@ export async function getSongStatus(
   }
 
   try {
-    const response = await fetch(`${SUNO_API_URL}/status/${taskId}`, {
+    const response = await fetch(`${SUNO_API_URL}/generate/record-info?taskId=${taskId}`, {
       headers: {
         'Authorization': `Bearer ${SUNO_API_KEY}`,
       },
@@ -132,14 +163,15 @@ export async function getSongStatus(
       throw new Error(`Suno API error: ${error}`);
     }
 
-    const data = await response.json();
+    const { data } = await response.json();
     return {
-      taskId: data.task_id || data.taskId,
+      taskId: data.taskId,
       status: data.status,
-      songs: data.songs?.map((song: any) => ({
+      songs: data.response.sunoData?.map((song: any) => ({
         id: song.id,
-        audioUrl: song.audio_url || song.audioUrl,
-        imageUrl: song.image_url || song.imageUrl,
+        streamAudioUrl: song.sourceStreamAudioUrl,
+        audioUrl: song.sourceAudioUrl,
+        imageUrl: song.sourceImageUrl,
         duration: song.duration,
         timestampedLyrics: song.timestamped_lyrics || song.timestampedLyrics,
       })),
@@ -152,35 +184,12 @@ export async function getSongStatus(
 }
 
 /**
- * Cancel a song generation task
- */
-export async function cancelSongGeneration(taskId: string): Promise<boolean> {
-  if (DEMO_MODE) {
-    console.log('[DEMO MODE] Suno API - Cancel task:', taskId);
-    return true;
-  }
-
-  try {
-    const response = await fetch(`${SUNO_API_URL}/cancel/${taskId}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${SUNO_API_KEY}`,
-      },
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('Suno API cancel error:', error);
-    return false;
-  }
-}
-
-/**
  * Get timestamped lyrics for a song
  */
-export async function getTimestampedLyrics(songId: string) {
+export async function getTimestampedLyrics(
+  request: { taskId: string; musicIndex: number }
+) {
   if (DEMO_MODE) {
-    console.log('[DEMO MODE] Suno API - Get timestamped lyrics:', songId);
     return {
       success: true,
       lyrics: [],
@@ -188,17 +197,23 @@ export async function getTimestampedLyrics(songId: string) {
   }
 
   try {
-    const response = await fetch(`${SUNO_API_URL}/lyrics/${songId}`, {
+    const response = await fetch(`${SUNO_API_URL}/generate/get-timestamped-lyrics`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${SUNO_API_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        taskId: request.taskId,
+        musicIndex: request.musicIndex,
+      }),
     });
 
     if (!response.ok) {
       throw new Error('Failed to fetch timestamped lyrics');
     }
 
-    const data = await response.json();
+    const { data } = await response.json();
     return {
       success: true,
       lyrics: data.lyrics || data.alignedWords || [],
@@ -236,7 +251,6 @@ class SunoAPIWrapper {
    */
   async generateSong(request: {
     prompt?: string;
-    lyrics?: string;
     style: string;
     title: string;
     customMode?: boolean;
@@ -246,14 +260,13 @@ class SunoAPIWrapper {
     callBackUrl?: string;
   }): Promise<{ code: number; msg?: string; data: { taskId: string } }> {
     try {
-      // Use prompt if provided, otherwise use lyrics
-      const lyrics = request.prompt || request.lyrics || '';
-      
+
       const response = await generateSong({
-        title: request.title,
-        lyrics: lyrics,
+        prompt: request.prompt || '',
         style: request.style,
-        callbackUrl: request.callBackUrl,
+        title: request.title,
+        negativeTags: request.negativeTags || '',
+        callBackUrl: request.callBackUrl || '',
       });
 
       return {
@@ -298,7 +311,7 @@ class SunoAPIWrapper {
   }> {
     try {
       const statusResponse = await getSongStatus(taskId);
-      
+
       return {
         code: 200,
         data: {
@@ -309,7 +322,7 @@ class SunoAPIWrapper {
             taskId: statusResponse.taskId,
             sunoData: statusResponse.songs || [],
           },
-          status: statusResponse.status.toUpperCase(),
+          status: statusResponse.status,
           type: 'generate',
           ...(statusResponse.error && {
             errorCode: 'API_ERROR',
@@ -338,13 +351,12 @@ class SunoAPIWrapper {
 
   /**
    * Get timestamped lyrics
-   * @param request Request with taskId, audioId, and musicIndex
+   * @param request Request with taskId and musicIndex
    * @returns Response with code and data.alignedWords
    */
   async getTimestampedLyrics(request: {
     taskId: string;
-    audioId?: string;
-    musicIndex?: number;
+    musicIndex: number;
   }): Promise<{
     code: number;
     msg?: string;
@@ -353,10 +365,10 @@ class SunoAPIWrapper {
     };
   }> {
     try {
-      // Use audioId if provided, otherwise use taskId
-      const songId = request.audioId || request.taskId;
-      
-      const result = await getTimestampedLyrics(songId);
+      const result = await getTimestampedLyrics({
+        taskId: request.taskId,
+        musicIndex: request.musicIndex,
+      });
 
       if (!result.success) {
         return {

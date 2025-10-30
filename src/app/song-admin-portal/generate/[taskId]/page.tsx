@@ -391,10 +391,10 @@ export default function GenerateProgressPage({
                             Duration:{" "}
                             {Math.round(Number(variant.duration) || 0)}s
                           </p>
-                          {variant.streamAudioUrl && (
+                          {(variant.audioUrl || variant.streamAudioUrl) && (
                             <audio controls className="w-full mb-3">
                               <source
-                                src={variant.streamAudioUrl}
+                                src={variant.audioUrl || variant.streamAudioUrl}
                                 type="audio/mpeg"
                               />
                               Your browser does not support the audio element.
