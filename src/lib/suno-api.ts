@@ -34,7 +34,6 @@ export interface SunoStatusResponse {
     streamAudioUrl: string;
     sourceImageUrl: string;
     duration?: number;
-    timestampedLyrics?: any;
   }>;
   error?: string;
 }
@@ -60,19 +59,6 @@ export async function generateSong(
       estimatedTime: 120, // 2 minutes
     };
   }
-
-  console.log("REQUEST:", {
-    title: request.title,
-    prompt: request.prompt,
-    style: request.style,
-    customMode: true,
-    instrumental: false,
-    model: "V5",
-    negativeTags: request.negativeTags,
-    callback_url: request.callBackUrl,
-  });
-
-  console.log("+++++++++++++ SUNO_API_KEY +++++++++++++", SUNO_API_KEY)
 
   try {
     const response = await fetch(`${SUNO_API_URL}/generate`, {
@@ -143,11 +129,10 @@ export async function getSongStatus(
         {
           id: `demo-song-${taskTime}`,
           audioUrl: '/audio/generated-song-demo.mp3',
-          imageUrl: '/images/song-thumbnail-image/birthday-song.png',
+          sourceImageUrl: '/images/song-thumbnail-image/birthday-song.png',
+          sourceAudioUrl: '/audio/generated-song-demo.mp3',
+          streamAudioUrl: '/audio/generated-song-demo.mp3',
           duration: 180,
-          timestampedLyrics: {
-            alignedWords: [],
-          },
         },
       ],
     };

@@ -73,13 +73,12 @@ export async function GET(
         variants[index] = {
           id: song.id,
           audioUrl: song.audioUrl,
-          imageUrl: song.imageUrl,
+          sourceAudioUrl: song.sourceAudioUrl,
+          sourceImageUrl: song.sourceImageUrl,
+          streamAudioUrl: song.streamAudioUrl,
+          imageUrl: song.sourceImageUrl,
           duration: song.duration,
         };
-
-        if (song.timestampedLyrics) {
-          timestampedLyrics[index] = song.timestampedLyrics;
-        }
       });
 
       await db
